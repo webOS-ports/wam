@@ -172,6 +172,12 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
           PMLOGKS("INSTANCE_ID", app_->InstanceId().c_str()),
           PMLOGKS("URL", arguments[0].c_str()), "Page is NOT in closing");
     }
+  } else if (command == "getResource") {
+    if (arguments.size() == 1) {
+      std::string path = arguments[0];
+      std::string file_str = util::ReadFile(path);
+      return file_str;
+    }
   }
 
   return std::string();

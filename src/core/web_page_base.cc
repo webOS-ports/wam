@@ -419,7 +419,7 @@ void WebPageBase::SetBackgroundColorOfBody(const std::string& color) {
 }
 
 std::string WebPageBase::DefaultFont() {
-  std::string default_font = "LG Display-Regular";
+  std::string default_font = "Prelude";
   std::string language;
   std::string country;
   GetSystemLanguage(language);

@@ -17,6 +17,7 @@
 #include "web_page_blink.h"
 
 #include <algorithm>
+#include <limits>
 #include <cmath>
 #include <sstream>
 
@@ -29,9 +30,11 @@
 #include "palm_system_blink.h"
 #include "url.h"
 #include "utils.h"
+#include "window_types.h"
 #include "web_app_manager_config.h"
 #include "web_app_manager_tracer.h"
 #include "web_app_manager_utils.h"
+#include "web_app_manager.h"
 #include "web_page_blink_observer.h"
 #include "web_page_observer.h"
 #include "web_view.h"
@@ -125,7 +128,7 @@ void WebPageBlink::Init() {
   page_private_->page_view_->SetDisallowScrollingInMainFrame(true);
   page_private_->page_view_->SetDoNotTrack(app_desc_->DoNotTrack());
   page_private_->page_view_->SetJavascriptCanOpenWindows(true);
-  page_private_->page_view_->SetSupportsMultipleWindows(false);
+  page_private_->page_view_->SetSupportsMultipleWindows(true);
   page_private_->page_view_->SetCSSNavigationEnabled(true);
   page_private_->page_view_->SetV8DateUseSystemLocaloffset(false);
   page_private_->page_view_->SetLocalStorageEnabled(true);
@@ -1241,3 +1244,16 @@ bool WebPageBlink::AllowMouseOnOffEvent() const {
 void WebPageBlink::SetObserver(WebPageBlinkObserver* observer) {
   observer_ = observer;
 }
+
+WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory) {
+  // create a new page, with a factory associated with the new content
+  WebPageBlink *newPage = new WebPageBlink(newUrl, app_desc_, launch_params_, std::move(dedicatedFactory));
+  newPage->Init();
+
+  // Create a new webApp instance for this page
+  WebAppManager *webAppMgr = WebAppManager::Instance();
+  webAppMgr->CreateWindowForAppPage(kWtCard, app_desc_, launch_params_, app_id_, newPage);
+  
+  return newPage->PageView();
+}
+

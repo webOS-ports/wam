@@ -157,6 +157,8 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void DeactivateRendererCompositor() override;
 
   void DidResumeDOM() override;
+  
+  WebView* CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory) override;
 
   // Timer callback
   void TimeoutCloseCallback();

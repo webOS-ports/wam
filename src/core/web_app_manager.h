@@ -134,6 +134,12 @@ class WebAppManager {
   void WebPageRemoved(WebPageBase* page);
   void RemoveWebAppFromWebProcessInfoMap(const std::string& app_id);
 
+  void CreateWindowForAppPage(const std::string& win_type,
+                              std::shared_ptr<ApplicationDescription> app_desc,
+                              const std::string& args,
+                              const std::string& launching_app_id,
+                              WebPageBase* page);
+                              
   void AppDeleted(WebAppBase* app);
   void PostRunningAppList();
   std::string GenerateInstanceId();

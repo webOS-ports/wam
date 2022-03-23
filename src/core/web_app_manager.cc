@@ -353,6 +353,50 @@ WebAppBase* WebAppManager::OnLaunchUrl(
   return app;
 }
 
+void WebAppManager::CreateWindowForAppPage(const std::string& win_type,
+                                           std::shared_ptr<ApplicationDescription> app_desc,
+                                           const std::string& args,
+                                           const std::string& launching_app_id,
+                                           WebPageBase* page) {
+  
+  std::string instance_id = GenerateInstanceId();
+  
+  WebAppFactoryManager* factory = GetWebAppFactory();
+  WebAppBase* app = factory->CreateWebApp(win_type.c_str(), app_desc,
+                                          app_desc->SubType().c_str());
+
+  if (app) {
+    // set use launching time optimization true while app loading.
+    page->SetUseLaunchOptimization(true);
+
+    if (win_type == kWtFloating || win_type == kWtCard)
+      page->SetEnableBackgroundRun(app_desc->IsEnableBackgroundRun());
+
+    app->SetAppDescription(app_desc);
+    app->SetAppProperties(args);
+    app->SetInstanceId(instance_id);
+    app->SetLaunchingAppId(launching_app_id);
+    if (web_app_manager_config_->IsCheckLaunchTimeEnabled())
+      app->StartLaunchTimer();
+    app->Attach(page);
+    app->SetPreloadState(args);
+
+    page->Load();
+    WebPageAdded(page);
+
+    app_list_.push_back(app);
+
+    if (app_version_.find(app_desc->Id()) != app_version_.end()) {
+      if (app_version_[app_desc->Id()] != app_desc->Version()) {
+        app->SetNeedReload(true);
+        app_version_[app_desc->Id()] = app_desc->Version();
+      }
+    } else {
+      app_version_[app_desc->Id()] = app_desc->Version();
+    }
+  }
+}
+
 void WebAppManager::ForceCloseAppInternal(WebAppBase* app) {
   app->SetKeepAlive(false);
   CloseAppInternal(app);

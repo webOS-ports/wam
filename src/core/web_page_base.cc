@@ -271,6 +271,12 @@ void WebPageBase::SendRelaunchEvent() {
       << "    var launchEvent=new CustomEvent('webOSRelaunch', { detail: "
       << detail << " });"
       << "    document.dispatchEvent(launchEvent);"
+      
+      << "    console.log('[WAM] call Mojo.relaunch() for legacy apps');"
+      << "    if(!!Mojo && !!Mojo.relaunch) {"
+      << "      PalmSystem.launchParams = JSON.stringify(" << detail << ");"
+      << "      Mojo.relaunch();"
+      << "    }"
       << "}, 1);";
   EvaluateJavaScript(relaunchEvent.str().c_str());
 }

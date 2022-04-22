@@ -98,6 +98,10 @@ Json::Value WebAppManagerServiceLuna::launchApp(const Json::Value& request) {
     json_params["launchedHidden"] = true;
   }
 
+  if (request.isMember("noWindow") && request["noWindow"] == true) {
+    json_params["noWindow"] = true;
+  }
+
   // if "preload" parameter is not "full" or "partial" or "minimal", there is no
   // preload parameter.
   if (request.isMember("preload") && request["preload"].isString()) {

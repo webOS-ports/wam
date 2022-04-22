@@ -70,7 +70,7 @@ void WebAppBase::SetHiddenWindow(bool hidden) {
 }
 
 bool WebAppBase::GetHiddenWindow() const {
-  return hidden_window_;
+  return hidden_window_ || no_window_;
 }
 
 void WebAppBase::SetKeepAlive(bool keep_alive) {
@@ -174,7 +174,7 @@ void WebAppBase::Relaunch(const std::string& args,
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()),
            PMLOGKS("LAUNCHING_APP_ID", launching_app_id.c_str()), "");
-  if (GetHiddenWindow()) {
+  if (GetHiddenWindow() && !no_window_) {
     SetHiddenWindow(false);
 
     ClearPreloadState();
@@ -302,6 +302,11 @@ void WebAppBase::SetAppProperties(const std::string& properties) {
   SetKeepAlive(keep_alive);
 
   if (json["launchedHidden"].isBool() && json["launchedHidden"].asBool()) {
+    SetHiddenWindow(true);
+  }
+
+  if (json["noWindow"].isBool() && json["noWindow"].asBool()) {
+    no_window_ = true;
     SetHiddenWindow(true);
   }
 }

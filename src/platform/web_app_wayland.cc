@@ -295,12 +295,16 @@ void WebAppWayland::OnStageActivated() {
 
   Page()->ResumeWebPageAll();
 
-  Page()->SetVisibilityState(
-      WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateVisible);
+  if(!GetHiddenWindow()) {
+      Page()->SetVisibilityState(
+          WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateVisible);
+  }
 
   SetActiveInstanceId(InstanceId());
 
-  app_window_->Show();
+  if(!GetHiddenWindow()) {
+    app_window_->Show();
+  }
 
   LOG_INFO(MSGID_WEBAPP_STAGE_ACITVATED, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),

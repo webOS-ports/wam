@@ -261,16 +261,21 @@ void BlinkWebView::DidErrorPageLoadedFromNetErrorHelper() {
   return delegate_->DidErrorPageLoadedFromNetErrorHelper();
 }
 
-content::WebContents *BlinkWebView::CreateWindowForWebView(const std::string& newUrl, neva_app_runtime::WebView *webview)
+content::WebContents *BlinkWebView::CreateWindowForWebView(const std::string& newUrl,
+                                                           neva_app_runtime::WebView *webview,
+                                                           int height,
+                                                           std::vector<std::string> additional_features)
 {
   if (!delegate_)
     return nullptr;
+    
+  LOG_DEBUG("Creating window for webview with height = %d", height);
     
   // create a new factory for this new_contents
   WebView* webViewNewContents = new WebViewImpl(std::make_unique<BlinkWebView>(webview));
   std::unique_ptr<WebViewFactory> dedicatedFactory(new WebViewFactoryExistingWebContents(webViewNewContents));
   // create a new WebPage using this factory
-  WebView *newWebView = delegate_->CreateWindow(newUrl, std::move(dedicatedFactory));
+  WebView *newWebView = delegate_->CreateWindow(newUrl, std::move(dedicatedFactory), height, additional_features);
 
   return newWebView->GetWebContents();
 }

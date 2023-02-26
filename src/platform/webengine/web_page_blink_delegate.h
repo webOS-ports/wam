@@ -66,7 +66,7 @@ class WebPageBlinkDelegate {
   virtual bool AllowMouseOnOffEvent() const = 0;
   virtual void DidResumeDOM() {}
   virtual void DidErrorPageLoadedFromNetErrorHelper() = 0;
-  virtual WebView* CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory) = 0;
+  virtual WebView* CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory, int height, std::vector<std::string> additional_features) = 0;
 };
 
 #endif  // PLATFORM_WEBENGINE_WEB_PAGE_BLINK_DELEGATE_H_

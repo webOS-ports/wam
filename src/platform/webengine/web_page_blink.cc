@@ -35,6 +35,7 @@
 #include "web_app_manager_tracer.h"
 #include "web_app_manager_utils.h"
 #include "web_app_manager.h"
+#include "web_app_base.h"
 #include "web_page_blink_observer.h"
 #include "web_page_observer.h"
 #include "web_view.h"
@@ -1245,15 +1246,51 @@ void WebPageBlink::SetObserver(WebPageBlinkObserver* observer) {
   observer_ = observer;
 }
 
-WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory) {
+WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory, int height, std::vector<std::string> additional_features) {
+
+  std::shared_ptr<ApplicationDescription> new_app_desc(new ApplicationDescription(*app_desc_.get()));
+
+  Json::Value window_attributes;
+  // explore additional_features to determine our window type
+  // reminder: the features are a list of "key=value" strings, where value can also be a json string
+  for(const std::string &feature: additional_features) {
+    if (feature.find("attributes=") != std::string::npos) {
+      // for the webOS attributes, the value is a json string
+      window_attributes = util::StringToJson(feature.substr(11));
+    }
+  }
+
+  if (window_attributes["window"].asString() == "dashboard") {
+    new_app_desc->SetDefaultWindowType("floating");
+  } 
+  else if (window_attributes["window"].asString() == "popupalert") {
+    new_app_desc->SetDefaultWindowType("system_ui");
+  }
+  
+    
   // create a new page, with a factory associated with the new content
-  WebPageBlink *newPage = new WebPageBlink(newUrl, app_desc_, "{}", std::move(dedicatedFactory));
+  WebPageBlink *newPage = new WebPageBlink(newUrl, new_app_desc, "{}", std::move(dedicatedFactory));
   newPage->Init();
 
   // Create a new webApp instance for this page
   WebAppManager *webAppMgr = WebAppManager::Instance();
-  webAppMgr->CreateWindowForAppPage(webAppMgr->WindowTypeFromString(app_desc_->DefaultWindowType()), 
-                                    app_desc_, "{}", app_id_, newPage);
+  WebAppBase *newWebApp = webAppMgr->CreateWindowForAppPage(webAppMgr->WindowTypeFromString(new_app_desc->DefaultWindowType()), 
+                                    new_app_desc, "{}", app_id_, newPage);
+  
+  if (newWebApp && height > 0) {
+    newWebApp->Resize(CurrentUiWidth(), height);
+  }
+
+  if (newWebApp) {
+    for (auto window_attr_iter = window_attributes.begin(); window_attr_iter != window_attributes.end(); ++window_attr_iter) {
+      std::string attr_key = window_attr_iter.name();
+      std::string attr_value = window_attr_iter->asString();
+      
+      if (attr_key != "" && attr_value != "") {
+        newWebApp->SetWindowProperty("LuneOS_" + attr_key, attr_value);
+      }
+    }
+  }  
   
   return newPage->PageView();
 }

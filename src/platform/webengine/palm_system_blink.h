@@ -42,7 +42,7 @@ class PalmSystemBlink : public PalmSystemWebOS {
   virtual double DevicePixelRatio();
   void ResetInitialized() { initialized_ = false; }
   bool IsInitialized() { return initialized_; }
-
+  
  protected:
   // PalmSystemWebOS
   Json::Value Initialize();
@@ -51,6 +51,13 @@ class PalmSystemBlink : public PalmSystemWebOS {
 
   virtual std::string TrustLevel() const;
   virtual void OnCloseNotify(const std::string& params);
+
+  int AddBannerMessage(const std::string &msgTitle, const std::string &launchParams,
+                       const std::string &msgIconUrl, const std::string &soundClass,
+                       const std::string &msgSoundFile, const std::string &duration,
+                       const std::string &doNotSuppress);
+  void RemoveBannerMessage(std::string id);
+  void ClearBannerMessages();
 
  private:
   bool initialized_;

@@ -23,6 +23,7 @@
 #include "web_app_base.h"
 #include "web_app_wayland.h"
 #include "web_page_blink.h"
+#include "web_app_manager_service_luna.h"
 
 namespace {
 
@@ -178,6 +179,22 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
       std::string file_str = util::ReadFile(path);
       return file_str;
     }
+  } else if (command == "addBannerMessage") {
+    std::string _msg           = arguments.size()>=1 ? arguments[0] : "";
+    std::string _params        = arguments.size()>=2 ? arguments[1] : "";
+    std::string _icon          = arguments.size()>=3 ? arguments[2] : "";
+    std::string _soundClass    = arguments.size()>=4 ? arguments[3] : "";
+    std::string _soundFile     = arguments.size()>=5 ? arguments[4] : "";
+    std::string _duration      = arguments.size()>=6 ? arguments[5] : "";
+    std::string _doNotSuppress = arguments.size()>=7 ? arguments[6] : "false";
+
+    return std::to_string(AddBannerMessage(_msg, _params, _icon, _soundClass, _soundFile, _duration, _doNotSuppress));
+  } else if (command == "removeBannerMessage") {
+    if (arguments.size() == 1) {
+      RemoveBannerMessage(arguments[0]);
+    }
+  } else if (command == "clearBannerMessages") {
+    ClearBannerMessages();
   }
 
   return std::string();
@@ -227,6 +244,54 @@ void PalmSystemBlink::OnCloseNotify(const std::string& params) {
 
 double PalmSystemBlink::DevicePixelRatio() {
   return static_cast<WebPageBlink*>(app_->Page())->DevicePixelRatio();
+}
+
+// banner management
+int PalmSystemBlink::AddBannerMessage(const std::string &msgTitle, const std::string &launchParams,
+                                      const std::string &msgIconUrl, const std::string &soundClass,
+                                      const std::string &msgSoundFile, const std::string &soundDuration,
+                                      const std::string &doNotSuppress) {
+  // we define a banner as a toast
+  Json::Value create_params;
+  create_params["type"] = "standard";
+  create_params["message"] = msgTitle;
+  create_params["launchParams"] = launchParams;
+  create_params["iconUrl"] = msgIconUrl;
+
+// unsupported attributes for now
+//  create_params["soundClass"] = soundClass;
+//  create_params["soundFile"] = msgSoundFile;
+//  create_params["duration"] = soundDuration;
+//  create_params["doNotSuppress"] = doNotSuppress;
+//  create_params["expireTimeout"] = "0";
+
+  static int currentNotifId = 0; // always increment a static int, to return a unique id
+
+  bannerIds_[currentNotifId++] = "no-uuid";
+  std::function<Json::Value(const Json::Value&)> lambda = [this](const Json::Value& payload) {
+      this->bannerIds_[currentNotifId] = payload["toastId"].asString();
+      return payload;
+  };
+  LSCalloutContext cbAddBanner(lambda);
+
+  WebAppManagerServiceLuna::Instance()->Call(
+      "luna://com.webos.notification/createToast", create_params, app_->AppId().c_str(), &cbAddBanner);
+
+  return currentNotifId;
+}
+
+void PalmSystemBlink::RemoveBannerMessage(std::string id) {
+  std::string remove_params = R"(
+    {"id" : ")" + bannerIds_[std::atoi(id.c_str())] + R"("}
+  )";
+
+  app_->ServiceCall("luna://org.webosports.notifications/close", remove_params, app_->AppId());
+}
+void PalmSystemBlink::ClearBannerMessages() {
+
+  std::string clear_params = "{}";
+
+  app_->ServiceCall("luna://org.webosports.notifications/closeAll", clear_params, app_->AppId());
 }
 
 Json::Value PalmSystemBlink::Initialize() {

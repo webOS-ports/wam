@@ -19,6 +19,8 @@
 
 #include <string>
 #include <vector>
+#include <map>
+#include <functional>
 
 #include "palm_system_webos.h"
 
@@ -54,13 +56,14 @@ class PalmSystemBlink : public PalmSystemWebOS {
 
   int AddBannerMessage(const std::string &msgTitle, const std::string &launchParams,
                        const std::string &msgIconUrl, const std::string &soundClass,
-                       const std::string &msgSoundFile, const std::string &duration,
+                       const std::string &msgSoundFile, const std::string &soundDuration,
                        const std::string &doNotSuppress);
   void RemoveBannerMessage(std::string id);
   void ClearBannerMessages();
 
  private:
   bool initialized_;
+  std::map<int, std::string> bannerIds_;
 };
 
 #endif  // PLATFORM_WEBENGINE_PALM_SYSTEM_BLINK_H_

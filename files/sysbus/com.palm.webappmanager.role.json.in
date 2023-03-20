@@ -21,6 +21,7 @@
           "com.webos.service.connectionmanager",
           "com.webos.settingsservice",
           "com.palm.applicationManager-webappmgr",
+          "com.webos.notification",
           "com.webos.lunasend-*"
         ]
       },

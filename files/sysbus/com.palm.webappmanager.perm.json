@@ -6,7 +6,8 @@
         "networkconnection.query",
         "settings.query",
         "memorymanager.query",
-        "boot.query"
+        "boot.query",
+        "notification.operation"
     ],
     "com.webos.rm.client.*": [
         "media.operation"

@@ -266,7 +266,14 @@ void WebAppBase::WebPageClosePageRequested() {
   }
 
   close_page_requested_ = true;
-  WebAppManager::Instance()->CloseApp(InstanceId());
+  int process_id = stoi(InstanceId());
+  if (process_id >= 1000) {
+    // this page was created by a window.open call => close it internally only
+    WebAppManager::Instance()->CloseAppInternal(this);
+  }
+  else {
+    WebAppManager::Instance()->CloseApp(InstanceId());
+  }
 }
 
 void WebAppBase::StagePreparing() {

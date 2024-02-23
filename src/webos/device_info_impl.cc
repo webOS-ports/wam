@@ -17,6 +17,7 @@
 #include "device_info_impl.h"
 
 #include <string>
+#include <fstream>
 
 #include <glib.h>
 #include <json/value.h>
@@ -28,11 +29,11 @@
 DeviceInfoImpl::DeviceInfoImpl() = default;
 
 void DeviceInfoImpl::Initialize() {
+  GatherInfo();
+
   const std::string& json_string =
       util::ReadFile("/var/luna/preferences/localeInfo");
-  if (json_string.empty()) {
-    return;
-  }
+  if (!json_string.empty()) {
 
   Json::Value locale_json = util::StringToJson(json_string);
   if (!locale_json.isObject() || locale_json.empty() ||
@@ -56,6 +57,28 @@ void DeviceInfoImpl::Initialize() {
   SetSystemLanguage(language.c_str());
   SetDeviceInfo("LocalCountry", localcountry.c_str());
   SetDeviceInfo("SmartServiceCountry", smartservicecountry.c_str());
+  }
+
+  Json::Value deviceInfo_json(Json::objectValue);
+  deviceInfo_json["modelName"] = model_name_;
+  deviceInfo_json["platformVersion"] = platform_version_;
+  {
+    int major, minor, dot;
+    const int fields_count =
+        std::sscanf(platform_version_.c_str(), "%d.%d.%d", &major, &minor, &dot);
+    if (fields_count != 3) {
+      major = minor = dot = -1;
+    }
+
+    deviceInfo_json["platformVersionMajor"] = major;
+    deviceInfo_json["platformVersionMinor"] = minor;
+    deviceInfo_json["platformVersionDot"] = dot;
+  }
+  deviceInfo_json["screenWidth"] = screen_width_;
+  deviceInfo_json["screenHeight"] = screen_height_;
+  // deviceInfo_json["panelType"] = "";
+
+  SetDeviceInfo("TvDeviceInfo", util::JsonToString(deviceInfo_json));
 }
 
 bool DeviceInfoImpl::GetInfoFromLunaPrefs(const char* key,
@@ -104,6 +127,29 @@ void DeviceInfoImpl::InitPlatformInfo() {
      "platformVersionMajor_pos": 00,
      "platformVersionMinor": 00,
   */
+
+  {
+    // setup fallback recognizable value, in case buildinfo can't be parsed
+    model_name_ = "LuneOS-dev";
+    platform_version_ = "0.9.9";
+
+    std::ifstream buildinfoFile("/etc/buildinfo");
+    std::string line;
+    while (std::getline(buildinfoFile, line))
+    {
+      size_t startpos = line.find_first_of(" =");
+      if( std::string::npos == startpos ) continue; // skip useless lines
+      std::string key = line.substr(0, startpos);
+      std::string value = line.substr(line.find_last_of(" =")+1);
+
+      if (key == "DISTRO_VERSION") {
+        SetDeviceInfo("FirmwareVersion", value + ".0" /*add dot version*/);
+      }
+      else if (key == "MACHINE") {
+        SetDeviceInfo("ModelName", value);
+      }
+    }
+  }
 
   std::string value;
   if (GetDeviceInfo("ModelName", value)) {

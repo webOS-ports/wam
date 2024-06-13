@@ -30,7 +30,8 @@
     "com.webos.settingsservice.client-*": [
         "application.launcher",
         "application.operation",
-        "settings.query"
+        "settings.query",
+        "networkconnection.query"
     ],
     "com.webos.chromium.installablemanager.*": [
         "applicationinstall.management",

@@ -20,15 +20,15 @@
 #undef TRACEPOINT_INCLUDE
 #define TRACEPOINT_INCLUDE "pmtrace_webappmanager3_provider.h"
 
-#ifdef __cplusplus
-extern "C" {
-#endif /*__cplusplus */
-
 #if !defined(_PMTRACE_WEBAPPMANAGER3_PROVIDER_H) || \
     defined(TRACEPOINT_HEADER_MULTI_READ)
 #define _PMTRACE_WEBAPPMANAGER3_PROVIDER_H
 
 #include <lttng/tracepoint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif /*__cplusplus */
 
 /* "message" tracepoint should be used for single event trace points */
 TRACEPOINT_EVENT(pmtrace_webappmanager3,
@@ -83,11 +83,10 @@ TRACEPOINT_EVENT(pmtrace_webappmanager3,
                  function_exit,
                  TP_ARGS(const char*, text),
                  TP_FIELDS(ctf_string(scope, text)))
+#ifdef __cplusplus
+}
+#endif /*__cplusplus */
 
 #endif /* _PMTRACE_WEBAPPMANAGER3_PROVIDER_H */
 
 #include <lttng/tracepoint-event.h>
-
-#ifdef __cplusplus
-}
-#endif /*__cplusplus */

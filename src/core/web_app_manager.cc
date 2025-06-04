@@ -355,7 +355,7 @@ WebAppBase* WebAppManager::OnLaunchUrl(
   return app;
 }
 
-void WebAppManager::CreateWindowForAppPage(const std::string& win_type,
+WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
                                            std::unique_ptr<ApplicationDescription> app_desc,
                                            const std::string& args,
                                            const std::string& launching_app_id,
@@ -399,6 +399,7 @@ void WebAppManager::CreateWindowForAppPage(const std::string& win_type,
       app_version_[app_desc_id] = app_desc_version;
     }
   }
+  return app;
 }
 
 void WebAppManager::ForceCloseAppInternal(WebAppBase* app) {

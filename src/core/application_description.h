@@ -34,6 +34,8 @@ class ApplicationDescription {
   ApplicationDescription();
   virtual ~ApplicationDescription() = default;
 
+  ApplicationDescription(const ApplicationDescription& b) = default;
+
   const std::string& Id() const { return id_; }
   const std::string& Title() const { return title_; }
   const std::string& EntryPoint() const { return entry_point_; }
@@ -56,6 +58,8 @@ class ApplicationDescription {
   const std::string& FolderPath() const { return folder_path_; }
 
   const std::string& DefaultWindowType() const { return default_window_type_; }
+
+  void SetDefaultWindowType(std::string windowType) { default_window_type_ = windowType ; }
 
   const std::string& EnyoBundleVersion() const { return enyo_bundle_version_; }
 

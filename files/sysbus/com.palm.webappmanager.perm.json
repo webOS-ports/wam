@@ -5,6 +5,7 @@
         "application.operation",
         "memorymanager.query",
         "networkconnection.query",
+        "notification.operation",
         "settings.query"
     ],
     "com.webos.chromium.audio*": [

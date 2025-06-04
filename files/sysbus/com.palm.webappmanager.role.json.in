@@ -20,11 +20,15 @@
         "outbound":[
           "com.palm.bus",
           "com.webos.applicationManager",
+          "com.webos.service.applicationManager",
           "com.webos.bootManager",
-          "com.webos.memorymanager",
+          "com.webos.service.memorymanager",
           "com.webos.service.activitymanager",
           "com.webos.service.connectionmanager",
-          "com.webos.settingsservice"
+          "com.webos.settingsservice",
+          "com.palm.applicationManager-webappmgr",
+          "com.webos.notification",
+          "com.webos.lunasend-*"
         ]
       },
       {
@@ -55,6 +59,7 @@
         "service":"com.webos.settingsservice.client-*",
         "outbound":[
           "com.webos.applicationManager",
+          "com.webos.service.applicationManager",
           "com.webos.settingsservice"
         ]
       },

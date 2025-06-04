@@ -1262,7 +1262,8 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
 
   // Create a new webApp instance for this page
   WebAppManager *webAppMgr = WebAppManager::Instance();
-  webAppMgr->CreateWindowForAppPage(kWtCard, app_desc_, "{}", app_id_, newPage);
+  webAppMgr->CreateWindowForAppPage(webAppMgr->WindowTypeFromString(app_desc_->DefaultWindowType()),
+                                    app_desc_, "{}", app_id_, newPage);
 
   return newPage->PageView();
 }

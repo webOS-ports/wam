@@ -28,6 +28,7 @@ class BlinkWebView : public webos::WebViewBase {
  public:
   // TODO need to refactor both constructors (here & pluggables)
   explicit BlinkWebView(bool do_initialize = true);
+  explicit BlinkWebView(neva_app_runtime::WebView *webview);
   explicit BlinkWebView(const std::string& /*group*/) : BlinkWebView() {}
 
   void AddUserScript(const std::string& script);
@@ -75,6 +76,8 @@ class BlinkWebView : public webos::WebViewBase {
   void LoadVisuallyCommitted() override;
   void DidResumeDOM() override;
   void DidErrorPageLoadedFromNetErrorHelper() override;
+
+  content::WebContents *CreateWindowForWebView(const std::string& newUrl, neva_app_runtime::WebView *webview) override;
 
  private:
   WebPageBlinkDelegate* delegate_ = nullptr;

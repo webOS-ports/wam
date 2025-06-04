@@ -151,6 +151,8 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetAdditionalContentsScale(float scale_x, float scale_y);
   void UpdateHardwareResolution();
 
+  WebView* CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory, int height, std::vector<std::string> additional_features) override;
+
   // Timer callback
   void TimeoutCloseCallback();
 

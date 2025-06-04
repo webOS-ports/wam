@@ -19,7 +19,31 @@
 #include "log_manager.h"
 #include "web_page_blink_delegate.h"
 
+#include "web_view_factory.h"
+#include "web_view_impl.h"
+
+class WebViewFactoryExistingWebContents: public WebViewFactory {
+ public:
+  WebViewFactoryExistingWebContents(WebView* webViewNewContents):
+    webViewNewContents_(webViewNewContents) {}
+
+  WebView* CreateWebView() override {
+    WebView *newView = webViewNewContents_;
+    webViewNewContents_ = nullptr; // if CreateWebView is called again, don't reuse this WebView
+    if (!newView) newView = new WebViewImpl(std::make_unique<BlinkWebView>());
+    return newView;
+  }
+ private:
+  WebView* webViewNewContents_;
+};
+
 BlinkWebView::BlinkWebView(bool /*do_initialize*/) {}
+
+BlinkWebView::BlinkWebView(neva_app_runtime::WebView *webview)
+    : WebViewBase::WebViewBase(webview),
+      delegate_(nullptr),
+      progress_(0),
+      user_script_executed_(false) {}
 
 void BlinkWebView::AddUserScript(const std::string& script) {
   user_scripts_.push_back(script);
@@ -240,6 +264,20 @@ void BlinkWebView::DidResumeDOM() {
     delegate_->DidResumeDOM();
   }
 }
+
+  content::WebContents *BlinkWebView::CreateWindowForWebView(const std::string& newUrl, neva_app_runtime::WebView *webview)
+  {
+    if (!delegate_)
+      return nullptr;
+
+    // create a new factory for this new_contents
+    WebView* webViewNewContents = new WebViewImpl(std::make_unique<BlinkWebView>(webview));
+    std::unique_ptr<WebViewFactory> dedicatedFactory(new WebViewFactoryExistingWebContents(webViewNewContents));
+    // create a new WebPage using this factory
+    WebView *newWebView = delegate_->CreateWindow(newUrl, std::move(dedicatedFactory));
+
+    return newWebView->GetWebContents();
+  }
 
 void BlinkWebView::DidErrorPageLoadedFromNetErrorHelper() {
   if (!delegate_) {

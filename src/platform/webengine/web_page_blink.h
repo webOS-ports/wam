@@ -122,6 +122,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void LoadFailed(const std::string& url, int err_code) override;
   void LoadStopped() override;
   void LoadAborted(const std::string& url) override;
+  void NotifyExternalProtocolNavigation(const std::string& url);
   void LoadProgressChanged(double progress) override;
   void DidStartNavigation(const std::string& url,
                           bool is_in_main_frame) override;

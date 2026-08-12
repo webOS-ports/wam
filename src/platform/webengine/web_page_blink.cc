@@ -727,6 +727,57 @@ void WebPageBlink::LoadAborted(const std::string& url) {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[ABORTED]%s",
            WebAppManagerUtils::TruncateURL(url).c_str());
+
+  NotifyExternalProtocolNavigation(url);
+}
+
+// A navigation to a scheme the engine cannot load is aborted before any script can see
+// it: location never changes, so the page has no way to observe the URL. That matters for
+// native OAuth redirects -- an app signing in through window.open() gets its authorization
+// code as msauth.<client>://auth?code=..., and losing it silently means sign-in can never
+// complete. Legacy webOS learns about these through BrowserServer-atlas's
+// actionData("oauthRedirect"); this is the LuneOS equivalent. Hand the URL to the page as a
+// DOM event, and to its opener as well, since the window that started the sign-in is the
+// one waiting for the code.
+void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
+  static const char* kEngineSchemes[] = {"http:",  "https:", "file:", "about:",
+                                         "data:",  "blob:",  "ws:",   "wss:",
+                                         "chrome:"};
+  if (url.empty() || url.find(':') == std::string::npos)
+    return;
+  for (const char* scheme : kEngineSchemes) {
+    if (url.rfind(scheme, 0) == 0)
+      return;
+  }
+
+  // The URL becomes a JavaScript string literal, so escape what would break out of it.
+  std::string escaped;
+  escaped.reserve(url.size() + 16);
+  for (const char c : url) {
+    switch (c) {
+      case '\\': escaped += "\\\\"; break;
+      case '"': escaped += "\\\""; break;
+      case '\n': escaped += "\\n"; break;
+      case '\r': escaped += "\\r"; break;
+      default:
+        // Drop control characters rather than emit a raw byte the parser may choke on.
+        if (static_cast<unsigned char>(c) >= 0x20)
+          escaped += c;
+        break;
+    }
+  }
+
+  LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
+           PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
+           PMLOGKFV("PID", "%d", GetWebProcessPID()), "[EXTPROTO]%s",
+           WebAppManagerUtils::TruncateURL(url).c_str());
+
+  EvaluateJavaScript(
+      "(function(){var u=\"" + escaped + "\";"
+      "var f=function(w){try{w.webOSExternalProtocolUrl=u;"
+      "w.dispatchEvent(new CustomEvent('webOSExternalProtocol',"
+      "{detail:{url:u}}));}catch(e){}};"
+      "f(window);if(window.opener){f(window.opener);}})();");
 }
 
 void WebPageBlink::LoadFailed(const std::string& url, int err_code) {

@@ -281,6 +281,12 @@ void BlinkWebView::DidResumeDOM() {
     // create a new WebPage using this factory
     WebView *newWebView = delegate_->CreateWindow(newUrl, std::move(dedicatedFactory), height, additional_features);
 
+    // CreateWindow() returns the new page's view, which is null if the page could not be
+    // created. Returning null here tells the engine no window was made (window.open() then
+    // yields null / the navigation is blocked) instead of crashing the browser process.
+    if (!newWebView)
+      return nullptr;
+
     return newWebView->GetWebContents();
   }
 

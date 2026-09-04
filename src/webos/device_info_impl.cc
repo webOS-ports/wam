@@ -163,6 +163,10 @@ void DeviceInfoImpl::InitPlatformInfo() {
      "platformVersionMinor": 00,
   */
 
+  // The webOS level this image claims to provide, read from /etc/buildinfo
+  // below and applied after the distribution's own version.
+  std::string webos_compat_version;
+
   {
     // setup fallback recognizable value, in case buildinfo can't be parsed
     model_name_ = "LuneOS-dev";
@@ -180,6 +184,9 @@ void DeviceInfoImpl::InitPlatformInfo() {
       if (key == "DISTRO_VERSION") {
         SetDeviceInfo("FirmwareVersion", value + ".0" /*add dot version*/);
       }
+      else if (key == "WEBOS_COMPAT_VERSION") {
+        webos_compat_version = value;
+      }
       else if (key == "MACHINE") {
         SetDeviceInfo("ModelName", value);
       }
@@ -192,6 +199,16 @@ void DeviceInfoImpl::InitPlatformInfo() {
   }
   if (GetDeviceInfo("FirmwareVersion", value)) {
     platform_version_ = std::move(value);
+  }
+
+  // Legacy applications branch on platformVersion / platformVersionMajor to
+  // choose which of their bundled builds to load - typically "below webOS 3
+  // means load the Mojo build". The distribution's own version is 1.0, which
+  // reads as webOS 1.x and sends them to a build wanting frameworks that are
+  // not here. WEBOS_COMPAT_VERSION states the webOS level actually provided,
+  // so report that when the image sets one.
+  if (!webos_compat_version.empty()) {
+    platform_version_ = webos_compat_version;
   }
 
   size_t major_pos = 0, minor_pos = 0;

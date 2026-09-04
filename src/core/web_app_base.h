@@ -58,6 +58,9 @@ class WebAppBase : public WebPageObserver {
   virtual void StartLaunchTimer() {}
   virtual void SetHiddenWindow(bool hidden);
   virtual void ConfigureWindow(const std::string& type) = 0;
+  // Window type this app was actually created with. Empty when the
+  // platform doesn't track one; WebAppWayland overrides it.
+  virtual std::string WindowType() const { return std::string(); }
   virtual void SetKeepAlive(bool keep_alive);
   virtual bool IsWindowed() const;
   virtual void Relaunch(const std::string& args,

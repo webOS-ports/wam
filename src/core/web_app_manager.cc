@@ -658,6 +658,9 @@ const std::string WebAppManager::WindowTypeFromString(const std::string& str) {
   if (str == "system_ui") {
     return kWtSystemUi;
   }
+  if (str == "dock") {
+    return kWtDock;
+  }
   return kWtCard;
 }
 
@@ -725,6 +728,16 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
     LOG_WARNING(MSGID_APP_LAUNCH, 0, "Failed to parse params: '%s'",
                 params.c_str());
     return std::string();
+  }
+
+  // Exhibition (dock) mode. The shell launches an application for the dock
+  // with the parameters legacy webOS used, which the ported applications
+  // still look for to pick their dock face. Give such a window a type of its
+  // own so the shell can host it apart from the ordinary card stack, instead
+  // of it also turning up as a card behind the exhibition display.
+  if (json["dockMode"].asBool() &&
+      json["windowType"].asString() == "dockModeWindow") {
+    win_type = kWtDock;
   }
 
   Json::Value affinity = json["displayAffinity"];

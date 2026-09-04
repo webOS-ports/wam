@@ -44,7 +44,8 @@ WebAppBase* WebAppFactoryLuna::CreateWebApp(
   WebAppBase* app = nullptr;
 
   if (win_type == kWtCard || win_type == kWtPopup || win_type == kWtMinimal ||
-      win_type == kWtFloating || win_type == kWtSystemUi) {
+      win_type == kWtFloating || win_type == kWtSystemUi ||
+      win_type == kWtDock) {
     app = new WebAppWaylandWebOS(win_type, desc);
   } else if (win_type == kWtOverlay || win_type == kWtNone) {
     app = new WebAppWayland(win_type, std::nullopt, std::nullopt,

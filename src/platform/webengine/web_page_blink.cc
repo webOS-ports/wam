@@ -1398,7 +1398,18 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
 
   // Create a new webApp instance for this page
   WebAppManager *webAppMgr = WebAppManager::Instance();
-  WebAppBase *newWebApp = webAppMgr->CreateWindowForAppPage(webAppMgr->WindowTypeFromString(new_app_desc->DefaultWindowType()),
+  // Inherit the type the parent was actually launched with, falling back to
+  // what appinfo.json asked for. It matters for exhibition (dock) mode: those
+  // applications are typically "noWindow": true, so the window the user
+  // actually sees is this one, and it has to carry the dock type too rather
+  // than reverting to a card.
+  std::string child_win_type =
+      webAppMgr->WindowTypeFromString(new_app_desc->DefaultWindowType());
+  WebAppBase *parentApp = webAppMgr->FindAppById(app_id_);
+  if (parentApp && !parentApp->WindowType().empty())
+    child_win_type = parentApp->WindowType();
+
+  WebAppBase *newWebApp = webAppMgr->CreateWindowForAppPage(child_win_type,
                                     std::move(new_app_desc), "{}", app_id_, newPage);
 
   if (newWebApp && height > 0) {

@@ -129,6 +129,7 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void NavigationHistoryChanged() override;
 
   std::string GetWindowType() const { return window_type_; }
+  std::string WindowType() const override { return window_type_; }
   bool CursorVisibility() {
     return InputManager::Instance()->GlobalCursorVisibility();
   }

@@ -25,5 +25,6 @@ const char kWtNone[] = "_WEBOS_WINDOW_TYPE_NONE";
 const char kWtFloating[] = "_WEBOS_WINDOW_TYPE_FLOATING";
 const char kWtUnknown[] = "_WEBOS_WINDOW_TYPE_UNKNOWN";
 const char kWtSystemUi[] = "_WEBOS_WINDOW_TYPE_SYSTEM_UI";
+const char kWtDock[] = "_WEBOS_WINDOW_TYPE_DOCK";
 
 #endif  // CORE_WINDOW_TYPES_H_

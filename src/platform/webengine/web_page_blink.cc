@@ -1403,11 +1403,18 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
   // applications are typically "noWindow": true, so the window the user
   // actually sees is this one, and it has to carry the dock type too rather
   // than reverting to a card.
+  //
+  // A type named explicitly in the window.open attributes wins over both: a
+  // dashboard or popup alert asks for its type on purpose, and inheriting
+  // instead turned com.palm.systemui's dashboards (a system_ui application)
+  // into system_ui windows the shell never lists in the notification area.
   std::string child_win_type =
       webAppMgr->WindowTypeFromString(new_app_desc->DefaultWindowType());
-  WebAppBase *parentApp = webAppMgr->FindAppById(app_id_);
-  if (parentApp && !parentApp->WindowType().empty())
-    child_win_type = parentApp->WindowType();
+  if (window_attributes["window"].asString().empty()) {
+    WebAppBase *parentApp = webAppMgr->FindAppById(app_id_);
+    if (parentApp && !parentApp->WindowType().empty())
+      child_win_type = parentApp->WindowType();
+  }
 
   WebAppBase *newWebApp = webAppMgr->CreateWindowForAppPage(child_win_type,
                                     std::move(new_app_desc), "{}", app_id_, newPage);

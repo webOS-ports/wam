@@ -16,8 +16,6 @@
 
 #include "web_app_manager_service_luna.h"
 
-#include <codecvt>
-#include <locale>
 #include <string>
 #include <vector>
 
@@ -74,7 +72,7 @@ bool WebAppManagerServiceLuna::StartService() {
 Json::Value WebAppManagerServiceLuna::launchApp(const Json::Value& request) {
   PMTRACE_FUNCTION;
 
-  int err_code;
+  int err_code = 0;
   std::string err_msg;
   Json::Value reply;
 
@@ -165,7 +163,7 @@ Json::Value WebAppManagerServiceLuna::killApp(const Json::Value& request) {
     return reply;
   }
 
-  bool instances;
+  bool instances = false;
   std::string instance_id = request["instanceId"].asString();
   std::string app_id = request["appId"].asString();
   std::string reason;
@@ -398,8 +396,7 @@ Json::Value WebAppManagerServiceLuna::fireNotificationEvent(
   }
   auto reply = std::make_pair(std::u16string(), false);
   if (request.isMember("reply") && request["reply"].isString()) {
-    std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-    reply.first = convert.from_bytes(request["reply"].asString());
+    reply.first = util::Utf8ToUtf16(request["reply"].asString());
     reply.second = true;
   }
   auto dispatcher = neva_app_runtime::GetNotificationEventDispatcher();
@@ -609,7 +606,7 @@ void WebAppManagerServiceLuna::GetAppStatusCallback(const Json::Value& reply) {
   }
 
   std::string change_kind = reply["change"].asString();
-  Json::Value app_object = reply["app"];
+  const Json::Value& app_object = reply["app"];
 
   if (change_kind.compare("removed") == 0) {
     std::string app_id =

@@ -48,6 +48,12 @@ void ReplaceSubstr(std::string& in,
                    const std::string& to_search,
                    const std::string& replace_str = {});
 
+// UTF-8 <-> UTF-16 conversion. Replaces std::wstring_convert /
+// std::codecvt_utf8_utf16, which are deprecated since C++17 and removed in
+// C++26. Malformed input is replaced with U+FFFD rather than throwing.
+std::string Utf16ToUtf8(const std::u16string& utf16);
+std::u16string Utf8ToUtf16(const std::string& utf8);
+
 // JSON
 bool StringToJson(const std::string& str, Json::Value& value);
 Json::Value StringToJson(const std::string& str);

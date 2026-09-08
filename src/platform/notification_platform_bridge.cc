@@ -16,10 +16,8 @@
 
 #include "notification_platform_bridge.h"
 
-#include <codecvt>
-#include <locale>
-
 #include "notification_service_luna.h"
+#include "utils.h"
 
 NotificationPlatformBridge::NotificationPlatformBridge() = default;
 
@@ -27,17 +25,15 @@ NotificationPlatformBridge::~NotificationPlatformBridge() = default;
 
 void NotificationPlatformBridge::Display(
     const neva_app_runtime::Notification& notification) {
-  std::wstring_convert<std::codecvt_utf8_utf16<char16_t>, char16_t> convert;
-
   NotificationData data;
   data.app_id = notification.AppId();
   for (const neva_app_runtime::ButtonInfo& button : notification.Buttons()) {
     data.buttons.emplace_back(button.title, button.icon_path);
   }
-  data.message = convert.to_bytes(notification.Message());
+  data.message = util::Utf16ToUtf8(notification.Message());
   data.id = notification.Id();
   data.origin = notification.Origin();
-  data.title = convert.to_bytes(notification.Title());
+  data.title = util::Utf16ToUtf8(notification.Title());
 
   NotificationService::Instance()->Display(data);
 }

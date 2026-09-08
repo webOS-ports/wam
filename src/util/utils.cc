@@ -127,7 +127,7 @@ bool DoesPathExist(const std::string& path) {
     return false;
   }
 
-  struct stat st;
+  struct stat st = {};
   if (stat(path.c_str(), &st)) {
     return false;
   }
@@ -183,7 +183,7 @@ bool StrToInt(const std::string& str, int& num) {
 }
 
 int StrToIntWithDefault(const std::string& str, int default_value) {
-  int converted_value;
+  int converted_value = 0;
   return StrToInt(str, converted_value) ? converted_value : default_value;
 }
 
@@ -223,6 +223,131 @@ void ReplaceSubstr(std::string& in,
     in.replace(pos, to_search.size(), replace_str);
     pos = in.find(to_search, pos + replace_str.size());
   }
+}
+
+namespace {
+
+constexpr char32_t kReplacementChar = 0xFFFD;
+constexpr char32_t kMaxCodePoint = 0x10FFFF;
+
+bool IsSurrogate(char32_t cp) {
+  return cp >= 0xD800 && cp <= 0xDFFF;
+}
+
+void AppendUtf8(char32_t cp, std::string& out) {
+  if (cp > kMaxCodePoint || IsSurrogate(cp)) {
+    cp = kReplacementChar;
+  }
+  if (cp < 0x80) {
+    out.push_back(static_cast<char>(cp));
+  } else if (cp < 0x800) {
+    out.push_back(static_cast<char>(0xC0 | (cp >> 6)));
+    out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+  } else if (cp < 0x10000) {
+    out.push_back(static_cast<char>(0xE0 | (cp >> 12)));
+    out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+  } else {
+    out.push_back(static_cast<char>(0xF0 | (cp >> 18)));
+    out.push_back(static_cast<char>(0x80 | ((cp >> 12) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | ((cp >> 6) & 0x3F)));
+    out.push_back(static_cast<char>(0x80 | (cp & 0x3F)));
+  }
+}
+
+void AppendUtf16(char32_t cp, std::u16string& out) {
+  if (cp > kMaxCodePoint || IsSurrogate(cp)) {
+    cp = kReplacementChar;
+  }
+  if (cp < 0x10000) {
+    out.push_back(static_cast<char16_t>(cp));
+  } else {
+    cp -= 0x10000;
+    out.push_back(static_cast<char16_t>(0xD800 + (cp >> 10)));
+    out.push_back(static_cast<char16_t>(0xDC00 + (cp & 0x3FF)));
+  }
+}
+
+}  // namespace
+
+std::string Utf16ToUtf8(const std::u16string& utf16) {
+  std::string out;
+  out.reserve(utf16.size());
+  for (size_t i = 0; i < utf16.size(); ++i) {
+    const char32_t unit = utf16[i];
+    if (unit >= 0xD800 && unit <= 0xDBFF) {
+      // High surrogate: needs a matching low surrogate to form a code point.
+      if (i + 1 < utf16.size() && utf16[i + 1] >= 0xDC00 &&
+          utf16[i + 1] <= 0xDFFF) {
+        const char32_t low = utf16[++i];
+        AppendUtf8(0x10000 + ((unit - 0xD800) << 10) + (low - 0xDC00), out);
+      } else {
+        AppendUtf8(kReplacementChar, out);
+      }
+    } else if (unit >= 0xDC00 && unit <= 0xDFFF) {
+      // Unpaired low surrogate.
+      AppendUtf8(kReplacementChar, out);
+    } else {
+      AppendUtf8(unit, out);
+    }
+  }
+  return out;
+}
+
+std::u16string Utf8ToUtf16(const std::string& utf8) {
+  std::u16string out;
+  out.reserve(utf8.size());
+  size_t i = 0;
+  while (i < utf8.size()) {
+    const unsigned char lead = static_cast<unsigned char>(utf8[i]);
+    size_t extra = 0;
+    char32_t cp = 0;
+    if (lead < 0x80) {
+      cp = lead;
+    } else if ((lead & 0xE0) == 0xC0) {
+      cp = lead & 0x1F;
+      extra = 1;
+    } else if ((lead & 0xF0) == 0xE0) {
+      cp = lead & 0x0F;
+      extra = 2;
+    } else if ((lead & 0xF8) == 0xF0) {
+      cp = lead & 0x07;
+      extra = 3;
+    } else {
+      // Stray continuation byte or invalid lead byte.
+      AppendUtf16(kReplacementChar, out);
+      ++i;
+      continue;
+    }
+
+    if (i + extra >= utf8.size()) {
+      AppendUtf16(kReplacementChar, out);
+      ++i;
+      continue;
+    }
+
+    bool valid = true;
+    for (size_t k = 1; k <= extra; ++k) {
+      const unsigned char cont = static_cast<unsigned char>(utf8[i + k]);
+      if ((cont & 0xC0) != 0x80) {
+        valid = false;
+        break;
+      }
+      cp = (cp << 6) | (cont & 0x3F);
+    }
+
+    // Reject truncated sequences, over-long encodings and surrogate halves.
+    if (!valid || (extra == 1 && cp < 0x80) || (extra == 2 && cp < 0x800) ||
+        (extra == 3 && cp < 0x10000) || cp > kMaxCodePoint || IsSurrogate(cp)) {
+      AppendUtf16(kReplacementChar, out);
+      ++i;
+      continue;
+    }
+
+    AppendUtf16(cp, out);
+    i += extra + 1;
+  }
+  return out;
 }
 
 // JSON

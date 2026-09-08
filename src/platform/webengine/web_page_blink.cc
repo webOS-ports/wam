@@ -911,9 +911,7 @@ void WebPageBlink::RecreateWebView() {
         WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateLaunching);
   }
 
-  if (is_suspended_) {
-    is_suspended_ = false;
-  }
+  is_suspended_ = false;
 }
 
 void WebPageBlink::SetVisible(bool visible) {
@@ -921,10 +919,11 @@ void WebPageBlink::SetVisible(bool visible) {
 }
 
 void WebPageBlink::SetViewportSize() {
-  if (app_desc_.WidthOverride().has_value() &&
-      app_desc_.HeightOverride().has_value()) {
-    page_private_->page_view_->SetViewportSize(
-        app_desc_.WidthOverride().value(), app_desc_.HeightOverride().value());
+  const auto width_override = app_desc_.WidthOverride();
+  const auto height_override = app_desc_.HeightOverride();
+  if (width_override.has_value() && height_override.has_value()) {
+    page_private_->page_view_->SetViewportSize(width_override.value(),
+                                               height_override.value());
   }
 }
 
@@ -1177,8 +1176,8 @@ void WebPageBlink::UpdateBoardType() {
 double WebPageBlink::DevicePixelRatio() {
   float device_pixel_ratio = 1.0;
 
-  int app_width;
-  int app_height;
+  int app_width = 0;
+  int app_height = 0;
   if (app_desc_.WidthOverride().has_value()) {
     app_width = app_desc_.WidthOverride().value();
   } else {
@@ -1318,7 +1317,7 @@ void WebPageBlink::UpdateIsLoadErrorPageFinish() {
     net_error_reload_timer_.Stop();
     net_error_reload_timer_.StartWithReceiver(kReloadTimeoutMs, this,
                                               &WebPageBlink::ReloadFailedUrl);
-  } else if (was_error_page && !is_load_error_page_finish_) {
+  } else if (was_error_page) {
     LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()), "Stop reload timer");
     net_error_reload_timer_.Stop();

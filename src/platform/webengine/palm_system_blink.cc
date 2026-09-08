@@ -79,7 +79,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     return toStr(IsActivated());
   } else if (command == "isKeyboardVisible") {
     return toStr(IsKeyboardVisible());
-  } else if (command == "getIdentifier" || command == "identifier") {
+  } else if (command == "getIdentifier") {
     return Identifier();
   } else if (command == "launchParams") {
     LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
@@ -88,8 +88,6 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
              "webOSSystem.launchParams Updated by app; %s",
              arguments[0].c_str());
     UpdateLaunchParams(arguments[0]);
-  } else if (command == "screenOrientation") {
-    return ScreenOrientation();
   } else if (command == "keepAlive") {
     if (arguments.size() > 0) {
       SetKeepAlive(arguments[0] == "true");
@@ -100,7 +98,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     }
   } else if (command == "PmLogString") {
     if (arguments.size() > 3) {
-      int32_t v1;
+      int32_t v1 = 0;
       if (util::StrToInt(arguments[0], v1)) {
         LogMsgString(v1, arguments[1], arguments[2], arguments[3]);
       }
@@ -122,8 +120,8 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     app_->PlatformBack();
   } else if (command == "setCursor") {
     if (arguments.size() == 3) {
-      std::string v1 = arguments[0];
-      int32_t v2, v3;
+      const std::string& v1 = arguments[0];
+      int32_t v2 = 0, v3 = 0;
       const bool v2_conversion = util::StrToInt(arguments[1], v2);
       const bool v3_conversion = util::StrToInt(arguments[2], v3);
       if (v2_conversion && v3_conversion) {
@@ -182,7 +180,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     }
   } else if (command == "getResource") {
     if (arguments.size() == 1) {
-      std::string path = arguments[0];
+      const std::string& path = arguments[0];
       std::string file_str = util::ReadFile(path);
       return file_str;
     }

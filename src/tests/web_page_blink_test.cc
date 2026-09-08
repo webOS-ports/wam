@@ -14,6 +14,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <cerrno>
 #include <string>
 
 #include <gmock/gmock.h>
@@ -31,7 +32,6 @@
 
 namespace {
 
-using ::testing::_;
 using ::testing::HasSubstr;
 using ::testing::Return;
 
@@ -156,7 +156,7 @@ TEST_F(WebPageBlinkTestSuite, AddCustomPluginDir) {
   constexpr char path[] =
       "/usr/palm/applications/com.webos.app.test.webrtc/plugins";
   int result = mkdir(path, 0777);
-  ASSERT_FALSE(result && result == EEXIST);
+  ASSERT_FALSE(result != 0 && errno != EEXIST);
 
   EXPECT_CALL(*factory->web_view_, AddCustomPluginDir(path));
   EXPECT_CALL(*factory->web_view_, AddAvailablePluginDir(path));

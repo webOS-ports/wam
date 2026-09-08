@@ -64,7 +64,7 @@ int PalmSystemWebOS::ActivityId() const {
 }
 
 void PalmSystemWebOS::Activate() {
-  ApplicationDescription* app_desc = app_->GetAppDescription();
+  ApplicationDescription const* app_desc = app_->GetAppDescription();
   if (app_desc && !app_desc->HandlesRelaunch()) {
     return;
   }
@@ -115,7 +115,7 @@ void PalmSystemWebOS::SetGroupClientEnvironment(GroupClientCallKey call_key,
                                                 const std::string& params) {
   ApplicationDescription* app_desc = app_ ? app_->GetAppDescription() : nullptr;
   if (app_desc) {
-    ApplicationDescription::WindowGroupInfo group_info =
+    ApplicationDescription::WindowGroupInfo const group_info =
         app_desc->GetWindowGroupInfo();
     if (!group_info.name.empty() && !group_info.is_owner) {
       switch (call_key) {

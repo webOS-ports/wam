@@ -47,7 +47,7 @@ class WebAppWaylandWindow : public webos::WebAppWindowBase {
 
   // webos::WebAppWindowBase
   bool HandleWebOSEvent(WebOSEvent* event) override;
-  unsigned int CheckKeyFilterTable(unsigned key_code,
+  unsigned int CheckKeyFilterTable(unsigned keycode,
                                    unsigned* modifier) override;
 
  protected:

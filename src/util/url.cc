@@ -52,12 +52,12 @@ std::string Url::ToString() const {
 }
 
 std::string Url::ToLocalFile() const {
-  g_autofree gchar* cpath = g_filename_from_uri(uri_.c_str(), nullptr, nullptr);
+  g_autofree gchar const* cpath = g_filename_from_uri(uri_.c_str(), nullptr, nullptr);
   return cpath ? std::string(cpath) : std::string();
 }
 
 Url Url::FromLocalFile(const std::string& path) {
-  g_autofree gchar* cpath = g_filename_to_uri(path.c_str(), nullptr, nullptr);
+  g_autofree gchar const* cpath = g_filename_to_uri(path.c_str(), nullptr, nullptr);
   return cpath ? Url(cpath) : Url("");
 }
 

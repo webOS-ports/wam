@@ -45,7 +45,7 @@ class BlinkWebViewProfileHelper {
   static void ClearBrowsingData(const int remove_browsing_data_mask,
                                 webos::WebViewProfile* profile = nullptr);
   static void ClearDefaultBrowsingData(const int remove_browsing_data_mask);
-  static int MaskForBrowsingDataType(const char* key);
+  static int MaskForBrowsingDataType(const char* type);
   static void SetNotifierEnabled(const std::string& app_id, bool enabled);
 };
 

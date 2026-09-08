@@ -57,6 +57,8 @@ const std::map<std::string, std::string> kEnvironmentVariables = {
 
 }  // namespace
 
+namespace {
+
 class ErrorPageTestSuite : public ::testing::Test {
  public:
   ErrorPageTestSuite() = default;
@@ -65,7 +67,7 @@ class ErrorPageTestSuite : public ::testing::Test {
   void SetUp() override;
   void LaunchApp();
   void SetExpectedLoadUrlRequests();
-  void ProcessLoading(const std::string url);
+  void ProcessLoading(const std::string& url);
   void TearDown() override;
   static gboolean OnTimeoutFail(gpointer userdata);
   std::unique_ptr<BaseMockInitializer<NiceWebViewMockImpl,
@@ -78,6 +80,8 @@ class ErrorPageTestSuite : public ::testing::Test {
   std::string app_url_;
   static bool timeout_exceeded_;
 };
+
+}  // namespace
 
 bool ErrorPageTestSuite::timeout_exceeded_ = false;
 
@@ -124,7 +128,7 @@ void ErrorPageTestSuite::SetExpectedLoadUrlRequests() {
           [this](const std::string& url) { ProcessLoading(url); }));
 }
 
-void ErrorPageTestSuite::ProcessLoading(const std::string url) {
+void ErrorPageTestSuite::ProcessLoading(const std::string& url) {
   current_url_ = url;
   ASSERT_NE(web_view_delegate_, nullptr);
   web_view_delegate_->LoadStarted();
@@ -201,7 +205,7 @@ TEST_F(ErrorPageTestSuite, ReloadOnTimeout) {
         ProcessLoading(url);
         g_main_loop_quit(loop);
       }));
-  guint id = g_timeout_add(61000, OnTimeoutFail, loop);
+  guint const id = g_timeout_add(61000, OnTimeoutFail, loop);
   web_view_delegate_->LoadFailed(app_url_, 404);
   g_main_loop_run(loop);
   if (!timeout_exceeded_) {
@@ -210,3 +214,4 @@ TEST_F(ErrorPageTestSuite, ReloadOnTimeout) {
   EXPECT_FALSE(timeout_exceeded_);
   g_main_loop_unref(loop);
 }
+

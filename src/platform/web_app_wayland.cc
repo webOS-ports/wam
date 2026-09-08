@@ -147,7 +147,7 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
                             app_window_->DisplayHeight());
   }
 
-  webos::WebAppWindowBase::LocationHint location_hint =
+  webos::WebAppWindowBase::LocationHint const location_hint =
       GetLocationHintFromString(location_hint_);
   if (location_hint != webos::WebAppWindowBase::LocationHint::kUnknown) {
     app_window_->SetLocationHint(location_hint);
@@ -164,7 +164,7 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
     LOG_DEBUG("App window for display[%d]", display_id_);
   }
 
-  int timeout = util::StrToIntWithDefault(
+  int const timeout = util::StrToIntWithDefault(
       util::GetEnvVar("LAUNCH_FINISH_ASSURE_TIMEOUT"), 0);
   if (timeout != 0) {
     kLaunchFinishAssureTimeoutMs = timeout;
@@ -232,9 +232,9 @@ void WebAppWayland::Attach(WebPageBase* page) {
   const auto height_override = GetAppDescription()->HeightOverride();
   if (width_override.has_value() && height_override.has_value() &&
       !GetAppDescription()->IsTransparent()) {
-    float scale_x = static_cast<float>(app_window_->DisplayWidth()) /
+    float const scale_x = static_cast<float>(app_window_->DisplayWidth()) /
                     static_cast<float>(width_override.value());
-    float scale_y = static_cast<float>(app_window_->DisplayHeight()) /
+    float const scale_y = static_cast<float>(app_window_->DisplayHeight()) /
                     static_cast<float>(height_override.value());
     scale_factor_ = (scale_x < scale_y) ? scale_x : scale_y;
     static_cast<WebPageBlink*>(page)->SetAdditionalContentsScale(scale_x,
@@ -362,7 +362,7 @@ void WebAppWayland::SetupWindowGroup(ApplicationDescription* desc) {
     return;
   }
 
-  ApplicationDescription::WindowGroupInfo group_info =
+  ApplicationDescription::WindowGroupInfo const group_info =
       desc->GetWindowGroupInfo();
   if (group_info.name.empty()) {
     return;
@@ -385,7 +385,7 @@ void WebAppWayland::SetupWindowGroup(ApplicationDescription* desc) {
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()), "");
   } else {
-    ApplicationDescription::WindowClientInfo client_info =
+    ApplicationDescription::WindowClientInfo const client_info =
         desc->GetWindowClientInfo();
     app_window_->AttachToWindowGroup(group_info.name, client_info.layer);
     LOG_INFO(MSGID_ATTACH_SURFACEGROUP, 4, PMLOGKS("APP_ID", AppId().c_str()),
@@ -475,7 +475,7 @@ void WebAppWayland::FocusLayer() {
   app_window_->FocusWindowGroupLayer();
   ApplicationDescription* desc = GetAppDescription();
   if (desc) {
-    ApplicationDescription::WindowClientInfo client_info =
+    ApplicationDescription::WindowClientInfo const client_info =
         desc->GetWindowClientInfo();
     LOG_DEBUG("FocusLayer(layer:%s) [%s]", client_info.layer.c_str(),
               AppId().c_str());
@@ -528,7 +528,7 @@ void WebAppWayland::DoAttach() {
 }
 
 void WebAppWayland::Raise() {
-  bool was_minimized_state = IsMinimized();
+  bool const was_minimized_state = IsMinimized();
 
   // There's no fullscreen event from LSM for below cases, so onStageActivated
   // should be called

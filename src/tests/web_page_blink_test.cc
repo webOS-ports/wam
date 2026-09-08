@@ -101,6 +101,8 @@ WebViewFactoryMock::WebViewFactoryMock() : web_view_(new NiceWebViewMock()) {}
 
 }  // namespace
 
+namespace {
+
 class WebPageBlinkTestSuite : public ::testing::Test {
  public:
   WebPageBlinkTestSuite();
@@ -110,6 +112,8 @@ class WebPageBlinkTestSuite : public ::testing::Test {
   std::shared_ptr<ApplicationDescription> description;
   std::unique_ptr<WebViewFactoryMock> factory;
 };
+
+}  // namespace
 
 WebPageBlinkTestSuite::WebPageBlinkTestSuite() {
   WebAppManager::Instance()->SetPlatformModules(
@@ -175,7 +179,7 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   auto actual_value = getenv(var_name);
   std::string test_value(path);
   if (!actual_value) {
-    int result = setenv(var_name, path, false);
+    int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   } else {
     test_value = actual_value;
@@ -188,7 +192,7 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   web_page.Init();
 
   if (!actual_value) {
-    int result = unsetenv(var_name);
+    int const result = unsetenv(var_name);
     ASSERT_FALSE(result);
   }
 }
@@ -198,7 +202,7 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
   constexpr char var_name[] = "TELLURIUM_NUB_PATH";
   auto actual_value = getenv(var_name);
   if (!actual_value) {
-    int result = setenv(var_name, path, false);
+    int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   }
 
@@ -214,7 +218,8 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
   web_page.Init();
 
   if (!actual_value) {
-    int result = unsetenv(var_name);
+    int const result = unsetenv(var_name);
     ASSERT_FALSE(result);
   }
 }
+

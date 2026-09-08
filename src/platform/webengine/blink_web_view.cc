@@ -22,20 +22,28 @@
 #include "web_view_factory.h"
 #include "web_view_impl.h"
 
-class WebViewFactoryExistingWebContents: public WebViewFactory {
+namespace {
+
+class WebViewFactoryExistingWebContents : public WebViewFactory {
  public:
-  WebViewFactoryExistingWebContents(WebView* webViewNewContents):
-    webViewNewContents_(webViewNewContents) {}
+  explicit WebViewFactoryExistingWebContents(WebView* web_view_new_contents)
+      : web_view_new_contents_(web_view_new_contents) {}
 
   WebView* CreateWebView() override {
-    WebView *newView = webViewNewContents_;
-    webViewNewContents_ = nullptr; // if CreateWebView is called again, don't reuse this WebView
-    if (!newView) newView = new WebViewImpl(std::make_unique<BlinkWebView>());
-    return newView;
+    WebView* new_view = web_view_new_contents_;
+    // If CreateWebView() is called again, do not hand out this WebView twice.
+    web_view_new_contents_ = nullptr;
+    if (!new_view) {
+      new_view = new WebViewImpl(std::make_unique<BlinkWebView>());
+    }
+    return new_view;
   }
+
  private:
-  WebView* webViewNewContents_;
+  WebView* web_view_new_contents_;
 };
+
+}  // namespace
 
 BlinkWebView::BlinkWebView(bool /*do_initialize*/) {}
 

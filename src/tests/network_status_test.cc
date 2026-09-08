@@ -50,7 +50,7 @@ TEST(NetworkStatusTest, NetworkStatusTestConnection) {
   status.FromJsonObject(wired_status);
   EXPECT_TRUE(status.Type() == "wired");
   EXPECT_TRUE(status.IsInternetConnectionAvailable());
-  NetworkStatus::Information object_info = status.GetInformation();
+  NetworkStatus::Information const object_info = status.GetInformation();
   EXPECT_TRUE(object_info.Netmask() == "255.255.255.0");
   EXPECT_TRUE(object_info.Dns1() == "192.168.0.1");
   EXPECT_TRUE(object_info.Dns2() == "192.168.0.2");

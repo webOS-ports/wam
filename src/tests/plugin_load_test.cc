@@ -48,8 +48,8 @@ TEST(PluginLoadTest, Load) {
       });
   EXPECT_CALL(*lib_wrapper, GetDeleteInstanceFunction(fake_handle)).Times(1);
 
-  bool load_plugin_on_demand = false;
-  WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
+  bool const load_plugin_on_demand = false;
+  WebAppFactoryManagerImpl::RemovableManagerPtr const factory_manager =
       WebAppFactoryManagerImpl::TestInstance("/usr/lib/webappmanager/plugins",
                                              "", load_plugin_on_demand,
                                              std::move(lib_wrapper));
@@ -62,11 +62,11 @@ TEST(PluginLoadTest, LoadOnDemand) {
   auto lib_wrapper = std::make_unique<PluginLibWrapperMock>();
   EXPECT_CALL(*lib_wrapper, Load("testing::_")).Times(0);
   EXPECT_CALL(*lib_wrapper, GetAppType(fake_handle)).Times(0);
-  WebAppFactoryInterfaceMock factory_interface_mock;
+  WebAppFactoryInterfaceMock const factory_interface_mock;
   EXPECT_CALL(*lib_wrapper, GetCreateInstanceFunction(fake_handle)).Times(0);
 
-  bool load_plugin_on_demand = true;
-  WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
+  bool const load_plugin_on_demand = true;
+  WebAppFactoryManagerImpl::RemovableManagerPtr const factory_manager =
       WebAppFactoryManagerImpl::TestInstance("/usr/lib/webappmanager/plugins",
                                              "", load_plugin_on_demand,
                                              std::move(lib_wrapper));
@@ -100,13 +100,13 @@ TEST(PluginLoadTest, DefaultWebApp) {
       });
   EXPECT_CALL(*lib_wrapper, GetDeleteInstanceFunction(fake_handle)).Times(1);
 
-  bool load_plugin_on_demand = true;
+  bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
       WebAppFactoryManagerImpl::TestInstance("/usr/lib/webappmanager/plugins",
                                              "", load_plugin_on_demand,
                                              std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
-  WebAppBase* app_base =
+  WebAppBase const* app_base =
       factory_manager->CreateWebApp("_WEBOS_WINDOW_TYPE_CARD", {}, "default");
   EXPECT_EQ(app_base, &app_base_mock);
 }
@@ -138,13 +138,13 @@ TEST(PluginLoadTest, CustomWebApp) {
       });
   EXPECT_CALL(*lib_wrapper, GetDeleteInstanceFunction(fake_handle)).Times(1);
 
-  bool load_plugin_on_demand = true;
+  bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
       WebAppFactoryManagerImpl::TestInstance(
           "/usr/lib/webappmanager/plugins", "extended:custom:minimal",
           load_plugin_on_demand, std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
-  WebAppBase* app_base =
+  WebAppBase const* app_base =
       factory_manager->CreateWebApp("_WEBOS_WINDOW_TYPE_CARD", {}, "custom");
   EXPECT_EQ(app_base, &app_base_mock);
 }
@@ -156,26 +156,26 @@ TEST(PluginLoadTest, NotAllowedCustomWebApp) {
   EXPECT_CALL(*lib_wrapper, GetCreateInstanceFunction(testing::_)).Times(0);
   EXPECT_CALL(*lib_wrapper, GetDeleteInstanceFunction(testing::_)).Times(0);
 
-  bool load_plugin_on_demand = true;
+  bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
       WebAppFactoryManagerImpl::TestInstance(
           "/usr/lib/webappmanager/plugins", "extended:minimal",
           load_plugin_on_demand, std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
-  WebAppBase* app_base =
+  WebAppBase const* app_base =
       factory_manager->CreateWebApp("_WEBOS_WINDOW_TYPE_CARD", {}, "custom");
   EXPECT_EQ(app_base, nullptr);
 }
 
 TEST(PluginLoadTest, LoadTestPlugin) {
   auto lib_wrapper = std::make_unique<PluginLibWrapper>();
-  bool load_plugin_on_demand = true;
+  bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
       WebAppFactoryManagerImpl::TestInstance(
           "/usr/libexec/tests/webappmanager/plugins", "testplugin",
           load_plugin_on_demand, std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
-  WebAppBase* app_base = factory_manager->CreateWebApp("", {}, "testplugin");
+  WebAppBase const* app_base = factory_manager->CreateWebApp("", {}, "testplugin");
   ASSERT_NE(app_base, nullptr);
   EXPECT_EQ(app_base->AppId(), "pluginTestID");
 }

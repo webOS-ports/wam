@@ -28,7 +28,7 @@
 #include "log_manager.h"
 #include "utils.h"
 
-bool ApplicationDescription::CheckTrustLevel(std::string trust_level) {
+bool ApplicationDescription::CheckTrustLevel(const std::string& trust_level) {
   if (trust_level.empty()) {
     return false;
   }
@@ -209,7 +209,7 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   // Handle resolution
   const auto& resolution = json_obj["resolution"];
   if (resolution.isString()) {
-    std::string override_resolution = json_obj["resolution"].asString();
+    std::string const override_resolution = json_obj["resolution"].asString();
     auto res_list = util::SplitString(override_resolution, 'x');
     if (res_list.size() == 2) {
       int width_override = 0;
@@ -236,9 +236,9 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
       if (!k.isObject()) {
         continue;
       }
-      int from = k["from"].asInt();
-      int to = k["to"].asInt();
-      int modifier = k["modifier"].asInt();
+      int const from = k["from"].asInt();
+      int const to = k["to"].asInt();
+      int const modifier = k["modifier"].asInt();
       app_desc->key_filter_table_[from] = std::make_pair(to, modifier);
     }
   }

@@ -211,7 +211,7 @@ bool WebAppWaylandWindow::HandleWebOSEvent(WebOSEvent* event) {
       web_app_->Unfocus();
       break;
     case WebOSEvent::InputPanelVisible: {
-      float height =
+      float const height =
           static_cast<WebOSVirtualKeyboardEvent*>(event)->GetHeight();
       if (static_cast<WebOSVirtualKeyboardEvent*>(event)->GetVisible()) {
         web_app_->KeyboardVisibilityChanged(true, height);

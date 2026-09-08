@@ -57,12 +57,12 @@ void PermissionPrompt::Close() {
 void PermissionPrompt::SetDecisions() {
   LOG_DEBUG("PermissionPrompt::SetDecisions");
   for (const PermissionRequest* request : delegate_->Requests()) {
-    PermissionRequest::RequestType type = request->GetRequestType();
+    PermissionRequest::RequestType const type = request->GetRequestType();
     switch (type) {
       case PermissionRequest::RequestType::kCameraStream:
       case PermissionRequest::RequestType::kMicStream:
       case PermissionRequest::RequestType::kNotifications: {
-        bool status = GetPermissionStatusFromAppDesc(type);
+        bool const status = GetPermissionStatusFromAppDesc(type);
         if (status) {
           delegate_->Accept();
         } else {
@@ -79,8 +79,8 @@ void PermissionPrompt::SetDecisions() {
 bool PermissionPrompt::GetPermissionStatusFromAppDesc(
     PermissionRequest::RequestType type) {
   const std::string app_id = delegate_->GetAppId();
-  WebAppBase* app = WebAppManager::Instance()->FindAppById(app_id);
-  ApplicationDescription* app_desc = app->GetAppDescription();
+  WebAppBase const* app = WebAppManager::Instance()->FindAppById(app_id);
+  ApplicationDescription const* app_desc = app->GetAppDescription();
 
   bool status = false;
   switch (type) {

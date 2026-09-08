@@ -36,7 +36,7 @@ int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
   const int fd = open("/proc/stat", O_RDONLY);
   if (fd != -1) {
     char buffer[4096 + 1];
-    int len = read(fd, buffer, sizeof(buffer) - 1);
+    int const len = read(fd, buffer, sizeof(buffer) - 1);
     if (len > 0) {
       buffer[len] = '\0';
       char* p = SkipToken(buffer); /* "cpu" */
@@ -92,7 +92,7 @@ long WebAppManagerUtils::Percentages(int cnt,
     total_change = 1;
   }
 
-  long half_total = total_change / 2L;
+  long const half_total = total_change / 2L;
   for (int i = 0; i < cnt; i++) {
     *out++ = static_cast<int>((*diffs++ * 1000 + half_total) / total_change);
   }
@@ -128,10 +128,10 @@ bool WebAppManagerUtils::InVector(std::vector<std::string>& tokens,
   return false;
 }
 
-bool WebAppManagerUtils::InGroup(std::string line, const char* user_name) {
+bool WebAppManagerUtils::InGroup(const std::string& line, const char* user_name) {
   // only tokenize the lines that have users in the groups.
   // empty groups have the last character as ":".
-  size_t pos = line.find_last_of(':');
+  size_t const pos = line.find_last_of(':');
 
   if (pos == (line.size() - 1)) {
     return false;
@@ -149,7 +149,7 @@ bool WebAppManagerUtils::SetGroups() {
   size_t num_groups = 0;
 
   std::string line;
-  std::string new_group_path = "/etc/group";
+  std::string const new_group_path = "/etc/group";
 
   std::ifstream ifs(new_group_path.c_str());
 

@@ -29,20 +29,20 @@ const char* kTestJsonString =
 }  // namespace
 
 TEST(StringToJson, CheckStrictMode) {
-  std::string json_string = "5858h{igjmbn";
+  std::string const json_string = "5858h{igjmbn";
   Json::Value value;
   EXPECT_FALSE(util::StringToJson(json_string, value));
 }
 
 TEST(StringToJson, ParseError) {
-  std::string json_string = "abvgd";
+  std::string const json_string = "abvgd";
   Json::Value value;
   EXPECT_FALSE(util::StringToJson(json_string, value));
   EXPECT_TRUE(value.isNull());
 }
 
 TEST(StringToJson, ParseEmpty) {
-  std::string json_string = "";
+  std::string const json_string = "";
   Json::Value value;
   EXPECT_FALSE(util::StringToJson(json_string, value));
   EXPECT_TRUE(value.isNull());

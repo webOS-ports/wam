@@ -334,7 +334,7 @@ void WebAppBase::SetAppProperties(const std::string& properties) {
 void WebAppBase::SetPreloadState(const std::string& properties) {
   Json::Value obj = util::StringToJson(properties);
 
-  std::string preload = obj["preload"].asString();
+  std::string const preload = obj["preload"].asString();
 
   if (preload == "full") {
     preload_state_ = kFullPreload;

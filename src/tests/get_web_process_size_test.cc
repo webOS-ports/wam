@@ -88,7 +88,7 @@ constexpr char kLaunchAppJsonBody[] = R"({
 }  // namespace
 
 TEST(GetWebProcessSizeTest, checkCaseProcessNotExists) {
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
 
   const Json::Value request_process_size(Json::objectValue);
   WebAppManagerServiceLuna* luna_service = WebAppManagerServiceLuna::Instance();
@@ -107,7 +107,7 @@ TEST(GetWebProcessSizeTest, checkCaseProcessNotExists) {
 TEST(GetWebProcessSizeTest, checkCaseProcessExists) {
   BaseMockInitializer<NiceWebViewMock, NiceWebAppWindowMock,
                       PlatformModuleFactoryImplMock>
-      mock_initializer;
+      const mock_initializer;
 
   Json::Value request_launch;
   ASSERT_TRUE(util::StringToJson(kLaunchAppJsonBody, request_launch));
@@ -118,7 +118,7 @@ TEST(GetWebProcessSizeTest, checkCaseProcessExists) {
   ASSERT_TRUE(response_launch.isMember("returnValue"));
   ASSERT_TRUE(response_launch["returnValue"].asBool());
 
-  BlinkWebProcessManagerMock* process_manager =
+  BlinkWebProcessManagerMock const* process_manager =
       static_cast<BlinkWebProcessManagerMock*>(
           WebAppManager::Instance()->GetWebProcessManager());
   EXPECT_CALL(*process_manager, GetWebProcessPIDMock())
@@ -143,7 +143,7 @@ TEST(GetWebProcessSizeTest, checkCaseProcessExists) {
     const auto& process = processes[i];
     ASSERT_TRUE(process.isMember("pid"));
     ASSERT_TRUE(process["pid"].isString());
-    int pid = util::StrToIntWithDefault(process["pid"].asString(), 0);
+    int const pid = util::StrToIntWithDefault(process["pid"].asString(), 0);
     if (pid == kProcessId) {
       process_position = i;
       ASSERT_TRUE(process.isMember("webProcessSize"));

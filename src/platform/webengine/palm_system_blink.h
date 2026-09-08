@@ -56,7 +56,7 @@ class PalmSystemBlink : public PalmSystemWebOS {
                        const std::string &msgIconUrl, const std::string &soundClass,
                        const std::string &msgSoundFile, const std::string &soundDuration,
                        const std::string &doNotSuppress);
-  void RemoveBannerMessage(std::string id);
+  void RemoveBannerMessage(const std::string& id);
   void ClearBannerMessages();
 
  private:

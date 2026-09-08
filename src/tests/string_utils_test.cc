@@ -19,21 +19,21 @@
 #include <gtest/gtest.h>
 
 TEST(StringUtils, TrimTest) {
-  std::string test_string = " \f\n\r\t\v  test  \f\n\r\t\v ";
+  std::string const test_string = " \f\n\r\t\v  test  \f\n\r\t\v ";
   EXPECT_EQ(util::TrimString(test_string), "test");
 }
 
 TEST(StringUtils, TrimRightTest) {
-  std::string test_string = "test  \f\n\r\t\v ";
+  std::string const test_string = "test  \f\n\r\t\v ";
   EXPECT_EQ(util::TrimString(test_string), "test");
 }
 
 TEST(StringUtils, TrimLeftTest) {
-  std::string test_string = " \f\n\r\t\v  test";
+  std::string const test_string = " \f\n\r\t\v  test";
   EXPECT_EQ(util::TrimString(test_string), "test");
 }
 
 TEST(StringUtils, NoTrimTest) {
-  std::string test_string = "test";
+  std::string const test_string = "test";
   EXPECT_EQ(util::TrimString(test_string), "test");
 }

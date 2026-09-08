@@ -40,7 +40,7 @@ PluginLibWrapper::GetDeleteInstanceFunction(void* handle) {
 
 std::string PluginLibWrapper::GetAppType(void* handle) {
   const char* type = nullptr;
-  const char** pointer_to_type =
+  const char* const* pointer_to_type =
       reinterpret_cast<const char**>(dlsym(handle, "kPluginApplicationType"));
   if (pointer_to_type) {
     type = *pointer_to_type;
@@ -49,6 +49,6 @@ std::string PluginLibWrapper::GetAppType(void* handle) {
 }
 
 std::string PluginLibWrapper::GetLastError() {
-  char* error = dlerror();
+  char const* error = dlerror();
   return error == nullptr ? std::string() : std::string(error);
 }

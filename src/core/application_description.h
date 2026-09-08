@@ -17,19 +17,24 @@
 #ifndef CORE_APPLICATION_DESCRIPTION_H_
 #define CORE_APPLICATION_DESCRIPTION_H_
 
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
+#include <utility>
 
 #include "display_id.h"
 
 class ApplicationDescription {
  public:
-  enum WindowClass { kWindowClassNormal = 0x00, kWindowClassHidden = 0x01 };
+  enum WindowClass : std::uint8_t {
+    kWindowClassNormal = 0x00,
+    kWindowClassHidden = 0x01
+  };
 
-  enum class ThirdPartyCookiesPolicy { kDefault, kAllow, kDeny };
+  enum class ThirdPartyCookiesPolicy : std::uint8_t { kDefault, kAllow, kDeny };
 
   ApplicationDescription();
   virtual ~ApplicationDescription() = default;
@@ -59,7 +64,7 @@ class ApplicationDescription {
 
   const std::string& DefaultWindowType() const { return default_window_type_; }
 
-  void SetDefaultWindowType(std::string windowType) { default_window_type_ = windowType ; }
+  void SetDefaultWindowType(std::string windowType) { default_window_type_ = std::move(windowType) ; }
 
   const std::string& EnyoBundleVersion() const { return enyo_bundle_version_; }
 
@@ -158,7 +163,7 @@ class ApplicationDescription {
   }
 
  private:
-  bool CheckTrustLevel(std::string trust_level);
+  bool CheckTrustLevel(const std::string& trust_level);
 
   std::string id_;
   std::string title_;

@@ -50,7 +50,7 @@ TEST(PluginLoaderUnitTest, LoadTwice) {
 
 TEST(PluginLoaderUnitTest, LoadFail) {
   auto lib_wrapper = std::make_unique<PluginLibWrapperMock>();
-  std::string file = "libwebappmgr-default-plugin.so";
+  std::string const file = "libwebappmgr-default-plugin.so";
   void* fake_handle = nullptr;
   EXPECT_CALL(*lib_wrapper, Load(file))
       .Times(1)
@@ -62,7 +62,7 @@ TEST(PluginLoaderUnitTest, LoadFail) {
 TEST(PluginLoaderUnitTest, GetAppType) {
   auto lib_wrapper = std::make_unique<PluginLibWrapperMock>();
   std::string file = "libwebappmgr-default-plugin.so";
-  std::string app_type = "default";
+  std::string const app_type = "default";
   void* fake_handle = &file;
   EXPECT_CALL(*lib_wrapper, Load(file))
       .Times(1)

@@ -119,16 +119,16 @@ Json::Value WebAppManagerServiceLuna::launchApp(const Json::Value& request) {
   }
   json_params["instanceId"] = instance_id;
 
-  std::string str_params = util::JsonToString(json_params);
+  std::string const str_params = util::JsonToString(json_params);
 
-  std::string app_id = request["appDesc"]["id"].asString();
+  std::string const app_id = request["appDesc"]["id"].asString();
   LOG_INFO_WITH_CLOCK(
       MSGID_APPLAUNCH_START, 4, PMLOGKS("PerfType", "AppLaunch"),
       PMLOGKS("PerfGroup", app_id.c_str()), PMLOGKS("APP_ID", app_id.c_str()),
       PMLOGKS("INSTANCE_ID", instance_id.c_str()), "params : %s",
       str_params.c_str());
 
-  std::string str_app_desc = util::JsonToString(request["appDesc"]);
+  std::string const str_app_desc = util::JsonToString(request["appDesc"]);
   instance_id = WebAppManagerService::OnLaunch(
       str_app_desc, str_params, request["launchingAppId"].asString(), err_code,
       err_msg);
@@ -164,8 +164,8 @@ Json::Value WebAppManagerServiceLuna::killApp(const Json::Value& request) {
   }
 
   bool instances = false;
-  std::string instance_id = request["instanceId"].asString();
-  std::string app_id = request["appId"].asString();
+  std::string const instance_id = request["instanceId"].asString();
+  std::string const app_id = request["appId"].asString();
   std::string reason;
 
   if (request.isMember("reason")) {
@@ -176,7 +176,7 @@ Json::Value WebAppManagerServiceLuna::killApp(const Json::Value& request) {
            PMLOGKS("INSTANCE_ID", instance_id.c_str()),
            PMLOGKS("API", "killApp"), "reason : %s", reason.c_str());
 
-  bool memory_reclaim =
+  bool const memory_reclaim =
       reason.empty() || reason.compare("com.webos.service.memorymanager") == 0;
   instances =
       WebAppManagerService::OnKillApp(app_id, instance_id, memory_reclaim);
@@ -204,7 +204,7 @@ Json::Value WebAppManagerServiceLuna::pauseApp(const Json::Value& request) {
     return reply;
   }
 
-  std::string id = request["instanceId"].asString();
+  std::string const id = request["instanceId"].asString();
 
   LOG_INFO(MSGID_LUNA_API, 2, PMLOGKS("INSTANCE_ID", id.c_str()),
            PMLOGKS("API", "pauseApp"), "");
@@ -225,7 +225,7 @@ Json::Value WebAppManagerServiceLuna::setInspectorEnable(
     const Json::Value& /*request*/) {
   LOG_DEBUG("WebAppManagerService::SetInspectorEnable");
   Json::Value reply;
-  std::string error_message("Not supported on this platform");
+  std::string const error_message("Not supported on this platform");
 
   LOG_DEBUG("errorMessage : %s", error_message.c_str());
   reply["errorMessage"] = error_message;
@@ -235,7 +235,7 @@ Json::Value WebAppManagerServiceLuna::setInspectorEnable(
 
 Json::Value WebAppManagerServiceLuna::closeAllApps(
     const Json::Value& /*request*/) {
-  bool val = WebAppManagerService::OnCloseAllApps();
+  bool const val = WebAppManagerService::OnCloseAllApps();
 
   Json::Value reply;
   reply["returnValue"] = val;
@@ -265,9 +265,9 @@ Json::Value WebAppManagerServiceLuna::getWebProcessSize(
 Json::Value WebAppManagerServiceLuna::listRunningApps(
     const Json::Value& request,
     bool /*subscribed*/) {
-  bool include_sys_apps = request["includeSysApps"] == true;
+  bool const include_sys_apps = request["includeSysApps"] == true;
 
-  std::vector<ApplicationInfo> apps =
+  std::vector<ApplicationInfo> const apps =
       WebAppManagerService::List(include_sys_apps);
 
   Json::Value reply;
@@ -296,7 +296,7 @@ Json::Value WebAppManagerServiceLuna::clearBrowsingData(
     return reply;
   }
 
-  Json::Value clear_types = request["types"];
+  const Json::Value& clear_types = request["types"];
   bool return_value = true;
   int remove_browsing_data_mask = 0;
 
@@ -324,7 +324,7 @@ Json::Value WebAppManagerServiceLuna::clearBrowsingData(
           break;
         }
 
-        int mask = WebAppManagerService::MaskForBrowsingDataType(
+        int const mask = WebAppManagerService::MaskForBrowsingDataType(
             clear_type.asString().c_str());
         if (mask == 0) {
           std::stringstream error_text;
@@ -470,13 +470,13 @@ void WebAppManagerServiceLuna::GetSystemLocalePreferencesCallback(
   if (!locale_info.isObject() || locale_info.empty() ||
       !locale_info["locales"].isObject() ||
       !locale_info["locales"]["UI"].isString()) {
-    std::string doc = util::JsonToString(reply);
+    std::string const doc = util::JsonToString(reply);
     LOG_WARNING(MSGID_RECEIVED_INVALID_SETTINGS, 1,
                 PMLOGKFV("MSG", "%s", doc.c_str()), "");
     return;
   }
 
-  std::string language(locale_info["locales"]["UI"].asString());
+  std::string const language(locale_info["locales"]["UI"].asString());
 
   LOG_INFO(MSGID_SETTING_SERVICE, 1,
            PMLOGKS("LANGUAGE", language.empty() ? "None" : language.c_str()),
@@ -534,8 +534,8 @@ void WebAppManagerServiceLuna::GetCloseAppIdCallback(const Json::Value& reply) {
     return;
   }
 
-  std::string app_id = reply["id"].asString();
-  std::string instance_id = reply["instanceId"].asString();
+  std::string const app_id = reply["id"].asString();
+  std::string const instance_id = reply["instanceId"].asString();
 
   if (!app_id.empty() && !instance_id.empty()) {
     WebAppManagerService::SetForceCloseApp(app_id.c_str(), instance_id.c_str());
@@ -549,7 +549,7 @@ void WebAppManagerServiceLuna::ThresholdChangedCallback(
     return;
   }
 
-  std::string current_level = reply["current"].asString();
+  std::string const current_level = reply["current"].asString();
   if (current_level.empty()) {
     LOG_DEBUG("thresholdChanged without level");
     return;
@@ -557,7 +557,8 @@ void WebAppManagerServiceLuna::ThresholdChangedCallback(
   LOG_INFO(MSGID_NOTIFY_MEMORY_STATE, 1,
            PMLOGKS("State", current_level.c_str()), "");
 
-  webos::WebViewBase::MemoryPressureLevel level;
+  webos::WebViewBase::MemoryPressureLevel level =
+      webos::WebViewBase::MEMORY_PRESSURE_NONE;
   if (current_level.compare("medium") == 0) {
     level = webos::WebViewBase::MEMORY_PRESSURE_LOW;
   } else if (current_level.compare("critical") == 0 ||
@@ -605,17 +606,17 @@ void WebAppManagerServiceLuna::GetAppStatusCallback(const Json::Value& reply) {
     return;
   }
 
-  std::string change_kind = reply["change"].asString();
+  std::string const change_kind = reply["change"].asString();
   const Json::Value& app_object = reply["app"];
 
   if (change_kind.compare("removed") == 0) {
-    std::string app_id =
+    std::string const app_id =
         app_object["id"].isString() ? app_object["id"].asString() : "";
     LOG_INFO(MSGID_WAM_DEBUG, 0, "Application removed %s", app_id.c_str());
     WebAppManagerService::OnAppRemoved(app_id);
   }
   if (change_kind.compare("added") == 0) {
-    std::string app_id =
+    std::string const app_id =
         app_object["id"].isString() ? app_object["id"].asString() : "";
     LOG_INFO(MSGID_WAM_DEBUG, 0, "Application installed %s", app_id.c_str());
     WebAppManagerService::OnAppInstalled(app_id);
@@ -631,7 +632,7 @@ void WebAppManagerServiceLuna::GetForegroundAppInfoCallback(
 
   if (reply["returnValue"] == true) {
     if (reply.isMember("appId") && reply["appId"].isString()) {
-      std::string app_id = reply["appId"].asString();
+      std::string const app_id = reply["appId"].asString();
       webos::Runtime::GetInstance()->SetIsForegroundAppEnyo(
           WebAppManagerService::IsEnyoApp(app_id.c_str()));
     }
@@ -665,13 +666,13 @@ Json::Value WebAppManagerServiceLuna::webProcessCreated(
     return reply;
   }
 
-  std::string app_id =
+  std::string const app_id =
       request["appId"].isString() ? request["appId"].asString() : "";
   if (!app_id.empty()) {
-    std::string instance_id = request["instanceId"].isString()
+    std::string const instance_id = request["instanceId"].isString()
                                   ? request["instanceId"].asString()
                                   : "";
-    int pid = WebAppManagerService::GetWebProcessId(app_id.c_str(),
+    int const pid = WebAppManagerService::GetWebProcessId(app_id.c_str(),
                                                     instance_id.c_str());
     reply["id"] = app_id;
     reply["instanceId"] = instance_id;

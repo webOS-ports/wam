@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_APP_BASE_H_
 #define CORE_WEB_APP_BASE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -33,7 +34,7 @@ class Value;
 
 class WebAppBase : public WebPageObserver {
  public:
-  enum PreloadState {
+  enum PreloadState : std::uint8_t {
     kNonePreload = 0,
     kFullPreload = 1,
     kSemiFullPreload = 2,

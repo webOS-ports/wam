@@ -54,9 +54,9 @@ void DeviceInfoImpl::Initialize() {
 
   const Json::Value& locale_info = locale_json["localeInfo"];
 
-  std::string language(locale_info["locales"]["UI"].asString());
-  std::string localcountry(locale_json["country"].asString());
-  std::string smartservicecountry(
+  std::string const language(locale_info["locales"]["UI"].asString());
+  std::string const localcountry(locale_json["country"].asString());
+  std::string const smartservicecountry(
       locale_json["smartServiceCountryCode3"].asString());
 
   SetSystemLanguage(language.c_str());
@@ -176,10 +176,10 @@ void DeviceInfoImpl::InitPlatformInfo() {
     std::string line;
     while (std::getline(buildinfoFile, line))
     {
-      size_t startpos = line.find_first_of(" =");
+      size_t const startpos = line.find_first_of(" =");
       if( std::string::npos == startpos ) continue; // skip useless lines
-      std::string key = line.substr(0, startpos);
-      std::string value = line.substr(line.find_last_of(" =")+1);
+      std::string const key = line.substr(0, startpos);
+      std::string const value = line.substr(line.find_last_of(" =")+1);
 
       if (key == "DISTRO_VERSION") {
         SetDeviceInfo("FirmwareVersion", value + ".0" /*add dot version*/);

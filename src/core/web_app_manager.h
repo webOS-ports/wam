@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_APP_MANAGER_H_
 #define CORE_WEB_APP_MANAGER_H_
 
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
@@ -56,7 +57,7 @@ class ApplicationInfo {
 
 class WebAppManager {
  public:
-  enum WebAppMessageType { kDeviceInfoChanged = 1 };
+  enum WebAppMessageType : std::uint8_t { kDeviceInfoChanged = 1 };
 
   static WebAppManager* Instance();
 
@@ -106,7 +107,7 @@ class WebAppManager {
   bool OnPauseApp(const std::string& instance_id);
   bool SetInspectorEnable(const std::string& app_id);
 
-  void SetSystemLanguage(const std::string& value);
+  void SetSystemLanguage(const std::string& language);
   void SetDeviceInfo(const std::string& name, const std::string& value);
   WebAppManagerConfig* Config() { return web_app_manager_config_.get(); }
 

@@ -32,7 +32,7 @@ class WebAppManagerUtils {
   static void Tokenize(std::string& str,
                        std::vector<std::string>& tokens,
                        const std::string& delimiters);
-  static bool InGroup(std::string line, const char* user_name);
+  static bool InGroup(const std::string& line, const char* user_name);
   static bool InVector(std::vector<std::string>& tokens, const char* arg);
 };
 

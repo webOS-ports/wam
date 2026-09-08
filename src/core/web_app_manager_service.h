@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_APP_MANAGER_SERVICE_H_
 #define CORE_WEB_APP_MANAGER_SERVICE_H_
 
+#include <cstdint>
 #include <list>
 #include <string>
 #include <vector>
@@ -28,7 +29,7 @@ namespace Json {
 class Value;
 }
 
-enum ErrorCode {
+enum ErrorCode : std::uint16_t {
   kErrCodeLaunchappMissParam = 1000,
   kErrCodeLaunchappUnsupportedType = 1001,
   kErrCodeLaunchappInvalidTrustlevel = 1002,
@@ -119,7 +120,7 @@ class WebAppManagerService {
   std::list<const WebAppBase*> RunningApps(uint32_t pid);
   std::vector<ApplicationInfo> List(bool include_system_apps = false);
 
-  bool IsEnyoApp(const std::string& appp_id);
+  bool IsEnyoApp(const std::string& app_id);
 };
 
 #endif  // CORE_WEB_APP_MANAGER_SERVICE_H_

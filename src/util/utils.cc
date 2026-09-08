@@ -50,9 +50,9 @@ std::vector<std::string> GetErrorPagePaths(
 
   namespace fs = std::filesystem;
 
-  fs::path error_page_path(error_page_location);
-  std::string filename = error_page_path.filename().string();
-  std::string search_path = error_page_path.parent_path().string();
+  fs::path const error_page_path(error_page_location);
+  std::string const filename = error_page_path.filename().string();
+  std::string const search_path = error_page_path.parent_path().string();
   auto bcp47_pieces = BCP47::FromString(language);
 
   // search order:
@@ -105,16 +105,16 @@ std::string GetHostname(const std::string& url) {
 
   // source https://datatracker.ietf.org/doc/html/rfc3986#appendix-B
 
-  std::regex rfc3986_regex(
+  std::regex const rfc3986_regex(
       R"(^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?)");
-  std::regex authority_regex(R"(^(?:[\w\:]+[@])?([\w.]+)(?:[:])?(?:[0-9]+)?)");
+  std::regex const authority_regex(R"(^(?:[\w\:]+[@])?([\w.]+)(?:[:])?(?:[0-9]+)?)");
   std::smatch matches;
 
   if (!std::regex_match(url, matches, rfc3986_regex)) {
     return std::string();
   }
 
-  std::string authority = matches[4];
+  std::string const authority = matches[4];
   if (!std::regex_match(authority, matches, authority_regex)) {
     return std::string();
   }
@@ -146,12 +146,12 @@ std::string ReadFile(const std::string& path) {
 }
 
 std::string UriToLocal(const std::string& uri) {
-  g_autofree gchar* cpath = g_filename_from_uri(uri.c_str(), nullptr, nullptr);
+  g_autofree gchar const* cpath = g_filename_from_uri(uri.c_str(), nullptr, nullptr);
   return GetString(cpath);
 }
 
 std::string LocalToUri(const std::string& uri) {
-  g_autofree gchar* cpath = g_filename_to_uri(uri.c_str(), nullptr, nullptr);
+  g_autofree gchar const* cpath = g_filename_to_uri(uri.c_str(), nullptr, nullptr);
   return GetString(cpath);
 }
 
@@ -164,7 +164,7 @@ bool StrToInt(const std::string& str, int& num) {
   const char* strptr = str.c_str();
   char* endptr = nullptr;
   errno = 0;
-  long long value = strtoll(strptr, &endptr, 10);
+  long long const value = strtoll(strptr, &endptr, 10);
   if (endptr == strptr) {
     return false;
   }

@@ -17,6 +17,7 @@
 #ifndef PLATFORM_PALM_SYSTEM_WEBOS_H_
 #define PLATFORM_PALM_SYSTEM_WEBOS_H_
 
+#include <cstdint>
 #include <string>
 
 #include "palm_system_base.h"
@@ -33,7 +34,11 @@ class PalmSystemWebOS : public PalmSystemBase {
   virtual void SetLaunchParams(const std::string& params);
 
  protected:
-  enum GroupClientCallKey { kKeyMask = 1, kFocusOwner, kFocusLayer };
+  enum GroupClientCallKey : std::uint8_t {
+    kKeyMask = 1,
+    kFocusOwner,
+    kFocusLayer
+  };
 
   virtual std::string Identifier() const = 0;
   virtual std::string LaunchParams() const { return launch_params_; }
@@ -65,7 +70,7 @@ class PalmSystemWebOS : public PalmSystemBase {
                                const std::string& perf_group);
   virtual void LogMsgString(int32_t level,
                             const std::string& msg_id,
-                            const std::string& kv_pairs,
+                            const std::string& kvpairs,
                             const std::string& message);
   virtual bool CursorVisibility();
   virtual void UpdateLaunchParams(const std::string& launch_params);

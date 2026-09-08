@@ -41,7 +41,7 @@ std::unique_ptr<BCP47> BCP47::FromString(const std::string& bcp47_string) {
   // first group - mandatory 2 or 3 letters - represents language
   // second group - optional 4 letters - represents script
   // third group - optional 2 letters OR 3 digits - represents region
-  std::regex rfc5646_regex(
+  std::regex const rfc5646_regex(
       R"(^([a-z]{2,3})(?:[\-]{1}([A-z]{4}))?(?:[\-]{1}([A-Z]{2}|[0-9]{3}))?$)");
   std::smatch match;
   if (!std::regex_match(bcp47_string, match, rfc5646_regex)) {

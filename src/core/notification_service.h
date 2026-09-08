@@ -23,7 +23,7 @@
 struct NotificationData {
   struct ButtonInfo {
     // TODO: Remove the constructor when C++20 is everywhere.
-    ButtonInfo(const std::string& title, const std::string icon_path)
+    ButtonInfo(const std::string& title, const std::string& icon_path)
         : title(title), icon_path(icon_path) {}
     std::string title;
     std::string icon_path;

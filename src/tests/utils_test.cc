@@ -120,84 +120,84 @@ TEST(UtilsTestSuite, replaceAll) {
 }
 
 TEST(UtilsTestSuite, strToInt_IncorrectString) {
-  std::string str = "not a number";
+  std::string const str = "not a number";
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 
 TEST(UtilsTestSuite, strToInt_CorrectPositive) {
-  std::string str = "10";
+  std::string const str = "10";
   const int32_t expected = 10;
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_CorrectNegative) {
-  std::string str = "-10";
+  std::string const str = "-10";
   const int32_t expected = -10;
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Overflow) {
-  std::string str = "+2147483648";
+  std::string const str = "+2147483648";
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 
 TEST(UtilsTestSuite, strToInt_MAX_VALUE) {
-  std::string str = "+2147483647";
+  std::string const str = "+2147483647";
   const int32_t expected = INT_MAX;
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Underflow) {
-  std::string str = "-2147483649";
+  std::string const str = "-2147483649";
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 
 TEST(UtilsTestSuite, strToInt_MIN_VALUE) {
-  std::string str = "-2147483648";
+  std::string const str = "-2147483648";
   const int32_t expected = INT_MIN;
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Mixed) {
-  std::string str = "21 some words";
+  std::string const str = "21 some words";
   const int32_t expected = 21;
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Mixed_Underscore) {
-  std::string str = "21_some_words";
+  std::string const str = "21_some_words";
   const int32_t expected = 21;
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Mixed_Underscore_Suffix) {
-  std::string str = "some_words_21";
+  std::string const str = "some_words_21";
   int value = 0;
-  bool result = util::StrToInt(str, value);
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 

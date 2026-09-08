@@ -185,13 +185,13 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
       return file_str;
     }
   } else if (command == "addBannerMessage") {
-    std::string _msg           = arguments.size()>=1 ? arguments[0] : "";
-    std::string _params        = arguments.size()>=2 ? arguments[1] : "";
-    std::string _icon          = arguments.size()>=3 ? arguments[2] : "";
-    std::string _soundClass    = arguments.size()>=4 ? arguments[3] : "";
-    std::string _soundFile     = arguments.size()>=5 ? arguments[4] : "";
-    std::string _duration      = arguments.size()>=6 ? arguments[5] : "";
-    std::string _doNotSuppress = arguments.size()>=7 ? arguments[6] : "false";
+    std::string const _msg           = arguments.size()>=1 ? arguments[0] : "";
+    std::string const _params        = arguments.size()>=2 ? arguments[1] : "";
+    std::string const _icon          = arguments.size()>=3 ? arguments[2] : "";
+    std::string const _soundClass    = arguments.size()>=4 ? arguments[3] : "";
+    std::string const _soundFile     = arguments.size()>=5 ? arguments[4] : "";
+    std::string const _duration      = arguments.size()>=6 ? arguments[5] : "";
+    std::string const _doNotSuppress = arguments.size()>=7 ? arguments[6] : "false";
 
     return std::to_string(AddBannerMessage(_msg, _params, _icon, _soundClass, _soundFile, _duration, _doNotSuppress));
   } else if (command == "removeBannerMessage") {
@@ -253,9 +253,9 @@ double PalmSystemBlink::DevicePixelRatio() {
 
 // banner management
 int PalmSystemBlink::AddBannerMessage(const std::string &msgTitle, const std::string &launchParams,
-                                      const std::string &msgIconUrl, const std::string &soundClass,
-                                      const std::string &msgSoundFile, const std::string &soundDuration,
-                                      const std::string &doNotSuppress) {
+                                      const std::string &msgIconUrl, const std::string & /*soundClass*/,
+                                      const std::string & /*msgSoundFile*/, const std::string & /*soundDuration*/,
+                                      const std::string & /*doNotSuppress*/) {
   // we define a banner as a toast
   Json::Value create_params;
   create_params["type"] = "standard";
@@ -297,14 +297,14 @@ int PalmSystemBlink::AddBannerMessage(const std::string &msgTitle, const std::st
   return bannerId;
 }
 
-void PalmSystemBlink::RemoveBannerMessage(std::string id) {
+void PalmSystemBlink::RemoveBannerMessage(const std::string& id) {
   const auto it = bannerIds_.find(std::atoi(id.c_str()));
   if (it == bannerIds_.end() || it->second.empty()) {
     // Unknown banner, or createToast has not returned its id yet.
     return;
   }
 
-  std::string remove_params = R"({"toastId":")" + it->second + R"("})";
+  std::string const remove_params = R"({"toastId":")" + it->second + R"("})";
 
   app_->ServiceCall("luna://com.webos.notification/closeToast", remove_params, app_->AppId());
   bannerIds_.erase(it);
@@ -312,7 +312,7 @@ void PalmSystemBlink::RemoveBannerMessage(std::string id) {
 
 void PalmSystemBlink::ClearBannerMessages() {
   // closeToast's bulk form: drop everything this application posted.
-  std::string clear_params = R"({"sourceId":")" + app_->AppId() + R"("})";
+  std::string const clear_params = R"({"sourceId":")" + app_->AppId() + R"("})";
 
   app_->ServiceCall("luna://com.webos.notification/closeToast", clear_params, app_->AppId());
   bannerIds_.clear();

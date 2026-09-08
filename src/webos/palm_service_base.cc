@@ -91,7 +91,7 @@ bool PalmServiceBase::Call(LSHandle* handle,
                            Json::Value parameters,
                            const char* application_id = nullptr,
                            LSCalloutContext* context = nullptr) {
-  std::string parameters_str = util::JsonToString(parameters);
+  std::string const parameters_str = util::JsonToString(parameters);
   if (!parameters.isObject()) {
     LOG_WARNING(MSGID_LS2_CALL_FAIL, 2,
                 PMLOGKS("SERVICE", service_name_.c_str()),

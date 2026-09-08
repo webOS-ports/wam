@@ -179,6 +179,8 @@ static constexpr char kLocaleInfo[] = R"({
 
 }  // namespace
 
+namespace {
+
 class LaunchAppTestSuite : public ::testing::Test {
  public:
   LaunchAppTestSuite() = default;
@@ -194,6 +196,8 @@ class LaunchAppTestSuite : public ::testing::Test {
   WebViewMock* web_view_ = nullptr;
   std::string view_url_;
 };
+
+}  // namespace
 
 void LaunchAppTestSuite::SetUp() {
   WebAppManager::Instance()->SetPlatformModules(
@@ -341,7 +345,7 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   constexpr char var_name[] = "WAM_ERROR_PAGE";
   const auto actual_value = getenv(var_name);
   if (!actual_value) {
-    int result = setenv(var_name, path, false);
+    int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   }
   WebAppManager::Instance()->SetPlatformModules(
@@ -392,7 +396,8 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   ASSERT_TRUE(result.isMember("appId"));
 
   if (!actual_value) {
-    int result = unsetenv(var_name);
+    int const result = unsetenv(var_name);
     ASSERT_FALSE(result);
   }
 }
+

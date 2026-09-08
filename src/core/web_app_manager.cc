@@ -63,7 +63,7 @@ WebAppManager::~WebAppManager() {
 
 void WebAppManager::NotifyMemoryPressure(
     webos::WebViewBase::MemoryPressureLevel level) {
-  std::list<const WebAppBase*> app_list = RunningApps();
+  std::list<const WebAppBase*> const app_list = RunningApps();
   for (const WebAppBase* app : app_list) {
     // Skip memory pressure handling on preloaded apps if chromium pressure is
     // critical (when system is on low or critical) because they will be killed
@@ -361,9 +361,9 @@ WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
                                            const std::string& launching_app_id,
                                            WebPageBase* page) {
 
-  std::string instance_id = GenerateInstanceId();
-  std::string app_desc_id = app_desc->Id();
-  std::string app_desc_version = app_desc->Version();
+  std::string const instance_id = GenerateInstanceId();
+  std::string const app_desc_id = app_desc->Id();
+  std::string const app_desc_version = app_desc->Version();
 
   WebAppFactoryManager* factory = GetWebAppFactory();
   WebAppBase* app = factory->CreateWebApp(win_type.c_str(), *app_desc,
@@ -432,7 +432,7 @@ void WebAppManager::CloseAppInternal(WebAppBase* app,
     return;
   }
 
-  std::string type = app->GetAppDescription()->DefaultWindowType();
+  std::string const type = app->GetAppDescription()->DefaultWindowType();
   AppDeleted(app);
   WebPageRemoved(app->Page());
   PostRunningAppList();
@@ -509,7 +509,7 @@ void WebAppManager::WebPageAdded(WebPageBase* page) {
 void WebAppManager::WebPageRemoved(WebPageBase* page) {
   if (!deleting_pages_) {
     // Remove from list of pending delete pages
-    PageList::iterator iter = std::find(pages_to_delete_list_.begin(),
+    PageList::iterator const iter = std::find(pages_to_delete_list_.begin(),
                                         pages_to_delete_list_.end(), page);
     if (iter != pages_to_delete_list_.end()) {
       pages_to_delete_list_.erase(iter);
@@ -616,7 +616,7 @@ bool WebAppManager::ProcessCrashed(const std::string& app_id,
   if (app->IsWindowed()) {
     if (app->IsActivated()) {
       last_crashed_app_ids_[app->AppId()]++;
-      int reloading_limit = app->IsNormal() ? kContinuousReloadingLimit - 1
+      int const reloading_limit = app->IsNormal() ? kContinuousReloadingLimit - 1
                                             : kContinuousReloadingLimit;
 
       if (last_crashed_app_ids_[app->AppId()] >= reloading_limit) {
@@ -773,7 +773,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
 }
 
 bool WebAppManager::IsRunningApp(const std::string& id) {
-  std::list<const WebAppBase*> running = RunningApps();
+  std::list<const WebAppBase*> const running = RunningApps();
 
   for (const WebAppBase* app : running) {
     if (app->InstanceId() == id) {
@@ -786,7 +786,7 @@ bool WebAppManager::IsRunningApp(const std::string& id) {
 std::vector<ApplicationInfo> WebAppManager::List(bool include_system_apps) {
   std::vector<ApplicationInfo> list;
 
-  std::list<const WebAppBase*> running = RunningApps();
+  std::list<const WebAppBase*> const running = RunningApps();
   for (const WebAppBase* app : running) {
     if (!app->AppId().empty() || include_system_apps) {
       uint32_t pid = web_process_manager_->GetWebProcessPID(app);
@@ -833,7 +833,7 @@ void WebAppManager::PostWebProcessCreated(const std::string& app_id,
 uint32_t WebAppManager::GetWebProcessId(const std::string& app_id,
                                         const std::string& instance_id) {
   uint32_t pid = 0;
-  WebAppBase* app = FindAppByInstanceId(instance_id);
+  WebAppBase const* app = FindAppByInstanceId(instance_id);
 
   if (app && app->AppId() == app_id && web_process_manager_) {
     pid = web_process_manager_->GetWebProcessPID(app);
@@ -910,7 +910,7 @@ void WebAppManager::UpdateNetworkStatus(const Json::Value& object) {
 }
 
 bool WebAppManager::IsEnyoApp(const std::string& app_id) {
-  WebAppBase* app = FindAppById(app_id);
+  WebAppBase const* app = FindAppById(app_id);
   if (app && !app->GetAppDescription()->EnyoVersion().empty()) {
     return true;
   }

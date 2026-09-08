@@ -562,7 +562,7 @@ void WebPageBlink::SuspendWebPagePaintingAndJSExecution() {
 
   // if we haven't finished loading the page yet, wait until it is loaded before
   // suspending
-  bool is_loading = !HasBeenShown() && Progress() < 100;
+  bool const is_loading = !HasBeenShown() && Progress() < 100;
   if (is_loading) {
     LOG_INFO(MSGID_SUSPEND_WEBPAGE, 4, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
@@ -614,7 +614,7 @@ std::string WebPageBlink::EscapeData(const std::string& value) {
 }
 
 void WebPageBlink::ReloadExtensionData() {
-  std::string event_js =
+  std::string const event_js =
       "if (typeof(webOSSystem) != 'undefined') {"
       "  webOSSystem.reloadInjectionData();"
       "};";
@@ -635,7 +635,7 @@ void WebPageBlink::UpdateExtensionData(const std::string& key,
                 value.c_str());
     return;
   }
-  std::string event_js =
+  std::string const event_js =
       "if (typeof(webOSSystem) != 'undefined') {"
       "  webOSSystem.updateInjectionData('" +
       EscapeData(key) + "', '" + EscapeData(value) +
@@ -687,7 +687,7 @@ void WebPageBlink::DidFirstFrameFocused() {
   // App load is finished, set use launching time optimization false.
   // If Launch optimization had to be done late, use delayMsForLaunchOptmization
   if (app_desc_.DelayMsForLaunchOptimization().has_value()) {
-    int delay_ms = app_desc_.DelayMsForLaunchOptimization().value();
+    int const delay_ms = app_desc_.DelayMsForLaunchOptimization().value();
     SetUseLaunchOptimization(false, delay_ms);
   } else {
     SetUseLaunchOptimization(false);
@@ -771,7 +771,7 @@ void WebPageBlink::ApplyPageZoomFactor() {
 }
 
 void WebPageBlink::LoadProgressChanged(double progress) {
-  bool process_ten_percent =
+  bool const process_ten_percent =
       std::abs(progress - 0.1f) < std::numeric_limits<float>::epsilon();
   if (!(loading_url_.empty() && process_ten_percent)) {
     // loading_url_ is empty then net didStartNavigation yet, default(initial)
@@ -1130,8 +1130,8 @@ void WebPageBlink::SetHasOnCloseCallback(bool has_close_callback) {
 }
 
 void WebPageBlink::ExecuteCloseCallback(bool forced) {
-  std::string forced_str = forced ? "forced" : "normal";
-  std::string script =
+  std::string const forced_str = forced ? "forced" : "normal";
+  std::string const script =
       "window.webOSSystem._onCloseWithNotify_('" + forced_str + "');";
 
   EvaluateJavaScript(script);
@@ -1162,8 +1162,8 @@ void WebPageBlink::UpdateHardwareResolution() {
   std::string hardware_width, hardware_height;
   GetDeviceInfo("HardwareScreenWidth", hardware_width);
   GetDeviceInfo("HardwareScreenHeight", hardware_height);
-  int width = util::StrToIntWithDefault(hardware_width, 0);
-  int height = util::StrToIntWithDefault(hardware_height, 0);
+  int const width = util::StrToIntWithDefault(hardware_width, 0);
+  int const height = util::StrToIntWithDefault(hardware_height, 0);
   page_private_->page_view_->SetHardwareResolution(width, height);
 }
 
@@ -1204,9 +1204,9 @@ double WebPageBlink::DevicePixelRatio() {
     device_height = CurrentUiHeight();
   }
 
-  float ratio_x = static_cast<float>(device_width) / app_width;
-  float ratio_y = static_cast<float>(device_height) / app_height;
-  bool ratios_are_equal =
+  float const ratio_x = static_cast<float>(device_width) / app_width;
+  float const ratio_y = static_cast<float>(device_height) / app_height;
+  bool const ratios_are_equal =
       std::abs(ratio_x - ratio_y) < std::numeric_limits<float>::epsilon();
   if (!ratios_are_equal) {
     // device resolution : 5120x2160 (UHD 21:9 - D9)
@@ -1290,8 +1290,8 @@ bool WebPageBlink::AcceptsAudioCapture() {
 }
 
 void WebPageBlink::KeyboardVisibilityChanged(bool visible) {
-  std::string visible_str = visible ? "true" : "false";
-  std::string javascript =
+  std::string const visible_str = visible ? "true" : "false";
+  std::string const javascript =
       "console.log('[WAM] fires keyboardStateChange event : " + visible_str +
       "');"
       "    var keyboardStateEvent =new CustomEvent('keyboardStateChange', { "
@@ -1308,7 +1308,7 @@ void WebPageBlink::KeyboardVisibilityChanged(bool visible) {
 void WebPageBlink::UpdateIsLoadErrorPageFinish() {
   // If currently loading finished URL is not error page,
   // is_load_error_page_finish_ will be updated
-  bool was_error_page = is_load_error_page_finish_;
+  bool const was_error_page = is_load_error_page_finish_;
   WebPageBase::UpdateIsLoadErrorPageFinish();
   if (is_load_error_page_finish_) {
     LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
@@ -1391,7 +1391,7 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
   }
 
   // create a new page, with a factory associated with the new content
-  wam::Url newWamUrl(newUrl);
+  wam::Url const newWamUrl(newUrl);
   WebPageBlink *newPage = new WebPageBlink(newWamUrl, *new_app_desc, "{}", std::move(dedicatedFactory));
   newPage->Init();
 
@@ -1410,7 +1410,7 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
   std::string child_win_type =
       webAppMgr->WindowTypeFromString(new_app_desc->DefaultWindowType());
   if (window_attributes["window"].asString().empty()) {
-    WebAppBase *parentApp = webAppMgr->FindAppById(app_id_);
+    WebAppBase  const*parentApp = webAppMgr->FindAppById(app_id_);
     if (parentApp && !parentApp->WindowType().empty())
       child_win_type = parentApp->WindowType();
   }
@@ -1424,8 +1424,8 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
 
   if (newWebApp) {
     for (auto window_attr_iter = window_attributes.begin(); window_attr_iter != window_attributes.end(); ++window_attr_iter) {
-      std::string attr_key = window_attr_iter.name();
-      std::string attr_value = window_attr_iter->asString();
+      std::string const attr_key = window_attr_iter.name();
+      std::string const attr_value = window_attr_iter->asString();
 
       if (attr_key != "" && attr_value != "") {
         newWebApp->SetWindowProperty("LuneOS_" + attr_key, attr_value);

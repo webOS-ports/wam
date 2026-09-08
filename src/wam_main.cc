@@ -36,8 +36,8 @@ static void ChangeUserIDGroupID() {
   gid = util::GetEnvVar("WAM_GID");
 
   if (uid.size() && gid.size()) {
-    struct passwd* pwd = getpwnam(uid.c_str());
-    struct group* grp = getgrnam(gid.c_str());
+    struct passwd const* pwd = getpwnam(uid.c_str());
+    struct group const* grp = getgrnam(gid.c_str());
 
     assert(pwd);
     assert(grp);
@@ -63,11 +63,13 @@ static void StartWebAppManager() {
 
   WebAppManagerServiceLuna* luna_service = WebAppManagerServiceLuna::Instance();
   assert(luna_service);
-  [[maybe_unused]] bool result = luna_service->StartService();
+  [[maybe_unused]] bool const result = luna_service->StartService();
   assert(result);
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
 }
+
+namespace {
 
 class WebOSMainDelegateWAM : public webos::WebOSMainDelegate {
  public:
@@ -77,6 +79,8 @@ class WebOSMainDelegateWAM : public webos::WebOSMainDelegate {
   }
   void AboutToCreateContentBrowserClient() override { StartWebAppManager(); }
 };
+
+}  // namespace
 
 int main(int argc, const char** argv) {
   WebOSMainDelegateWAM delegate;

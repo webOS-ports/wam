@@ -20,7 +20,7 @@
 
 static int TimeoutCallback(void* data) {
   Timer* timer = static_cast<Timer*>(data);
-  bool is_repeating = timer->IsRepeating();
+  bool const is_repeating = timer->IsRepeating();
   timer->HandleCallback();
   return is_repeating;
 }

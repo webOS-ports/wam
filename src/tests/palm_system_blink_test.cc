@@ -134,6 +134,8 @@ static constexpr char kLocaleInfo[] = R"({
 
 }  // namespace
 
+namespace {
+
 class PalmSystemBlinkTestSuite : public ::testing::Test {
  public:
   PalmSystemBlinkTestSuite() = default;
@@ -150,6 +152,8 @@ class PalmSystemBlinkTestSuite : public ::testing::Test {
   WebAppWayland* web_app_ = nullptr;
   std::string view_url_;
 };
+
+}  // namespace
 
 void PalmSystemBlinkTestSuite::SetUp() {
   WebAppManager::Instance()->SetPlatformModules(
@@ -392,3 +396,4 @@ TEST_F(PalmSystemBlinkTestSuite, handleBrowserControlMessage_PmLogString) {
   web_view_delegate_->HandleBrowserControlFunction("PmLogString", params,
                                                    &return_value);
 }
+

@@ -148,7 +148,7 @@ TEST(ListRunningAppsTest, IncludeSysApps) {
   mock_initializer.GetWebViewMock()->SetOnInitActions();
   mock_initializer.GetWebViewMock()->SetOnLoadURLActions();
 
-  int pid = 1 + rand() % 10000;
+  int const pid = 1 + rand() % 10000;
   EXPECT_CALL(*mock_initializer.GetWebViewMock(), RenderProcessPid())
       .WillRepeatedly(testing::Return(pid));
 
@@ -207,7 +207,7 @@ TEST(ListRunningAppsTest, ExcludeSysApps) {
   mock_initializer.GetWebViewMock()->SetOnInitActions();
   mock_initializer.GetWebViewMock()->SetOnLoadURLActions();
 
-  int pid = 1 + rand() % 10000;
+  int const pid = 1 + rand() % 10000;
   EXPECT_CALL(*mock_initializer.GetWebViewMock(), RenderProcessPid())
       .WillRepeatedly(testing::Return(pid));
 

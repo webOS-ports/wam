@@ -76,7 +76,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void KeyboardVisibilityChanged(bool visible) override;
   void HandleDeviceInfoChanged(const std::string& device_info) override;
   void EvaluateJavaScript(const std::string& js_code) override;
-  void EvaluateJavaScriptInAllFrames(const std::string& js_code,
+  void EvaluateJavaScriptInAllFrames(const std::string& script,
                                      const char* method = {}) override;
   uint32_t GetWebProcessPID() const override { return RenderProcessPid(); }
   void CreatePalmSystem(WebAppBase* app) override;

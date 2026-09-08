@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_PAGE_BASE_H_
 #define CORE_WEB_PAGE_BASE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -40,7 +41,7 @@ class WebPageBase {
   // Originally, webview_base.h, WebPageVisibilityState.h, PageVisibilityState.h
   // we can use enum of webview_base.h directly but this is WebPageBase in core
   // shouldn't depend on web engine
-  enum WebPageVisibilityState {
+  enum WebPageVisibilityState : std::uint8_t {
     kWebPageVisibilityStateVisible,
     kWebPageVisibilityStateHidden,
     kWebPageVisibilityStateLaunching,
@@ -82,7 +83,7 @@ class WebPageBase {
   virtual void CloseVkb() = 0;
   virtual void KeyboardVisibilityChanged(bool /*visible*/) {}
   virtual void HandleDeviceInfoChanged(const std::string& device_info) = 0;
-  virtual bool Relaunch(const std::string& args,
+  virtual bool Relaunch(const std::string& launch_params,
                         const std::string& launching_app_id);
   virtual void EvaluateJavaScript(const std::string& js_code) = 0;
   virtual void EvaluateJavaScriptInAllFrames(const std::string& js_code,

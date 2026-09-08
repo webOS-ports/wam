@@ -46,6 +46,7 @@ class PalmSystemBlink : public PalmSystemWebOS {
  protected:
   // PalmSystemWebOS
   Json::Value Initialize();
+  std::string ScaledDeviceInfo() const;
   std::string Identifier() const override;
   void SetLoadErrorPolicy(const std::string& params) override;
 

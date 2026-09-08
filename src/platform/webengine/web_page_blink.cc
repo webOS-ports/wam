@@ -769,18 +769,22 @@ void WebPageBlink::DidFinishNavigation(const std::string& url,
     ApplyPageZoomFactor();
 }
 
+double WebPageBlink::UiScaleFactor() const {
+  // An explicit uiScale in appinfo.json wins; failing that, the framework the
+  // entry document loads decides.
+  return app_desc_.UiScale().value_or(
+      app_desc_.UsesLegacyFramework() ? LegacyUiZoomFactor() : 1.0);
+}
+
 void WebPageBlink::ApplyPageZoomFactor() {
   if (!page_private_->page_view_)
     return;
 
-  // An explicit uiScale in appinfo.json wins; failing that, the framework the
-  // entry document loads decides. Applied unconditionally rather than skipped
-  // when it comes out at 1: HostZoomMap is keyed by host and shared across
-  // this process, so an application that wants no zoom would otherwise inherit
-  // whatever a legacy application on the same host left behind.
-  const double factor = app_desc_.UiScale().value_or(
-      app_desc_.UsesLegacyFramework() ? LegacyUiZoomFactor() : 1.0);
-  page_private_->page_view_->SetZoomFactor(factor);
+  // Applied unconditionally rather than skipped when it comes out at 1:
+  // HostZoomMap is keyed by host and shared across this process, so an
+  // application that wants no zoom would otherwise inherit whatever a legacy
+  // application on the same host left behind.
+  page_private_->page_view_->SetZoomFactor(UiScaleFactor());
 }
 
 void WebPageBlink::LoadProgressChanged(double progress) {

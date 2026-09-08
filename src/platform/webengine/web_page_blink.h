@@ -160,6 +160,10 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
 
   void UpdateBackHistoryAPIDisabled();
 
+  // The page zoom this application is displayed at: 1.0 for anything written
+  // against the runtime as it stands, the legacy scale for Mojo and Enyo.
+  double UiScaleFactor() const;
+
  protected:
   WebView* PageView() const;
 

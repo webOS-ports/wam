@@ -318,6 +318,48 @@ void PalmSystemBlink::ClearBannerMessages() {
   bannerIds_.clear();
 }
 
+// PalmSystem.deviceInfo, in the coordinate space the application is laid out
+// in rather than the panel's.
+//
+// Enyo documents screenWidth/screenHeight and maximumCardWidth/maximumCardHeight
+// as the numbers an application sizes itself from, and Mojo derives its menu row
+// count from maximumCardHeight. DeviceInfoImpl fills them from the window size,
+// which is the panel: on sargo 1080x2220. That was right when the scale reached
+// Blink as --force-device-scale-factor, because the window itself was then
+// reported in DIP and came out at 450x925 - the same space the application lays
+// out in. Page zoom does not touch the window, so the two parted company and a
+// legacy application reading these gets numbers 2.4x larger than the viewport it
+// actually has.
+//
+// Divided per application rather than in DeviceInfoImpl because the scale is per
+// application: a modern application at zoom 1 must keep the panel's own numbers.
+std::string PalmSystemBlink::ScaledDeviceInfo() const {
+  const std::string device_info = GetDeviceInfo("TvDeviceInfo");
+
+  auto* page = static_cast<WebPageBlink*>(app_->Page());
+  if (!page)
+    return device_info;
+
+  const double scale = page->UiScaleFactor();
+  if (scale == 1.0)
+    return device_info;
+
+  Json::Value json;
+  if (!util::StringToJson(device_info, json) || !json.isObject())
+    return device_info;
+
+  // Only the geometry. Everything else in the object describes the device, not
+  // a space that the zoom moves.
+  static constexpr const char* kScaledKeys[] = {
+      "screenWidth", "screenHeight", "maximumCardWidth", "maximumCardHeight"};
+  for (const char* key : kScaledKeys) {
+    if (json.isMember(key) && json[key].isNumeric())
+      json[key] = static_cast<int>(json[key].asDouble() / scale);
+  }
+
+  return util::JsonToString(json);
+}
+
 Json::Value PalmSystemBlink::Initialize() {
   initialized_ = true;
 
@@ -331,7 +373,7 @@ Json::Value PalmSystemBlink::Initialize() {
   data["isMinimal"] = IsMinimal();
   data["identifier"] = Identifier();
   data["screenOrientation"] = ScreenOrientation();
-  data["deviceInfo"] = GetDeviceInfo("TvDeviceInfo");
+  data["deviceInfo"] = ScaledDeviceInfo();
   data["activityId"] = static_cast<double>(ActivityId());
   data["phoneRegion"] = PhoneRegion();
   data["folderPath"] = app_->GetAppDescription()->FolderPath();

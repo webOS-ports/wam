@@ -324,8 +324,6 @@ void WebAppWayland::OnStageDeactivated() {
   // that it had lost the stage.
   Page()->CallLegacyMojoCallback("stageDeactivated");
 
-  Unfocus();
-
   // Losing the stage and leaving the screen are two different things, and
   // suspending is only right for the second.
   //
@@ -345,6 +343,18 @@ void WebAppWayland::OnStageDeactivated() {
     did_activate_stage_ = false;
     return;
   }
+
+  // Unfocus() only on the way off screen, for the same reason.
+  //
+  // Nothing puts the focus back: OnStageActivated() does not focus, because
+  // focus normally arrives on its own as the compositor's FocusIn and FocusOut
+  // events. Unfocusing a window that stays on screen therefore sticks, and
+  // PalmSystem.isActivated - which is app_->IsFocused() - reads false from then
+  // on for every window of the application. Enyo picks the window to act on
+  // with enyo.windows.getActiveWindow(), which returns the first window whose
+  // PalmSystem.isActivated is true, so it finds none and the application menu
+  // stops opening.
+  Unfocus();
 
   Page()->SuspendWebPageMedia();
   Page()->SetVisibilityState(

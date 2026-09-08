@@ -296,6 +296,11 @@ void WebAppWayland::OnStageActivated() {
 
   Page()->ResumeWebPageAll();
 
+  // enyo.windows.events.handleActivated() -> ApplicationEvents onWindowActivated.
+  // LunaSysMgr called this when the window was maximized or opened, which is
+  // the state change that brought us here.
+  Page()->CallLegacyMojoCallback("stageActivated");
+
   if(!GetHiddenWindow()) {
       Page()->SetVisibilityState(
           WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateVisible);
@@ -313,6 +318,12 @@ void WebAppWayland::OnStageActivated() {
 }
 
 void WebAppWayland::OnStageDeactivated() {
+  // enyo.windows.events.handleDeactivated() -> ApplicationEvents
+  // onWindowDeactivated. Sent before anything below suspends the page: script
+  // evaluated after that does not run, and the application would never hear
+  // that it had lost the stage.
+  Page()->CallLegacyMojoCallback("stageDeactivated");
+
   Page()->SuspendWebPageMedia();
   Unfocus();
   Page()->SetVisibilityState(
@@ -679,6 +690,11 @@ void WebAppWayland::ShowWindow() {
 
   SetHiddenWindow(false);
 
+  // enyo.windows.events.handleWindowShown() -> ApplicationEvents
+  // onWindowShown. LunaSysMgr sent this for a keepAlive application's window;
+  // the stage activation below is a separate notification, as it was then.
+  Page()->CallLegacyMojoCallback("show");
+
   OnStageActivated();
   added_to_window_mgr_ = true;
   WebAppBase::ShowWindow();
@@ -693,6 +709,10 @@ bool WebAppWayland::HideWindow() {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()),
            "WebAppWayland::hideWindow(); just hide this app");
+  // enyo.windows.events.handleWindowHidden() -> ApplicationEvents
+  // onWindowHidden, sent while the page can still run script.
+  Page()->CallLegacyMojoCallback("hide");
+
   Page()->CloseVkb();
   Hide(true);
   added_to_window_mgr_ = false;
@@ -837,6 +857,18 @@ void WebAppWayland::MoveInputRegion(int height) {
 void WebAppWayland::KeyboardVisibilityChanged(bool visible, int height) {
   WebAppBase::KeyboardVisibilityChanged(visible, height);
   MoveInputRegion(height);
+
+  // ApplicationEvents onKeyboardShown. The framework documents the timing as
+  // true before the window is resized and false after it, which is the order
+  // the InputPanelVisible event arrives in.
+  //
+  // Mojo.positiveSpaceChanged() is deliberately not sent alongside it. Enyo
+  // stores those numbers as modalBounds and lays out against them, so they
+  // have to be css pixels of the page, while `height` here is in window units
+  // - and the two differ by the legacy zoom factor, which this class does not
+  // know. Sending window units would put the keyboard cutout out by that
+  // factor on every device with a scale.
+  Page()->CallLegacyMojoCallback("keyboardShown", visible ? "true" : "false");
 }
 
 void WebAppWayland::SetUseVirtualKeyboard(const bool enable) {

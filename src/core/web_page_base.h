@@ -86,6 +86,17 @@ class WebPageBase {
   virtual bool Relaunch(const std::string& launch_params,
                         const std::string& launching_app_id);
   virtual void EvaluateJavaScript(const std::string& js_code) = 0;
+
+  // Call one of the callbacks LunaSysMgr invoked on the page's Mojo object.
+  //
+  // The legacy frameworks have no other way to hear about this: Enyo 1 raises
+  // its ApplicationEvents from these, and every one of them except relaunch
+  // was going uncalled. Guarded on both the object and the function so a page
+  // that has no Mojo, or an older framework that lacks the callback, is not
+  // handed a ReferenceError. `args` is spliced in as written, so a string
+  // argument has to arrive already quoted.
+  void CallLegacyMojoCallback(const std::string& name,
+                              const std::string& args = std::string());
   virtual void EvaluateJavaScriptInAllFrames(const std::string& js_code,
                                              const char* method = {}) = 0;
   virtual uint32_t GetWebProcessPID() const = 0;

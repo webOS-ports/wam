@@ -266,6 +266,14 @@ void WebPageBase::SendRelaunchEvent() {
   EvaluateJavaScript(relaunch_event.str().c_str());
 }
 
+void WebPageBase::CallLegacyMojoCallback(const std::string& name,
+                                         const std::string& args) {
+  std::stringstream script;
+  script << "if (typeof Mojo !== 'undefined' && typeof Mojo." << name
+         << " === 'function') { Mojo." << name << "(" << args << "); }";
+  EvaluateJavaScript(script.str());
+}
+
 void WebPageBase::HandleLoadStarted() {
   suspend_at_load_ = true;
   did_error_page_loaded_from_net_error_helper_ = false;

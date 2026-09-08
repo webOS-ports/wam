@@ -938,16 +938,10 @@ void WebAppManager::SetOrientation(const std::string& orientation) {
   // compatibility/webosGesture.js. It is called anyway because the legacy
   // frameworks error out when the callback is missing rather than unused, and
   // because anything else listening for it now gets it.
-  std::stringstream event;
-  event << "if (typeof Mojo !== 'undefined' &&"
-        << "    typeof Mojo.screenOrientationChanged === 'function') {"
-        << "  Mojo.screenOrientationChanged(\"" << orientation_ << "\");"
-        << "}";
-  const std::string script = event.str();
-
+  const std::string args = "\"" + orientation_ + "\"";
   for (WebAppBase* app : app_list_) {
     if (app->Page()) {
-      app->Page()->EvaluateJavaScript(script);
+      app->Page()->CallLegacyMojoCallback("screenOrientationChanged", args);
     }
   }
 }

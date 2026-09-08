@@ -911,11 +911,18 @@ void WebAppManager::UpdateNetworkStatus(const Json::Value& object) {
 
 bool WebAppManager::IsEnyoApp(const std::string& app_id) {
   WebAppBase const* app = FindAppById(app_id);
-  if (app && !app->GetAppDescription()->EnyoVersion().empty()) {
-    return true;
+  if (!app) {
+    return false;
   }
 
-  return false;
+  // enyoVersion is the upstream marker and nothing on this distribution sets
+  // it - every appinfo.json in the image leaves it empty - so on its own this
+  // answered false for every application and webruntime was never told it had
+  // an Enyo application in the foreground. The framework the entry document
+  // actually loads is the honest test, and it also covers Mojo, which has no
+  // marker of its own at all.
+  const ApplicationDescription* app_desc = app->GetAppDescription();
+  return !app_desc->EnyoVersion().empty() || app_desc->UsesLegacyFramework();
 }
 
 void WebAppManager::ClearBrowsingData(const int remove_browsing_data_mask) {

@@ -53,29 +53,37 @@ static const int kReloadTimeoutMs = 60000;
 
 namespace {
 
-// The UI scale, as a Blink page zoom factor.
+// The zoom factor applied to applications built against the frameworks this
+// distribution carries for compatibility.
 //
-// This is the scale that used to be passed as --force-device-scale-factor.
-// Chromium documents that switch as TEST ONLY on Wayland and warns about it at
-// startup, and on this stack it is actively wrong: the ozone/wayland backend
-// applies the factor when converting the screen size to DIP, so the page is
-// laid out at panel/factor css px and Blink rasterises it at the factor - but
-// the Wayland buffer is allocated at the DIP size, not at the device-pixel
-// size. Only the top-left 1/factor of the render fits in it. The surface
-// LSM then receives is panel/(factor*ceil(factor)) surface units, and
-// SurfaceView.qml scales it up to fill the output, so every application ends
-// up exactly `factor` times too large with its right-hand side and bottom
-// cropped. Measured on sargo: at 2.4 a 100 css px box covered 576 device px,
-// at 2.0 it covered 400 - the factor applied twice, every time.
+// Mojo and Enyo 1/2 applications are fixed-pixel layouts authored for the
+// ~450 css px viewport of a Palm-era handset. They cannot adapt to the panel,
+// so the panel is adapted to them: the device's configd value
+// com.webos.surfacemanager.devicePixelRatio reaches this process as
+// WAM_LEGACY_UI_ZOOM_FACTOR and is applied as a Blink page zoom, which reflows
+// the document to panel/factor css px.
 //
-// Page zoom reaches the same layout by a route that does not touch the
-// surface. The window stays 1:1 with the panel, Blink reflows to
-// panel/factor css px exactly as before and rasterises at native resolution,
-// and window.innerWidth keeps reporting the value the per-device scale was
-// tuned against, so no application sees a different viewport than it did.
-double PageZoomFactor() {
+// Applications written against the web runtime as it stands get no zoom, and
+// that is not merely a default - handing them the legacy viewport is what
+// breaks them. Enact is resolution independent, but only in tiers: it picks a
+// screen type from window.innerWidth/innerHeight and sets the root font size
+// from it, and its smallest tier is 1280x720. On sargo the 450 px legacy
+// viewport puts it on that tier at 16 px/rem, and a layout built for 1280 px
+// overflows and clips. At native resolution it picks a tier that fits.
+//
+// This used to reach Blink as --force-device-scale-factor, which Chromium
+// documents as TEST ONLY on Wayland and which is wrong on this stack:
+// ozone/wayland applies the factor when converting the screen size to DIP, so
+// the page is laid out at panel/factor css px and rasterised at the factor,
+// but the Wayland buffer is allocated at the DIP size rather than the
+// device-pixel size. Only the top-left 1/factor of the render reaches it, and
+// SurfaceView.qml scales that undersized surface up to fill the output, which
+// puts the factor back a second time - every application exactly `factor`
+// times too large with its right-hand side and bottom cropped. Page zoom
+// reaches the same layout by a route that never touches the surface.
+double LegacyUiZoomFactor() {
   static const double kFactor = []() -> double {
-    const std::string value = util::GetEnvVar("WAM_PAGE_ZOOM_FACTOR");
+    const std::string value = util::GetEnvVar("WAM_LEGACY_UI_ZOOM_FACTOR");
     if (value.empty())
       return 1.0;
     char* end = nullptr;
@@ -762,11 +770,16 @@ void WebPageBlink::DidFinishNavigation(const std::string& url,
 }
 
 void WebPageBlink::ApplyPageZoomFactor() {
-  const double factor = PageZoomFactor();
-  if (factor == 1.0)
-    return;
   if (!page_private_->page_view_)
     return;
+
+  // An explicit uiScale in appinfo.json wins; failing that, the framework the
+  // entry document loads decides. Applied unconditionally rather than skipped
+  // when it comes out at 1: HostZoomMap is keyed by host and shared across
+  // this process, so an application that wants no zoom would otherwise inherit
+  // whatever a legacy application on the same host left behind.
+  const double factor = app_desc_.UiScale().value_or(
+      app_desc_.UsesLegacyFramework() ? LegacyUiZoomFactor() : 1.0);
   page_private_->page_view_->SetZoomFactor(factor);
 }
 

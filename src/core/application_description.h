@@ -101,6 +101,16 @@ class ApplicationDescription {
   std::optional<int> WidthOverride() const { return width_override_; }
   std::optional<int> HeightOverride() const { return height_override_; }
 
+  // True when the entry document loads one of the frameworks this
+  // distribution carries for compatibility - Mojo, Enyo 1 or Enyo 2 - rather
+  // than being written against the web runtime as it stands. Decided by
+  // inspecting the entry document; see application_description.cc.
+  bool UsesLegacyFramework() const { return uses_legacy_framework_; }
+
+  // "uiScale" from appinfo.json: the page zoom this application asks for,
+  // overriding whatever the framework classification would have chosen.
+  std::optional<double> UiScale() const { return ui_scale_; }
+
   bool HandleExitKey() const { return handle_exit_key_; }
   bool SupportsAudioGuidance() const { return supports_audio_guidance_; }
   bool IsEnableBackgroundRun() const { return enable_background_run_; }
@@ -191,6 +201,8 @@ class ApplicationDescription {
   bool back_history_api_disabled_ = false;
   std::optional<int> width_override_;
   std::optional<int> height_override_;
+  bool uses_legacy_framework_ = false;
+  std::optional<double> ui_scale_;
   std::unordered_map<int, std::pair<int, int>> key_filter_table_;
   std::string group_window_desc_;
   bool do_not_track_ = false;

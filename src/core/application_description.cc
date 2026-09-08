@@ -20,13 +20,76 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <cctype>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <sstream>
+#include <string_view>
 
 #include <json/json.h>
 
 #include "log_manager.h"
 #include "utils.h"
+
+namespace {
+
+// Enough of the entry document to carry the framework's fingerprint. Mojo and
+// Enyo 1 load theirs with a script tag in the head; an Enyo 2 bundle inlines
+// the loader preamble and the framework stylesheet, and both come before any
+// application code. Applications that inline their artwork run to several
+// megabytes, so the file is not read whole.
+constexpr std::streamsize kFrameworkSniffBytes = 512 * 1024;
+
+// Fingerprints of the frameworks this distribution carries for compatibility.
+//
+// These match on how the framework is loaded, not on the string "enyo"
+// appearing anywhere: applications that use nothing of Enyo still turn up
+// carrying an enyo-* class on their body element, copied out of a template
+// years ago, and classifying those as legacy would scale them wrongly.
+constexpr std::string_view kLegacyFrameworkMarkers[] = {
+    // Mojo, and Enyo 1 through the shared framework in /usr/palm/frameworks.
+    "frameworks/mojo",
+    "mojoloader.js",
+    "frameworks/enyo",
+    // Enyo 2 deployed alongside the application, which the enyo-dev deploy
+    // script lays down as build/enyo.js and build/enyo.css.
+    "enyo.js",
+    "enyo.css",
+    "enyo.min.js",
+    "enyo.min.css",
+    // Enyo 2 built by enyo-dev, which inlines the module loader and the
+    // framework stylesheet rather than linking them.
+    "hasownproperty(\"enyo\")",
+    "hasownproperty('enyo')",
+    "enyo-body-fit",
+    "enyo-document-fit",
+};
+
+bool EntryPointUsesLegacyFramework(const std::string& path) {
+  std::ifstream file(path, std::ios::binary);
+  if (!file) {
+    return false;
+  }
+
+  std::string head(static_cast<size_t>(kFrameworkSniffBytes), '\0');
+  file.read(head.data(), kFrameworkSniffBytes);
+  head.resize(static_cast<size_t>(file.gcount()));
+
+  // The markers are written in lower case; the paths and attributes they match
+  // are not consistently cased in the wild.
+  std::transform(head.begin(), head.end(), head.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+
+  return std::any_of(std::begin(kLegacyFrameworkMarkers),
+                     std::end(kLegacyFrameworkMarkers),
+                     [&head](std::string_view marker) {
+                       return head.find(marker) != std::string::npos;
+                     });
+}
+
+}  // namespace
 
 bool ApplicationDescription::CheckTrustLevel(const std::string& trust_level) {
   if (trust_level.empty()) {
@@ -223,6 +286,20 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
     }
   }
 
+  // Handle an explicit UI scale, which overrides the framework classification
+  // in both directions - for a legacy application that wants none of the
+  // legacy zoom, and for a modern one that does want it.
+  if (json_obj.isMember("uiScale")) {
+    const auto& ui_scale = json_obj["uiScale"];
+    if (!ui_scale.isNumeric() || ui_scale.asDouble() <= 0.0) {
+      LOG_ERROR(MSGID_TYPE_ERROR, 2, PMLOGKS("APP_ID", app_desc->Id().c_str()),
+                PMLOGKFV("DATA_TYPE", "%d", ui_scale.type()),
+                "uiScale must be a positive number");
+    } else {
+      app_desc->ui_scale_ = ui_scale.asDouble();
+    }
+  }
+
   const auto& location_hint = json_obj["locationHint"];
   if (location_hint.isString()) {
     app_desc->location_hint_ = location_hint.asString();
@@ -275,6 +352,12 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
         app_desc->folder_path_ + "/" + app_desc->entry_point_;
     struct stat stat_ent_pt = {};
     if (!stat(temp_path.c_str(), &stat_ent_pt)) {
+      // Classified here, while the local path is still in hand and before any
+      // renderer exists, so the scale is known ahead of the first paint. A
+      // remote entry point is never classified as legacy: those frameworks are
+      // only ever loaded off the device.
+      app_desc->uses_legacy_framework_ =
+          EntryPointUsesLegacyFramework(temp_path);
       app_desc->entry_point_ = "file://" + temp_path;
     }
     temp_path.clear();

@@ -54,6 +54,7 @@ LSMethod WebAppManagerServiceLuna::methods_[] = {
     LS2_METHOD_ENTRY(setInspectorEnable),
 #endif
     LS2_METHOD_ENTRY(logControl),
+    LS2_METHOD_ENTRY(setOrientation),
     LS2_METHOD_ENTRY(getWebProcessSize),
     LS2_METHOD_ENTRY(clearBrowsingData),
     LS2_METHOD_ENTRY(fireNotificationEvent),
@@ -255,6 +256,27 @@ Json::Value WebAppManagerServiceLuna::logControl(const Json::Value& request) {
 
   return WebAppManagerService::OnLogControl(request["keys"].asString(),
                                             request["value"].asString());
+}
+
+// Pushed in by the compositor whenever the shell's orientation settles, which
+// is the link LunaSysMgr had internally as WebAppMgrProxy::setOrientation and
+// which no longer exists now that the two are separate processes.
+Json::Value WebAppManagerServiceLuna::setOrientation(
+    const Json::Value& request) {
+  Json::Value reply;
+
+  if (!request.isObject() || !request.isMember("orientation") ||
+      !request["orientation"].isString()) {
+    reply["returnValue"] = false;
+    reply["errorText"] = kErrInvalidParam;
+    reply["errorCode"] = kErrCodeInvalidParam;
+    return reply;
+  }
+
+  WebAppManagerService::SetOrientation(request["orientation"].asString());
+
+  reply["returnValue"] = true;
+  return reply;
 }
 
 Json::Value WebAppManagerServiceLuna::getWebProcessSize(

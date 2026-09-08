@@ -74,6 +74,7 @@ class WebAppManagerService {
   virtual Json::Value killApp(const Json::Value& request) = 0;
   virtual Json::Value pauseApp(const Json::Value& request) = 0;
   virtual Json::Value logControl(const Json::Value& request) = 0;
+  virtual Json::Value setOrientation(const Json::Value& request) = 0;
   virtual Json::Value setInspectorEnable(const Json::Value& request) = 0;
   virtual Json::Value closeAllApps(const Json::Value& request) = 0;
   virtual Json::Value listRunningApps(const Json::Value& request,
@@ -121,6 +122,7 @@ class WebAppManagerService {
   std::vector<ApplicationInfo> List(bool include_system_apps = false);
 
   bool IsEnyoApp(const std::string& app_id);
+  void SetOrientation(const std::string& orientation);
 };
 
 #endif  // CORE_WEB_APP_MANAGER_SERVICE_H_

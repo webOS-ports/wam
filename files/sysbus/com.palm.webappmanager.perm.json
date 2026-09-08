@@ -41,5 +41,8 @@
     "com.webos.chromium.pwa.*": [
         "application.launcher",
         "application.operation"
+    ],
+    "com.webos.surfacemanager-cardshell": [
+        "webapplication.management"
     ]
 }

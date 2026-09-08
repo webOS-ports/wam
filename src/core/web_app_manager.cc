@@ -909,6 +909,49 @@ void WebAppManager::UpdateNetworkStatus(const Json::Value& object) {
   }
 }
 
+// Pushed in by the compositor over com.palm.webappmanager/setOrientation.
+//
+// LunaSysMgr kept the same value - WebAppManager::m_orientation - and served
+// PalmSystem.screenOrientation from it, so this restores the property legacy
+// applications read rather than inventing one. Note that on its own it is not
+// enough to make Enyo dispatch onWindowRotated: enyo.sendOrientationChange is
+// bound to the window's resize event and only then compares the property
+// against its own last value, so a page that is never resized never asks.
+void WebAppManager::SetOrientation(const std::string& orientation) {
+  // The four names legacy webOS used. Anything else is dropped rather than
+  // stored, so the property never reports something no application can read.
+  if (orientation != "up" && orientation != "down" && orientation != "left" &&
+      orientation != "right") {
+    LOG_WARNING(MSGID_TYPE_ERROR, 1, PMLOGKS("ORIENTATION", orientation.c_str()),
+                "Ignoring unknown orientation");
+    return;
+  }
+
+  if (orientation_ == orientation) {
+    return;
+  }
+
+  orientation_ = orientation;
+
+  // LunaSysMgr told the page through Mojo.screenOrientationChanged(), which
+  // Enyo 1 defines but deliberately leaves empty - see the note in
+  // compatibility/webosGesture.js. It is called anyway because the legacy
+  // frameworks error out when the callback is missing rather than unused, and
+  // because anything else listening for it now gets it.
+  std::stringstream event;
+  event << "if (typeof Mojo !== 'undefined' &&"
+        << "    typeof Mojo.screenOrientationChanged === 'function') {"
+        << "  Mojo.screenOrientationChanged(\"" << orientation_ << "\");"
+        << "}";
+  const std::string script = event.str();
+
+  for (WebAppBase* app : app_list_) {
+    if (app->Page()) {
+      app->Page()->EvaluateJavaScript(script);
+    }
+  }
+}
+
 bool WebAppManager::IsEnyoApp(const std::string& app_id) {
   WebAppBase const* app = FindAppById(app_id);
   if (!app) {

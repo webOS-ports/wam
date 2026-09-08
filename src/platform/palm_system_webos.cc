@@ -25,11 +25,25 @@
 #include "log_manager.h"
 #include "utils.h"
 #include "web_app_base.h"
+#include "web_app_manager.h"
 #include "web_app_wayland.h"
 #include "web_page_base.h"
 
 PalmSystemWebOS::PalmSystemWebOS(WebAppBase* app)
     : app_(static_cast<WebAppWayland*>(app)) {}
+
+std::string PalmSystemWebOS::ScreenOrientation() const {
+  return WebAppManager::Instance()->Orientation();
+}
+
+std::string PalmSystemWebOS::WindowOrientation() const {
+  // LunaSysMgr distinguished the two: screenOrientation is where the device
+  // is pointing, windowOrientation is what this window was allowed to become.
+  // Nothing here restricts a window's orientation yet, so it follows the
+  // screen. "free" was the old default and means "unconstrained", which is
+  // not an orientation and is not what an application asking for one expects.
+  return WebAppManager::Instance()->Orientation();
+}
 
 void PalmSystemWebOS::SetLaunchParams(const std::string& params) {
   Json::Value json_doc = Json::nullValue;

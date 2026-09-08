@@ -155,6 +155,12 @@ class WebAppManager {
 
   bool IsEnyoApp(const std::string& app_id);
 
+  // The orientation the shell is currently displaying, as one of the four
+  // names legacy webOS used: "up", "down", "left" or "right". Pushed in by the
+  // compositor; see SetOrientation().
+  const std::string& Orientation() const { return orientation_; }
+  void SetOrientation(const std::string& orientation);
+
   void CloseApp(const std::string& app_id);
 
   void ClearBrowsingData(const int remove_browsing_data_mask);
@@ -217,6 +223,7 @@ class WebAppManager {
   std::map<std::string, std::string> app_version_;
 
   bool is_accessibility_enabled_ = false;
+  std::string orientation_ = "up";
 };
 
 #endif  // CORE_WEB_APP_MANAGER_H_

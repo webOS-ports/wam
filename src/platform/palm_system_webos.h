@@ -44,8 +44,14 @@ class PalmSystemWebOS : public PalmSystemBase {
   virtual std::string LaunchParams() const { return launch_params_; }
   virtual std::string Version() const { return std::string(); }
 
-  virtual std::string ScreenOrientation() const { return std::string("up"); }
-  virtual std::string WindowOrientation() const { return std::string("free"); }
+  // Both were hard-coded here, which is harmless on a display that never
+  // rotates and wrong on a handset: PalmSystem.screenOrientation is what
+  // Enyo's enyo.getWindowOrientation() reads, and a constant means
+  // enyo.sendOrientationChange() never sees a change and never dispatches
+  // onWindowRotated. Served from WebAppManager, which the compositor keeps
+  // current - the same place LunaSysMgr kept it.
+  virtual std::string ScreenOrientation() const;
+  virtual std::string WindowOrientation() const;
 
   virtual bool IsActivated() const;
   virtual bool IsKeyboardVisible() const;

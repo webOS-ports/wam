@@ -27,6 +27,13 @@
 
 namespace {
 
+// LSCalloutContext cancels its call from its destructor, so a context created
+// on the stack cancels the moment the calling function returns and its reply
+// is never delivered. Keep banner contexts alive here, keyed by banner id -
+// the same ownership pattern notification_service_luna.cc uses for its own
+// createToast calls.
+std::map<int, LSCalloutContext> banner_contexts;
+
 const char* toStr(const bool value) {
   return value ? "true" : "false";
 }
@@ -267,31 +274,50 @@ int PalmSystemBlink::AddBannerMessage(const std::string &msgTitle, const std::st
 
   static int currentNotifId = 0; // always increment a static int, to return a unique id
 
-  bannerIds_[currentNotifId++] = "no-uuid";
-  std::function<Json::Value(const Json::Value&)> lambda = [this](const Json::Value& payload) {
-      this->bannerIds_[currentNotifId] = payload["toastId"].asString();
-      return payload;
-  };
-  LSCalloutContext cbAddBanner(lambda);
+  const int bannerId = ++currentNotifId; // ids start at 1, so 0 can mean "none"
+
+  // Left empty until createToast answers. RemoveBannerMessage() treats an
+  // empty entry as "not created yet" rather than closing toastId "".
+  bannerIds_[bannerId] = std::string();
+
+  // bannerId is captured by value: currentNotifId is a static local and will
+  // have moved on by the time this reply arrives if another banner was posted
+  // in the meantime.
+  banner_contexts.emplace(
+      bannerId, LSCalloutContext([this, bannerId](const Json::Value& payload) {
+        if (payload.isObject() && payload["toastId"].isString()) {
+          this->bannerIds_[bannerId] = payload["toastId"].asString();
+        }
+        banner_contexts.erase(bannerId);
+        return Json::Value();
+      }));
 
   WebAppManagerServiceLuna::Instance()->Call(
-      "luna://com.webos.notification/createToast", create_params, app_->AppId().c_str(), &cbAddBanner);
+      "luna://com.webos.notification/createToast", create_params,
+      app_->AppId().c_str(), &banner_contexts.at(bannerId));
 
-  return currentNotifId;
+  return bannerId;
 }
 
 void PalmSystemBlink::RemoveBannerMessage(std::string id) {
-  std::string remove_params = R"(
-    {"id" : ")" + bannerIds_[std::atoi(id.c_str())] + R"("}
-  )";
+  const auto it = bannerIds_.find(std::atoi(id.c_str()));
+  if (it == bannerIds_.end() || it->second.empty()) {
+    // Unknown banner, or createToast has not returned its id yet.
+    return;
+  }
 
-  app_->ServiceCall("luna://org.webosports.notifications/close", remove_params, app_->AppId());
+  std::string remove_params = R"({"toastId":")" + it->second + R"("})";
+
+  app_->ServiceCall("luna://com.webos.notification/closeToast", remove_params, app_->AppId());
+  bannerIds_.erase(it);
 }
+
 void PalmSystemBlink::ClearBannerMessages() {
+  // closeToast's bulk form: drop everything this application posted.
+  std::string clear_params = R"({"sourceId":")" + app_->AppId() + R"("})";
 
-  std::string clear_params = "{}";
-
-  app_->ServiceCall("luna://org.webosports.notifications/closeAll", clear_params, app_->AppId());
+  app_->ServiceCall("luna://com.webos.notification/closeToast", clear_params, app_->AppId());
+  bannerIds_.clear();
 }
 
 Json::Value PalmSystemBlink::Initialize() {

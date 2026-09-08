@@ -49,6 +49,15 @@ class WebAppBasePrivate {
   std::string url_;
 };
 
+bool ShellKeepsDeactivatedWindowsShown() {
+  static const bool kShown = []() {
+    const std::string value =
+        util::GetEnvVar("WAM_SHELL_KEEPS_DEACTIVATED_WINDOWS_SHOWN");
+    return value == "1" || value == "true";
+  }();
+  return kShown;
+}
+
 WebAppBase::WebAppBase()
     : app_private_(std::make_unique<WebAppBasePrivate>(this)) {}
 

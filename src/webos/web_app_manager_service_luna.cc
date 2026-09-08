@@ -273,7 +273,15 @@ Json::Value WebAppManagerServiceLuna::setOrientation(
     return reply;
   }
 
-  WebAppManagerService::SetOrientation(request["orientation"].asString());
+  // Reported rather than swallowed: the value is validated in WebAppManager and
+  // an unknown one is dropped, so answering true would tell the compositor its
+  // orientation had been taken when it had not.
+  if (!WebAppManagerService::SetOrientation(request["orientation"].asString())) {
+    reply["returnValue"] = false;
+    reply["errorText"] = kErrInvalidValue;
+    reply["errorCode"] = kErrCodeInvalidParam;
+    return reply;
+  }
 
   reply["returnValue"] = true;
   return reply;

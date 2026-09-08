@@ -146,8 +146,8 @@ bool WebAppManagerService::IsEnyoApp(const std::string& app_id) {
   return WebAppManager::Instance()->IsEnyoApp(app_id);
 }
 
-void WebAppManagerService::SetOrientation(const std::string& orientation) {
-  WebAppManager::Instance()->SetOrientation(orientation);
+bool WebAppManagerService::SetOrientation(const std::string& orientation) {
+  return WebAppManager::Instance()->SetOrientation(orientation);
 }
 
 int WebAppManagerService::MaskForBrowsingDataType(const char* type) {

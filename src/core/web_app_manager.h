@@ -159,7 +159,9 @@ class WebAppManager {
   // names legacy webOS used: "up", "down", "left" or "right". Pushed in by the
   // compositor; see SetOrientation().
   const std::string& Orientation() const { return orientation_; }
-  void SetOrientation(const std::string& orientation);
+  // False when the value is not one of the four names, so the caller can be
+  // told it was rejected rather than silently dropped.
+  bool SetOrientation(const std::string& orientation);
 
   void CloseApp(const std::string& app_id);
 

@@ -122,7 +122,7 @@ class WebAppManagerService {
   std::vector<ApplicationInfo> List(bool include_system_apps = false);
 
   bool IsEnyoApp(const std::string& app_id);
-  void SetOrientation(const std::string& orientation);
+  bool SetOrientation(const std::string& orientation);
 };
 
 #endif  // CORE_WEB_APP_MANAGER_SERVICE_H_

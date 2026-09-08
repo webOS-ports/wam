@@ -917,18 +917,19 @@ void WebAppManager::UpdateNetworkStatus(const Json::Value& object) {
 // enough to make Enyo dispatch onWindowRotated: enyo.sendOrientationChange is
 // bound to the window's resize event and only then compares the property
 // against its own last value, so a page that is never resized never asks.
-void WebAppManager::SetOrientation(const std::string& orientation) {
+bool WebAppManager::SetOrientation(const std::string& orientation) {
   // The four names legacy webOS used. Anything else is dropped rather than
   // stored, so the property never reports something no application can read.
   if (orientation != "up" && orientation != "down" && orientation != "left" &&
       orientation != "right") {
     LOG_WARNING(MSGID_TYPE_ERROR, 1, PMLOGKS("ORIENTATION", orientation.c_str()),
                 "Ignoring unknown orientation");
-    return;
+    return false;
   }
 
+  // Already there is a success: the caller asked for a state the device is in.
   if (orientation_ == orientation) {
-    return;
+    return true;
   }
 
   orientation_ = orientation;
@@ -955,6 +956,8 @@ void WebAppManager::SetOrientation(const std::string& orientation) {
     app->Page()->UpdateExtensionData("screenOrientation", orientation_);
     app->Page()->CallLegacyMojoCallback("screenOrientationChanged", args);
   }
+
+  return true;
 }
 
 bool WebAppManager::IsEnyoApp(const std::string& app_id) {

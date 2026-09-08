@@ -33,8 +33,8 @@ int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
     cpu_time = old_cpu_time;
   }
 
-  int fd;
-  if ((fd = open("/proc/stat", O_RDONLY)) != -1) {
+  const int fd = open("/proc/stat", O_RDONLY);
+  if (fd != -1) {
     char buffer[4096 + 1];
     int len = read(fd, buffer, sizeof(buffer) - 1);
     if (len > 0) {
@@ -61,10 +61,10 @@ int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
 }
 
 char* WebAppManagerUtils::SkipToken(const char* p) {
-  while (isspace(*p)) {
+  while (isspace(static_cast<unsigned char>(*p))) {
     p++;
   }
-  while (*p && !isspace(*p)) {
+  while (*p && !isspace(static_cast<unsigned char>(*p))) {
     p++;
   }
   return const_cast<char*>(p);
@@ -81,8 +81,8 @@ long WebAppManagerUtils::Percentages(int cnt,
   for (int i = 0; i < cnt; i++) {
     long change = *now - *old;
     if (change < 0) {
-      change = static_cast<int>(static_cast<unsigned long>(*now) -
-                                static_cast<unsigned long>(*old));
+      change = static_cast<long>(static_cast<unsigned long>(*now) -
+                                 static_cast<unsigned long>(*old));
     }
     total_change += (*dp++ = change);
     *old++ = *now++;
@@ -92,7 +92,7 @@ long WebAppManagerUtils::Percentages(int cnt,
     total_change = 1;
   }
 
-  long half_total = total_change / 2l;
+  long half_total = total_change / 2L;
   for (int i = 0; i < cnt; i++) {
     *out++ = static_cast<int>((*diffs++ * 1000 + half_total) / total_change);
   }
@@ -115,12 +115,10 @@ void WebAppManagerUtils::Tokenize(std::string& str,
 
 bool WebAppManagerUtils::InVector(std::vector<std::string>& tokens,
                                   const char* arg) {
-  unsigned int i;
-  int len;
-  len = strlen(arg);
+  const size_t len = strlen(arg);
 
-  for (i = 0; i < tokens.size(); i++) {
-    int tlen = strlen(tokens[i].c_str());
+  for (size_t i = 0; i < tokens.size(); i++) {
+    const size_t tlen = tokens[i].size();
 
     if (strncmp(arg, tokens[i].c_str(), (len > tlen) ? len : tlen) == 0) {
       return true;
@@ -133,7 +131,7 @@ bool WebAppManagerUtils::InVector(std::vector<std::string>& tokens,
 bool WebAppManagerUtils::InGroup(std::string line, const char* user_name) {
   // only tokenize the lines that have users in the groups.
   // empty groups have the last character as ":".
-  size_t pos = line.find_last_of(":");
+  size_t pos = line.find_last_of(':');
 
   if (pos == (line.size() - 1)) {
     return false;

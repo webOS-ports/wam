@@ -31,6 +31,11 @@ DeviceInfoImpl::DeviceInfoImpl() = default;
 void DeviceInfoImpl::Initialize() {
   GatherInfo();
 
+  // Published here rather than at the end of this function: the locale block
+  // below returns early when localeInfo cannot be parsed, which would leave
+  // PalmSystem.deviceInfo unset altogether.
+  UpdateTvDeviceInfo();
+
   const std::string& json_string =
       util::ReadFile("/var/luna/preferences/localeInfo");
   if (!json_string.empty()) {
@@ -59,6 +64,9 @@ void DeviceInfoImpl::Initialize() {
   SetDeviceInfo("SmartServiceCountry", smartservicecountry.c_str());
   }
 
+}
+
+void DeviceInfoImpl::UpdateTvDeviceInfo() {
   Json::Value deviceInfo_json(Json::objectValue);
   deviceInfo_json["modelName"] = model_name_;
   deviceInfo_json["platformVersion"] = platform_version_;
@@ -76,9 +84,36 @@ void DeviceInfoImpl::Initialize() {
   }
   deviceInfo_json["screenWidth"] = screen_width_;
   deviceInfo_json["screenHeight"] = screen_height_;
+
+  // LunaSysMgr reported the card area next to the screen size and legacy
+  // frameworks lay themselves out from it. A full-screen card is the display;
+  // the shell takes its own system UI out of that.
+  deviceInfo_json["maximumCardWidth"] = screen_width_;
+  deviceInfo_json["maximumCardHeight"] = screen_height_;
+
+  // Also reported by LunaSysMgr, and read by legacy applications.
+  deviceInfo_json["keyboardAvailable"] = false;
+  deviceInfo_json["keyboardSlider"] = false;
   // deviceInfo_json["panelType"] = "";
 
   SetDeviceInfo("TvDeviceInfo", util::JsonToString(deviceInfo_json));
+}
+
+// The display size is not known when Initialize() runs. HardwareScreenWidth /
+// HardwareScreenHeight are never set by anything, and the DisplayWidth
+// fallback is only filled in by WebAppManager::SetUiSize() once a window
+// exists. Republish whenever it lands, or PalmSystem.deviceInfo keeps the
+// zeroes it was built with and every application reads screenWidth: 0.
+void DeviceInfoImpl::SetDisplayWidth(int value) {
+  DeviceInfo::SetDisplayWidth(value);
+  screen_width_ = static_cast<int>(value / screen_density_);
+  UpdateTvDeviceInfo();
+}
+
+void DeviceInfoImpl::SetDisplayHeight(int value) {
+  DeviceInfo::SetDisplayHeight(value);
+  screen_height_ = static_cast<int>(value / screen_density_);
+  UpdateTvDeviceInfo();
 }
 
 bool DeviceInfoImpl::GetInfoFromLunaPrefs(const char* key,

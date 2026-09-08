@@ -25,7 +25,12 @@ class DeviceInfoImpl : public DeviceInfo {
 
   void Initialize() override;
 
+  void SetDisplayWidth(int value) override;
+  void SetDisplayHeight(int value) override;
+
  private:
+  void UpdateTvDeviceInfo();
+
   int screen_width_ = 0;
   int screen_height_ = 0;
 

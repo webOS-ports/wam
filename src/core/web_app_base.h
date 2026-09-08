@@ -92,6 +92,15 @@ class WebAppBase : public WebPageObserver {
   virtual bool IsKeyboardVisible() { return false; }
   static void OnCursorVisibilityChanged(const std::string& jsscript);
   virtual bool HideWindow() = 0;
+
+  // Whether the shell says this window is still on screen after it stopped
+  // being the foreground one - a carded window in a card shell is. Defaults to
+  // false so a shell that never says otherwise keeps the behaviour WAM has
+  // always had: losing the stage suspends the page.
+  bool IsShownWhileDeactivated() const { return shown_while_deactivated_; }
+  void SetShownWhileDeactivated(bool shown) {
+    shown_while_deactivated_ = shown;
+  }
   virtual void SetDisplayFirstActivateTimeoutMs(uint32_t /*timeout*/) {}
   bool GetCrashState() const;
   void SetCrashState(bool state);
@@ -163,6 +172,7 @@ class WebAppBase : public WebPageObserver {
   std::string in_progress_relaunch_launching_app_id_;
   float scale_factor_ = 1.0f;
 
+  bool shown_while_deactivated_ = false;
  private:
   std::unique_ptr<WebAppBasePrivate> app_private_;
   bool need_reload_ = false;

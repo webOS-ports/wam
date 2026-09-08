@@ -960,6 +960,31 @@ bool WebAppManager::SetOrientation(const std::string& orientation) {
   return true;
 }
 
+bool WebAppManager::SetAppShownWhileDeactivated(
+    const std::string& instance_id,
+    const std::string& app_id,
+    bool shown) {
+  // Either identifier will do. The compositor's surface item carries an appId
+  // and no instance id, so a shell has only the former to offer, while
+  // everything else on this API addresses an instance.
+  WebAppBase* app = nullptr;
+  if (!instance_id.empty()) {
+    app = FindAppByInstanceId(instance_id);
+  } else if (!app_id.empty()) {
+    app = FindAppById(app_id);
+  }
+
+  if (!app) {
+    LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("INSTANCE_ID", instance_id.c_str()),
+             PMLOGKS("APP_ID", app_id.c_str()),
+             "SetAppShownWhileDeactivated: application not found");
+    return false;
+  }
+
+  app->SetShownWhileDeactivated(shown);
+  return true;
+}
+
 bool WebAppManager::IsEnyoApp(const std::string& app_id) {
   WebAppBase const* app = FindAppById(app_id);
   if (!app) {

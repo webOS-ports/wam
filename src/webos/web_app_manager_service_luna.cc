@@ -55,6 +55,7 @@ LSMethod WebAppManagerServiceLuna::methods_[] = {
 #endif
     LS2_METHOD_ENTRY(logControl),
     LS2_METHOD_ENTRY(setOrientation),
+    LS2_METHOD_ENTRY(setAppVisibility),
     LS2_METHOD_ENTRY(getWebProcessSize),
     LS2_METHOD_ENTRY(clearBrowsingData),
     LS2_METHOD_ENTRY(fireNotificationEvent),
@@ -280,6 +281,51 @@ Json::Value WebAppManagerServiceLuna::setOrientation(
     reply["returnValue"] = false;
     reply["errorText"] = kErrInvalidValue;
     reply["errorCode"] = kErrCodeInvalidParam;
+    return reply;
+  }
+
+  reply["returnValue"] = true;
+  return reply;
+}
+
+// The shell reporting whether a window it is about to take off the foreground
+// stays on screen. A card shell keeps carded windows visible, and they have to
+// go on painting; a shell where the foreground application is the only visible
+// one leaves this alone and WAM suspends as it always did.
+//
+// Call this before changing the window state, and wait for the reply: the state
+// travels over Wayland and this over the bus, and WAM has to have the answer by
+// the time the state change arrives or it will suspend a window that is still
+// being displayed.
+Json::Value WebAppManagerServiceLuna::setAppVisibility(
+    const Json::Value& request) {
+  Json::Value reply;
+
+  const bool has_instance_id =
+      request.isObject() && request.isMember("instanceId") &&
+      request["instanceId"].isString();
+  const bool has_app_id = request.isObject() && request.isMember("appId") &&
+                          request["appId"].isString();
+
+  if ((!has_instance_id && !has_app_id) || !request.isMember("visible") ||
+      !request["visible"].isBool()) {
+    reply["returnValue"] = false;
+    reply["errorText"] = kErrInvalidParam;
+    reply["errorCode"] = kErrCodeInvalidParam;
+    return reply;
+  }
+
+  const std::string instance_id =
+      has_instance_id ? request["instanceId"].asString() : std::string();
+  const std::string app_id =
+      has_app_id ? request["appId"].asString() : std::string();
+  const bool visible = request["visible"].asBool();
+
+  if (!WebAppManagerService::SetAppShownWhileDeactivated(instance_id, app_id,
+                                                         visible)) {
+    reply["returnValue"] = false;
+    reply["errorText"] = kErrNoRunningApp;
+    reply["errorCode"] = kErrCodeNoRunningApp;
     return reply;
   }
 

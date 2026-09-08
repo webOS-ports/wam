@@ -324,8 +324,29 @@ void WebAppWayland::OnStageDeactivated() {
   // that it had lost the stage.
   Page()->CallLegacyMojoCallback("stageDeactivated");
 
-  Page()->SuspendWebPageMedia();
   Unfocus();
+
+  // Losing the stage and leaving the screen are two different things, and
+  // suspending is only right for the second.
+  //
+  // On a display where the foreground application is the only one visible they
+  // coincide, which is why this used to suspend unconditionally. In a card
+  // shell they do not: a carded window is still on screen and has to keep
+  // painting, and suspending it leaves the card blank. LunaSysMgr sent
+  // stageDeactivated for exactly that case and never suspended the page.
+  //
+  // The shell says which it is; without a shell that says anything this is
+  // false and the behaviour is unchanged.
+  if (IsShownWhileDeactivated()) {
+    LOG_INFO(MSGID_WEBAPP_STAGE_DEACITVATED, 2,
+             PMLOGKS("APP_ID", AppId().c_str()),
+             PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
+             "Still shown by the shell; not suspending");
+    did_activate_stage_ = false;
+    return;
+  }
+
+  Page()->SuspendWebPageMedia();
   Page()->SetVisibilityState(
       WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateHidden);
   Page()->SuspendWebPageAll();

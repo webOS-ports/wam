@@ -105,6 +105,12 @@ class WebAppManager {
                  const std::string& instance_id,
                  bool force = false);
   bool OnPauseApp(const std::string& instance_id);
+
+  // The shell reporting whether a window it has just taken off the foreground
+  // is still on screen. See WebAppBase::IsShownWhileDeactivated().
+  bool SetAppShownWhileDeactivated(const std::string& instance_id,
+                                   const std::string& app_id,
+                                   bool shown);
   bool SetInspectorEnable(const std::string& app_id);
 
   void SetSystemLanguage(const std::string& language);

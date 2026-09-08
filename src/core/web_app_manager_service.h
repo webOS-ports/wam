@@ -75,6 +75,7 @@ class WebAppManagerService {
   virtual Json::Value pauseApp(const Json::Value& request) = 0;
   virtual Json::Value logControl(const Json::Value& request) = 0;
   virtual Json::Value setOrientation(const Json::Value& request) = 0;
+  virtual Json::Value setAppVisibility(const Json::Value& request) = 0;
   virtual Json::Value setInspectorEnable(const Json::Value& request) = 0;
   virtual Json::Value closeAllApps(const Json::Value& request) = 0;
   virtual Json::Value listRunningApps(const Json::Value& request,
@@ -96,6 +97,9 @@ class WebAppManagerService {
                  const std::string& instance_id,
                  bool force = false);
   bool OnPauseApp(const std::string& instance_id);
+  bool SetAppShownWhileDeactivated(const std::string& instance_id,
+                                   const std::string& app_id,
+                                   bool shown);
   Json::Value OnLogControl(const std::string& keys, const std::string& value);
   bool OnCloseAllApps(uint32_t pid = 0);
   Json::Value GetWebProcessProfiling();

@@ -40,6 +40,14 @@ bool WebAppManagerService::OnKillApp(const std::string& app_id,
   return WebAppManager::Instance()->OnKillApp(app_id, instance_id, force);
 }
 
+bool WebAppManagerService::SetAppShownWhileDeactivated(
+    const std::string& instance_id,
+    const std::string& app_id,
+    bool shown) {
+  return WebAppManager::Instance()->SetAppShownWhileDeactivated(
+      instance_id, app_id, shown);
+}
+
 bool WebAppManagerService::OnPauseApp(const std::string& instance_id) {
   return WebAppManager::Instance()->OnPauseApp(instance_id);
 }

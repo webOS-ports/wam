@@ -18,6 +18,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdlib>
 #include <limits>
 #include <sstream>
 
@@ -49,6 +50,48 @@
 
 static const int kExecuteCloseCallbackTimeOutMs = 10000;
 static const int kReloadTimeoutMs = 60000;
+
+namespace {
+
+// The UI scale, as a Blink page zoom factor.
+//
+// This is the scale that used to be passed as --force-device-scale-factor.
+// Chromium documents that switch as TEST ONLY on Wayland and warns about it at
+// startup, and on this stack it is actively wrong: the ozone/wayland backend
+// applies the factor when converting the screen size to DIP, so the page is
+// laid out at panel/factor css px and Blink rasterises it at the factor - but
+// the Wayland buffer is allocated at the DIP size, not at the device-pixel
+// size. Only the top-left 1/factor of the render fits in it. The surface
+// LSM then receives is panel/(factor*ceil(factor)) surface units, and
+// SurfaceView.qml scales it up to fill the output, so every application ends
+// up exactly `factor` times too large with its right-hand side and bottom
+// cropped. Measured on sargo: at 2.4 a 100 css px box covered 576 device px,
+// at 2.0 it covered 400 - the factor applied twice, every time.
+//
+// Page zoom reaches the same layout by a route that does not touch the
+// surface. The window stays 1:1 with the panel, Blink reflows to
+// panel/factor css px exactly as before and rasterises at native resolution,
+// and window.innerWidth keeps reporting the value the per-device scale was
+// tuned against, so no application sees a different viewport than it did.
+double PageZoomFactor() {
+  static const double kFactor = []() -> double {
+    const std::string value = util::GetEnvVar("WAM_PAGE_ZOOM_FACTOR");
+    if (value.empty())
+      return 1.0;
+    char* end = nullptr;
+    const double parsed = std::strtod(value.c_str(), &end);
+    // A partially numeric value is a mistake, not a scale; ignore it rather
+    // than acting on whatever prefix happened to parse.
+    if (end == value.c_str() || (end && *end != '\0') ||
+        !std::isfinite(parsed) || parsed <= 0.0) {
+      return 1.0;
+    }
+    return parsed;
+  }();
+  return kFactor;
+}
+
+}  // namespace
 
 class WebPageBlinkPrivate {
  public:
@@ -90,6 +133,7 @@ void WebPageBlink::Init() {
       app_desc_.V8SnapshotPath(), app_desc_.V8ExtraFlags(),
       app_desc_.UseNativeScroll());
   SetViewportSize();
+  ApplyPageZoomFactor();
 
   page_private_->page_view_->SetVisible(false);
   page_private_->page_view_->SetUserAgent(
@@ -701,11 +745,29 @@ void WebPageBlink::DidStartNavigation(const std::string& url,
 }
 
 void WebPageBlink::DidFinishNavigation(const std::string& url,
-                                       bool /*is_in_main_frame*/) {
+                                       bool is_in_main_frame) {
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[CONNECT]%s",
            WebAppManagerUtils::TruncateURL(url).c_str());
+
+  // The zoom set in Init() is recorded against whatever the main frame held at
+  // the time, which is not yet the application's url - HostZoomMap keys a
+  // file:// document by its full spec, so a level set before the navigation
+  // does not carry over to it. Set it again here, where the document has
+  // committed but has not yet been painted, so the first frame is already at
+  // the right scale.
+  if (is_in_main_frame)
+    ApplyPageZoomFactor();
+}
+
+void WebPageBlink::ApplyPageZoomFactor() {
+  const double factor = PageZoomFactor();
+  if (factor == 1.0)
+    return;
+  if (!page_private_->page_view_)
+    return;
+  page_private_->page_view_->SetZoomFactor(factor);
 }
 
 void WebPageBlink::LoadProgressChanged(double progress) {

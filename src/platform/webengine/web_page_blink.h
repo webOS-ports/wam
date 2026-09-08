@@ -192,6 +192,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
  private:
   void SetCustomPluginIfNeeded();
   void SetDisallowScrolling(bool disallow);
+  void ApplyPageZoomFactor();
   std::vector<std::string> GetErrorPagePath(const std::string& error_page);
   void ReloadFailedUrl();
 

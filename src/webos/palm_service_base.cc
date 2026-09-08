@@ -100,7 +100,7 @@ bool PalmServiceBase::Call(LSHandle* handle,
   }
 
   LSErrorSafe ls_error;
-  bool call_ret;
+  bool call_ret = false;
   if (parameters["subscribe"] == true || parameters["watch"] == true) {
     if (context) {
       call_ret = LSCallFromApplication(

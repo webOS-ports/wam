@@ -740,7 +740,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
     win_type = kWtDock;
   }
 
-  Json::Value affinity = json["displayAffinity"];
+  const Json::Value& affinity = json["displayAffinity"];
   if (affinity.isInt()) {
     desc->SetDisplayAffinity(affinity.asInt());
   }

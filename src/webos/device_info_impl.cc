@@ -52,7 +52,7 @@ void DeviceInfoImpl::Initialize() {
     return;
   }
 
-  Json::Value locale_info = locale_json["localeInfo"];
+  const Json::Value& locale_info = locale_json["localeInfo"];
 
   std::string language(locale_info["locales"]["UI"].asString());
   std::string localcountry(locale_json["country"].asString());
@@ -71,7 +71,7 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   deviceInfo_json["modelName"] = model_name_;
   deviceInfo_json["platformVersion"] = platform_version_;
   {
-    int major, minor, dot;
+    int major = 0, minor = 0, dot = 0;
     const int fields_count =
         std::sscanf(platform_version_.c_str(), "%d.%d.%d", &major, &minor, &dot);
     if (fields_count != 3) {

@@ -70,7 +70,7 @@ std::string Url::FileName() const {
     return "";
   }
   std::string local = ToLocalFile();
-  auto found = local.find_last_of("/");
+  auto found = local.find_last_of('/');
   if (found == std::string::npos) {
     return local;
   }
@@ -117,13 +117,13 @@ void Url::ParseUri(const std::string& uri) {
       path_ = GetSubString(uri, authority_end, path_end);
     }
 
-    auto query_start = uri.find("?", authority_end);
+    auto query_start = uri.find('?', authority_end);
     if (query_start != std::string::npos) {
-      auto query_end = uri.find("#", query_start);
+      auto query_end = uri.find('#', query_start);
       query_ = GetSubString(uri, query_start, query_end);
     }
 
-    auto fragment_start = uri.find("#", authority_end);
+    auto fragment_start = uri.find('#', authority_end);
     if (fragment_start != std::string::npos) {
       fragment_ = GetSubString(uri, fragment_start, uri.size());
     }

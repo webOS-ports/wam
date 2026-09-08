@@ -49,7 +49,7 @@ std::vector<std::string> GetFileList(const std::string& path) {
   std::vector<std::string> files;
   DIR* dir = opendir(fixed_path.c_str());
   if (dir != nullptr) {
-    struct dirent* entry;
+    struct dirent* entry = nullptr;
     while ((entry = readdir(dir)) != nullptr) {
       std::string file_name = entry->d_name;
       if (file_name == "." || file_name == "..") {
@@ -141,7 +141,7 @@ WebAppFactoryInterface* WebAppFactoryManagerImpl::LoadPluggable(
     return nullptr;
   }
 
-  WebAppFactoryInterface* interface;
+  WebAppFactoryInterface* interface = nullptr;
   for (const auto& file : GetFileList(web_app_factory_plugin_path_)) {
     if (!plugin_loader_->Load(file)) {
       LOG_WARNING(MSGID_PLUGIN_LOAD_FAIL, 1,

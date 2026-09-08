@@ -17,7 +17,7 @@
 #include "log_manager_pmlog.h"
 
 PmLogContext GetCustomPmLogContext(const char* context_id) {
-  PmLogContext context;
+  PmLogContext context = nullptr;
   PmLogGetContext(context_id, &context);
   return context;
 }

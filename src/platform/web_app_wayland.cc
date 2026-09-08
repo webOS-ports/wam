@@ -228,13 +228,14 @@ void WebAppWayland::Attach(WebPageBase* page) {
   SetKeyMask(webos::WebOSKeyMask::KEY_MASK_EXIT,
              GetAppDescription()->HandleExitKey());
 
-  if (GetAppDescription()->WidthOverride().has_value() &&
-      GetAppDescription()->HeightOverride().has_value() &&
+  const auto width_override = GetAppDescription()->WidthOverride();
+  const auto height_override = GetAppDescription()->HeightOverride();
+  if (width_override.has_value() && height_override.has_value() &&
       !GetAppDescription()->IsTransparent()) {
     float scale_x = static_cast<float>(app_window_->DisplayWidth()) /
-                    GetAppDescription()->WidthOverride().value();
+                    static_cast<float>(width_override.value());
     float scale_y = static_cast<float>(app_window_->DisplayHeight()) /
-                    GetAppDescription()->HeightOverride().value();
+                    static_cast<float>(height_override.value());
     scale_factor_ = (scale_x < scale_y) ? scale_x : scale_y;
     static_cast<WebPageBlink*>(page)->SetAdditionalContentsScale(scale_x,
                                                                  scale_y);

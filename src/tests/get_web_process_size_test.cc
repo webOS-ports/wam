@@ -100,7 +100,7 @@ TEST(GetWebProcessSizeTest, checkCaseProcessNotExists) {
   ASSERT_TRUE(response_process_size["returnValue"].asBool());
   ASSERT_TRUE(response_process_size["WebProcesses"].isArray());
 
-  auto processes = response_process_size["WebProcesses"];
+  const auto& processes = response_process_size["WebProcesses"];
   ASSERT_EQ(processes.size(), 0);
 }
 
@@ -135,12 +135,12 @@ TEST(GetWebProcessSizeTest, checkCaseProcessExists) {
   ASSERT_TRUE(response_process_size["returnValue"].asBool());
   ASSERT_TRUE(response_process_size["WebProcesses"].isArray());
 
-  auto processes = response_process_size["WebProcesses"];
+  const auto& processes = response_process_size["WebProcesses"];
   ASSERT_TRUE(processes.size() > 0);
   int process_position = -1;
   for (unsigned int i = 0; i < processes.size(); i++) {
     ASSERT_TRUE(processes[i].isObject());
-    auto process = processes[i];
+    const auto& process = processes[i];
     ASSERT_TRUE(process.isMember("pid"));
     ASSERT_TRUE(process["pid"].isString());
     int pid = util::StrToIntWithDefault(process["pid"].asString(), 0);
@@ -152,11 +152,11 @@ TEST(GetWebProcessSizeTest, checkCaseProcessExists) {
 
       ASSERT_TRUE(process["runningApps"].isArray());
 
-      auto running_apps = process["runningApps"];
+      const auto& running_apps = process["runningApps"];
       ASSERT_EQ(running_apps.size(), 1);
       ASSERT_TRUE(running_apps[0].isObject());
 
-      auto application = running_apps[0];
+      const auto& application = running_apps[0];
       ASSERT_TRUE(application.isMember("id"));
       ASSERT_TRUE(application.isMember("instanceId"));
       ASSERT_STREQ(application["id"].asString().c_str(), kApplicationId);

@@ -30,7 +30,7 @@ WebView* WebViewFactoryMock::CreateWebView() {
   }
   std::cerr << "Missing WebView pointer. Method setWebView should be called "
                "prior to createWebView"
-            << std::endl;
+            << '\n';
   return nullptr;
 }
 

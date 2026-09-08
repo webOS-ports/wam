@@ -177,7 +177,7 @@ TEST(ListRunningAppsTest, IncludeSysApps) {
   ASSERT_TRUE(result.isMember("returnValue"));
   ASSERT_TRUE(reply["returnValue"].asBool());
   ASSERT_TRUE(reply["running"].isArray());
-  const auto running_apps = reply["running"];
+  const auto& running_apps = reply["running"];
   ASSERT_EQ(2, running_apps.size());
 
   ASSERT_TRUE(running_apps[0].isObject());
@@ -236,10 +236,10 @@ TEST(ListRunningAppsTest, ExcludeSysApps) {
   ASSERT_TRUE(reply.isMember("returnValue"));
   ASSERT_TRUE(reply["returnValue"].asBool());
   ASSERT_TRUE(reply["running"].isArray());
-  const auto running_apps = reply["running"];
+  const auto& running_apps = reply["running"];
   ASSERT_EQ(1, running_apps.size());
 
-  auto running_app = running_apps[0];
+  const auto& running_app = running_apps[0];
   EXPECT_TRUE(running_app.isMember("id"));
   EXPECT_EQ(bare_request["appDesc"]["id"].asString(),
             running_app["id"].asString());

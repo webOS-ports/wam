@@ -36,11 +36,8 @@
 namespace {
 
 using ::testing::_;
-using ::testing::AnyNumber;
 using ::testing::Invoke;
-using ::testing::Return;
 using ::testing::ReturnRef;
-using ::testing::StrEq;
 
 // TODO: Move it to separate file.
 static constexpr char launchBareAppJsonBody[] = R"({

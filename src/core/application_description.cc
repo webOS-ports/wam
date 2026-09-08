@@ -72,7 +72,7 @@ ApplicationDescription::GetWindowOwnerInfo() {
   if (!group_window_desc_.empty()) {
     Json::Value json = util::StringToJson(group_window_desc_);
 
-    auto owner_info = json["ownerInfo"];
+    const auto& owner_info = json["ownerInfo"];
     if (owner_info.isObject()) {
       if (owner_info["allowAnonymous"].isBool()) {
         info.allow_anonymous = owner_info["allowAnonymous"].asBool();
@@ -99,7 +99,7 @@ ApplicationDescription::GetWindowClientInfo() {
   if (!group_window_desc_.empty()) {
     Json::Value json = util::StringToJson(group_window_desc_);
 
-    auto client_info = json["clientInfo"];
+    const auto& client_info = json["clientInfo"];
     if (client_info.isObject()) {
       const auto& layer = client_info["layer"];
       if (layer.isString()) {
@@ -273,7 +273,7 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   if (!app_desc->folder_path_.empty()) {
     std::string temp_path =
         app_desc->folder_path_ + "/" + app_desc->entry_point_;
-    struct stat stat_ent_pt;
+    struct stat stat_ent_pt = {};
     if (!stat(temp_path.c_str(), &stat_ent_pt)) {
       app_desc->entry_point_ = "file://" + temp_path;
     }

@@ -42,7 +42,7 @@ WebAppBase* WebAppFactoryManagerMock::CreateWebApp(
 
   std::cerr << "Missing WindowFactory pointer. Method setWebAppWindowFactory "
                "should be called prior to createWebApp"
-            << std::endl;
+            << '\n';
   return nullptr;
 }
 
@@ -63,7 +63,7 @@ WebPageBase* WebAppFactoryManagerMock::CreateWebPage(
   if (!view_factory_) {
     std::cerr << "Missing ViewFactory pointer. Method setWebViewFactory should "
                  "be called prior to createWebPage"
-              << std::endl;
+              << '\n';
     return nullptr;
   }
   auto page = new WebPageBlink(url, desc, launch_params,

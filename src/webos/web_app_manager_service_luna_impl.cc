@@ -57,7 +57,7 @@ Json::Value WebAppManagerServiceLunaImpl::setInspectorEnable(
 
 void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
     const Json::Value& reply) {
-  Json::Value settings = reply["settings"];
+  const Json::Value& settings = reply["settings"];
   // The settings is empty when service is crashed
   // The right value will be notified again when service is restarted
   if (!reply.isObject() || !reply["settings"].isObject() ||

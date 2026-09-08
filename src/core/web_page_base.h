@@ -87,6 +87,13 @@ class WebPageBase {
                         const std::string& launching_app_id);
   virtual void EvaluateJavaScript(const std::string& js_code) = 0;
 
+  // Replace a value in the data webOSSystem was initialised with. The
+  // properties applications read are a snapshot taken when the page was
+  // created, not live calls into this process, so anything that changes
+  // afterwards has to be pushed or the page keeps the value it started with.
+  virtual void UpdateExtensionData(const std::string& /*key*/,
+                                   const std::string& /*value*/) {}
+
   // Call one of the callbacks LunaSysMgr invoked on the page's Mojo object.
   //
   // The legacy frameworks have no other way to hear about this: Enyo 1 raises

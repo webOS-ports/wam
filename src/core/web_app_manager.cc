@@ -940,9 +940,20 @@ void WebAppManager::SetOrientation(const std::string& orientation) {
   // because anything else listening for it now gets it.
   const std::string args = "\"" + orientation_ + "\"";
   for (WebAppBase* app : app_list_) {
-    if (app->Page()) {
-      app->Page()->CallLegacyMojoCallback("screenOrientationChanged", args);
+    if (!app->Page()) {
+      continue;
     }
+    // Before the callback, so anything reading the property from inside it
+    // sees the orientation being announced rather than the previous one.
+    //
+    // This push is what makes the property change at all. webOSSystem hands
+    // the page a snapshot of its values when the page is created and
+    // PalmSystem.screenOrientation reads that snapshot, so without this an
+    // application launched before the device was turned keeps reporting the
+    // orientation it started in - and Enyo, which compares the property
+    // against its own last value on every resize, never sees a difference.
+    app->Page()->UpdateExtensionData("screenOrientation", orientation_);
+    app->Page()->CallLegacyMojoCallback("screenOrientationChanged", args);
   }
 }
 

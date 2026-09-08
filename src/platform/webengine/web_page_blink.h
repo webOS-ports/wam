@@ -137,7 +137,8 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void DidSwapCompositorFrame() override;
   void DidResumeDOM() override;
 
-  void UpdateExtensionData(const std::string& key, const std::string& value);
+  void UpdateExtensionData(const std::string& key,
+                           const std::string& value) override;
   void SetLoadErrorPolicy(const std::string& policy);
   void SetTrustLevel(const std::string& trust_level) {
     trust_level_ = trust_level;

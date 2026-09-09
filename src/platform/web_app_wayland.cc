@@ -284,16 +284,7 @@ bool WebAppWayland::IsNormal() {
 }
 
 void WebAppWayland::NotifyStageChange(const char* callback) {
-  if (notifying_stage_change_) {
-    LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
-             PMLOGKS("CALLBACK", callback),
-             "Stage change already being notified; skipping the nested one");
-    return;
-  }
-
-  notifying_stage_change_ = true;
   Page()->CallLegacyMojoCallback(callback);
-  notifying_stage_change_ = false;
 }
 
 void WebAppWayland::OnStageActivated() {
@@ -698,6 +689,35 @@ void WebAppWayland::StateChanged(webos::NativeWindowState new_state) {
     return;
   }
 
+  // Delivered from inside a transition that is still running - see
+  // in_stage_transition_. Remember it and let the outer call apply it once it
+  // has finished, instead of starting a second transition on top of a
+  // half-applied one.
+  if (in_stage_transition_) {
+    LOG_INFO(MSGID_WINDOW_STATE_CHANGED, 2, PMLOGKS("APP_ID", AppId().c_str()),
+             PMLOGKFV("HOST_STATE", "%d", new_state),
+             "Arrived during a stage transition; deferred");
+    pending_state_ = new_state;
+    has_pending_state_ = true;
+    return;
+  }
+
+  in_stage_transition_ = true;
+  ApplyStateChange(new_state);
+  in_stage_transition_ = false;
+
+  // Anything that arrived while we were busy is the newer truth about this
+  // window; apply it now, iteratively so a chain of them cannot recurse.
+  while (has_pending_state_) {
+    const webos::NativeWindowState state = pending_state_;
+    has_pending_state_ = false;
+    in_stage_transition_ = true;
+    ApplyStateChange(state);
+    in_stage_transition_ = false;
+  }
+}
+
+void WebAppWayland::ApplyStateChange(webos::NativeWindowState new_state) {
   switch (new_state) {
     case webos::NATIVE_WINDOW_DEFAULT:
     case webos::NATIVE_WINDOW_MAXIMIZED:

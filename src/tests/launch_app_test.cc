@@ -396,8 +396,8 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   ASSERT_TRUE(result.isMember("appId"));
 
   if (!actual_value) {
-    int const result = unsetenv(var_name);
-    ASSERT_FALSE(result);
+    int const unset_result = unsetenv(var_name);
+    ASSERT_FALSE(unset_result);
   }
 }
 

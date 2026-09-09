@@ -23,7 +23,8 @@ using PermissionRequest = neva_app_runtime::PermissionRequest;
 
 class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
  public:
-  PermissionPrompt(neva_app_runtime::PermissionPrompt::Delegate* delegate);
+  explicit PermissionPrompt(
+      neva_app_runtime::PermissionPrompt::Delegate* delegate);
   ~PermissionPrompt() override;
 
  private:

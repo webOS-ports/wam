@@ -461,11 +461,10 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
 
   if (value.isArray()) {
     for (const auto& region : value) {
-      input_region_.emplace_back(
-          gfx::Rect(region["x"].asInt() * scale_factor_,
-                    region["y"].asInt() * scale_factor_,
-                    region["width"].asInt() * scale_factor_,
-                    region["height"].asInt() * scale_factor_));
+      input_region_.emplace_back(region["x"].asInt() * scale_factor_,
+                                 region["y"].asInt() * scale_factor_,
+                                 region["width"].asInt() * scale_factor_,
+                                 region["height"].asInt() * scale_factor_);
     }
   }
 

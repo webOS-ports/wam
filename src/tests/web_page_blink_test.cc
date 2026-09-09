@@ -92,6 +92,10 @@ class WebViewFactoryMock : public WebViewFactory {
   WebViewFactoryMock();
   ~WebViewFactoryMock() override = default;
 
+  // Owns a raw WebViewMock*; copying it would hand out the same pointer twice.
+  WebViewFactoryMock(const WebViewFactoryMock&) = delete;
+  WebViewFactoryMock& operator=(const WebViewFactoryMock&) = delete;
+
   MOCK_METHOD(WebView*, CreateWebView, (), (override));
 
   WebViewMock* web_view_;

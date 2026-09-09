@@ -22,6 +22,7 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <fstream>
 
 #include "utils.h"
@@ -119,15 +120,11 @@ bool WebAppManagerUtils::InVector(std::vector<std::string>& tokens,
                                   const char* arg) {
   const size_t len = strlen(arg);
 
-  for (size_t i = 0; i < tokens.size(); i++) {
-    const size_t tlen = tokens[i].size();
-
-    if (strncmp(arg, tokens[i].c_str(), (len > tlen) ? len : tlen) == 0) {
-      return true;
-    }
-  }
-
-  return false;
+  return std::any_of(
+      tokens.begin(), tokens.end(), [arg, len](const std::string& token) {
+        const size_t tlen = token.size();
+        return strncmp(arg, token.c_str(), (len > tlen) ? len : tlen) == 0;
+      });
 }
 
 bool WebAppManagerUtils::InGroup(const std::string& line, const char* user_name) {

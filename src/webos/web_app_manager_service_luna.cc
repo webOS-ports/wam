@@ -365,7 +365,6 @@ Json::Value WebAppManagerServiceLuna::clearBrowsingData(
   Json::Value reply;
 
   if (!request.isObject()) {
-    Json::Value reply;
     reply["returnValue"] = false;
     reply["errorCode"] = kErrCodeInvalidParam;
     reply["errorText"] = kErrInvalidParam;
@@ -640,8 +639,6 @@ void WebAppManagerServiceLuna::ThresholdChangedCallback(
   } else if (current_level.compare("critical") == 0 ||
              current_level.compare("low") == 0) {
     level = webos::WebViewBase::MEMORY_PRESSURE_CRITICAL;
-  } else {
-    level = webos::WebViewBase::MEMORY_PRESSURE_NONE;
   }
   WebAppManagerService::NotifyMemoryPressure(level);
 }

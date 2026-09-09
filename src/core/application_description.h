@@ -64,7 +64,9 @@ class ApplicationDescription {
 
   const std::string& DefaultWindowType() const { return default_window_type_; }
 
-  void SetDefaultWindowType(std::string windowType) { default_window_type_ = std::move(windowType) ; }
+  void SetDefaultWindowType(std::string window_type) {
+    default_window_type_ = std::move(window_type);
+  }
 
   const std::string& EnyoBundleVersion() const { return enyo_bundle_version_; }
 

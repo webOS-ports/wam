@@ -29,7 +29,7 @@ TEST(ClearBrowsingData, invalidValue) {
         "types":[1]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
 
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
@@ -48,7 +48,7 @@ TEST(ClearBrowsingData, emptyArray) {
         "types":[]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -67,7 +67,7 @@ TEST(ClearBrowsingData, unknownData) {
         "types":["unknown"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -86,7 +86,7 @@ TEST(ClearBrowsingData, all) {
         "types":["all"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -102,7 +102,7 @@ TEST(ClearBrowsingData, cache) {
         "types":["cache"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -118,7 +118,7 @@ TEST(ClearBrowsingData, codecache) {
         "types":["codecache"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -134,7 +134,7 @@ TEST(ClearBrowsingData, cookies) {
         "types":["codecache"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -150,7 +150,7 @@ TEST(ClearBrowsingData, fileSystems) {
         "types":["fileSystems"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -166,7 +166,7 @@ TEST(ClearBrowsingData, localStorage) {
         "types":["localStorage"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -182,7 +182,7 @@ TEST(ClearBrowsingData, channelIDs) {
         "types":["channelIDs"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -198,7 +198,7 @@ TEST(ClearBrowsingData, serviceWorkers) {
         "types":["serviceWorkers"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -214,7 +214,7 @@ TEST(ClearBrowsingData, cacheStorage) {
         "types":["cacheStorage"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 
@@ -230,7 +230,7 @@ TEST(ClearBrowsingData, webSQL) {
         "types":["webSQL"]
     })";
 
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
   Json::Value request;
   ASSERT_TRUE(util::StringToJson(json_parameter, request));
 

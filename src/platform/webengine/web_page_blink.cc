@@ -53,29 +53,37 @@ static const int kReloadTimeoutMs = 60000;
 
 namespace {
 
-// The UI scale, as a Blink page zoom factor.
+// The zoom factor applied to applications built against the frameworks this
+// distribution carries for compatibility.
 //
-// This is the scale that used to be passed as --force-device-scale-factor.
-// Chromium documents that switch as TEST ONLY on Wayland and warns about it at
-// startup, and on this stack it is actively wrong: the ozone/wayland backend
-// applies the factor when converting the screen size to DIP, so the page is
-// laid out at panel/factor css px and Blink rasterises it at the factor - but
-// the Wayland buffer is allocated at the DIP size, not at the device-pixel
-// size. Only the top-left 1/factor of the render fits in it. The surface
-// LSM then receives is panel/(factor*ceil(factor)) surface units, and
-// SurfaceView.qml scales it up to fill the output, so every application ends
-// up exactly `factor` times too large with its right-hand side and bottom
-// cropped. Measured on sargo: at 2.4 a 100 css px box covered 576 device px,
-// at 2.0 it covered 400 - the factor applied twice, every time.
+// Mojo and Enyo 1/2 applications are fixed-pixel layouts authored for the
+// ~450 css px viewport of a Palm-era handset. They cannot adapt to the panel,
+// so the panel is adapted to them: the device's configd value
+// com.webos.surfacemanager.devicePixelRatio reaches this process as
+// WAM_LEGACY_UI_ZOOM_FACTOR and is applied as a Blink page zoom, which reflows
+// the document to panel/factor css px.
 //
-// Page zoom reaches the same layout by a route that does not touch the
-// surface. The window stays 1:1 with the panel, Blink reflows to
-// panel/factor css px exactly as before and rasterises at native resolution,
-// and window.innerWidth keeps reporting the value the per-device scale was
-// tuned against, so no application sees a different viewport than it did.
-double PageZoomFactor() {
-  static const double kFactor = []() -> double {
-    const std::string value = util::GetEnvVar("WAM_PAGE_ZOOM_FACTOR");
+// Applications written against the web runtime as it stands get no zoom, and
+// that is not merely a default - handing them the legacy viewport is what
+// breaks them. Enact is resolution independent, but only in tiers: it picks a
+// screen type from window.innerWidth/innerHeight and sets the root font size
+// from it, and its smallest tier is 1280x720. On sargo the 450 px legacy
+// viewport puts it on that tier at 16 px/rem, and a layout built for 1280 px
+// overflows and clips. At native resolution it picks a tier that fits.
+//
+// This used to reach Blink as --force-device-scale-factor, which Chromium
+// documents as TEST ONLY on Wayland and which is wrong on this stack:
+// ozone/wayland applies the factor when converting the screen size to DIP, so
+// the page is laid out at panel/factor css px and rasterised at the factor,
+// but the Wayland buffer is allocated at the DIP size rather than the
+// device-pixel size. Only the top-left 1/factor of the render reaches it, and
+// SurfaceView.qml scales that undersized surface up to fill the output, which
+// puts the factor back a second time - every application exactly `factor`
+// times too large with its right-hand side and bottom cropped. Page zoom
+// reaches the same layout by a route that never touches the surface.
+double LegacyUiZoomFactor() {
+  static const double factor = []() -> double {
+    const std::string value = util::GetEnvVar("WAM_LEGACY_UI_ZOOM_FACTOR");
     if (value.empty())
       return 1.0;
     char* end = nullptr;
@@ -88,7 +96,7 @@ double PageZoomFactor() {
     }
     return parsed;
   }();
-  return kFactor;
+  return factor;
 }
 
 }  // namespace
@@ -562,7 +570,7 @@ void WebPageBlink::SuspendWebPagePaintingAndJSExecution() {
 
   // if we haven't finished loading the page yet, wait until it is loaded before
   // suspending
-  bool is_loading = !HasBeenShown() && Progress() < 100;
+  bool const is_loading = !HasBeenShown() && Progress() < 100;
   if (is_loading) {
     LOG_INFO(MSGID_SUSPEND_WEBPAGE, 4, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
@@ -614,7 +622,7 @@ std::string WebPageBlink::EscapeData(const std::string& value) {
 }
 
 void WebPageBlink::ReloadExtensionData() {
-  std::string event_js =
+  std::string const event_js =
       "if (typeof(webOSSystem) != 'undefined') {"
       "  webOSSystem.reloadInjectionData();"
       "};";
@@ -635,7 +643,7 @@ void WebPageBlink::UpdateExtensionData(const std::string& key,
                 value.c_str());
     return;
   }
-  std::string event_js =
+  std::string const event_js =
       "if (typeof(webOSSystem) != 'undefined') {"
       "  webOSSystem.updateInjectionData('" +
       EscapeData(key) + "', '" + EscapeData(value) +
@@ -687,7 +695,7 @@ void WebPageBlink::DidFirstFrameFocused() {
   // App load is finished, set use launching time optimization false.
   // If Launch optimization had to be done late, use delayMsForLaunchOptmization
   if (app_desc_.DelayMsForLaunchOptimization().has_value()) {
-    int delay_ms = app_desc_.DelayMsForLaunchOptimization().value();
+    int const delay_ms = app_desc_.DelayMsForLaunchOptimization().value();
     SetUseLaunchOptimization(false, delay_ms);
   } else {
     SetUseLaunchOptimization(false);
@@ -761,17 +769,26 @@ void WebPageBlink::DidFinishNavigation(const std::string& url,
     ApplyPageZoomFactor();
 }
 
+double WebPageBlink::UiScaleFactor() const {
+  // An explicit uiScale in appinfo.json wins; failing that, the framework the
+  // entry document loads decides.
+  return app_desc_.UiScale().value_or(
+      app_desc_.UsesLegacyFramework() ? LegacyUiZoomFactor() : 1.0);
+}
+
 void WebPageBlink::ApplyPageZoomFactor() {
-  const double factor = PageZoomFactor();
-  if (factor == 1.0)
-    return;
   if (!page_private_->page_view_)
     return;
-  page_private_->page_view_->SetZoomFactor(factor);
+
+  // Applied unconditionally rather than skipped when it comes out at 1:
+  // HostZoomMap is keyed by host and shared across this process, so an
+  // application that wants no zoom would otherwise inherit whatever a legacy
+  // application on the same host left behind.
+  page_private_->page_view_->SetZoomFactor(UiScaleFactor());
 }
 
 void WebPageBlink::LoadProgressChanged(double progress) {
-  bool process_ten_percent =
+  bool const process_ten_percent =
       std::abs(progress - 0.1f) < std::numeric_limits<float>::epsilon();
   if (!(loading_url_.empty() && process_ten_percent)) {
     // loading_url_ is empty then net didStartNavigation yet, default(initial)
@@ -802,12 +819,12 @@ void WebPageBlink::LoadAborted(const std::string& url) {
 // DOM event, and to its opener as well, since the window that started the sign-in is the
 // one waiting for the code.
 void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
-  static const char* kEngineSchemes[] = {"http:",  "https:", "file:", "about:",
-                                         "data:",  "blob:",  "ws:",   "wss:",
-                                         "chrome:"};
+  static const char* engine_schemes[] = {
+      "http:", "https:", "file:", "about:", "data:",
+      "blob:", "ws:",    "wss:",  "chrome:"};
   if (url.empty() || url.find(':') == std::string::npos)
     return;
-  for (const char* scheme : kEngineSchemes) {
+  for (const char* scheme : engine_schemes) {
     if (url.rfind(scheme, 0) == 0)
       return;
   }
@@ -911,9 +928,7 @@ void WebPageBlink::RecreateWebView() {
         WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateLaunching);
   }
 
-  if (is_suspended_) {
-    is_suspended_ = false;
-  }
+  is_suspended_ = false;
 }
 
 void WebPageBlink::SetVisible(bool visible) {
@@ -921,10 +936,11 @@ void WebPageBlink::SetVisible(bool visible) {
 }
 
 void WebPageBlink::SetViewportSize() {
-  if (app_desc_.WidthOverride().has_value() &&
-      app_desc_.HeightOverride().has_value()) {
-    page_private_->page_view_->SetViewportSize(
-        app_desc_.WidthOverride().value(), app_desc_.HeightOverride().value());
+  const auto width_override = app_desc_.WidthOverride();
+  const auto height_override = app_desc_.HeightOverride();
+  if (width_override.has_value() && height_override.has_value()) {
+    page_private_->page_view_->SetViewportSize(width_override.value(),
+                                               height_override.value());
   }
 }
 
@@ -1131,8 +1147,8 @@ void WebPageBlink::SetHasOnCloseCallback(bool has_close_callback) {
 }
 
 void WebPageBlink::ExecuteCloseCallback(bool forced) {
-  std::string forced_str = forced ? "forced" : "normal";
-  std::string script =
+  std::string const forced_str = forced ? "forced" : "normal";
+  std::string const script =
       "window.webOSSystem._onCloseWithNotify_('" + forced_str + "');";
 
   EvaluateJavaScript(script);
@@ -1163,8 +1179,8 @@ void WebPageBlink::UpdateHardwareResolution() {
   std::string hardware_width, hardware_height;
   GetDeviceInfo("HardwareScreenWidth", hardware_width);
   GetDeviceInfo("HardwareScreenHeight", hardware_height);
-  int width = util::StrToIntWithDefault(hardware_width, 0);
-  int height = util::StrToIntWithDefault(hardware_height, 0);
+  int const width = util::StrToIntWithDefault(hardware_width, 0);
+  int const height = util::StrToIntWithDefault(hardware_height, 0);
   page_private_->page_view_->SetHardwareResolution(width, height);
 }
 
@@ -1177,8 +1193,8 @@ void WebPageBlink::UpdateBoardType() {
 double WebPageBlink::DevicePixelRatio() {
   float device_pixel_ratio = 1.0;
 
-  int app_width;
-  int app_height;
+  int app_width = 0;
+  int app_height = 0;
   if (app_desc_.WidthOverride().has_value()) {
     app_width = app_desc_.WidthOverride().value();
   } else {
@@ -1205,9 +1221,9 @@ double WebPageBlink::DevicePixelRatio() {
     device_height = CurrentUiHeight();
   }
 
-  float ratio_x = static_cast<float>(device_width) / app_width;
-  float ratio_y = static_cast<float>(device_height) / app_height;
-  bool ratios_are_equal =
+  float const ratio_x = static_cast<float>(device_width) / app_width;
+  float const ratio_y = static_cast<float>(device_height) / app_height;
+  bool const ratios_are_equal =
       std::abs(ratio_x - ratio_y) < std::numeric_limits<float>::epsilon();
   if (!ratios_are_equal) {
     // device resolution : 5120x2160 (UHD 21:9 - D9)
@@ -1291,8 +1307,8 @@ bool WebPageBlink::AcceptsAudioCapture() {
 }
 
 void WebPageBlink::KeyboardVisibilityChanged(bool visible) {
-  std::string visible_str = visible ? "true" : "false";
-  std::string javascript =
+  std::string const visible_str = visible ? "true" : "false";
+  std::string const javascript =
       "console.log('[WAM] fires keyboardStateChange event : " + visible_str +
       "');"
       "    var keyboardStateEvent =new CustomEvent('keyboardStateChange', { "
@@ -1309,7 +1325,7 @@ void WebPageBlink::KeyboardVisibilityChanged(bool visible) {
 void WebPageBlink::UpdateIsLoadErrorPageFinish() {
   // If currently loading finished URL is not error page,
   // is_load_error_page_finish_ will be updated
-  bool was_error_page = is_load_error_page_finish_;
+  bool const was_error_page = is_load_error_page_finish_;
   WebPageBase::UpdateIsLoadErrorPageFinish();
   if (is_load_error_page_finish_) {
     LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
@@ -1318,7 +1334,7 @@ void WebPageBlink::UpdateIsLoadErrorPageFinish() {
     net_error_reload_timer_.Stop();
     net_error_reload_timer_.StartWithReceiver(kReloadTimeoutMs, this,
                                               &WebPageBlink::ReloadFailedUrl);
-  } else if (was_error_page && !is_load_error_page_finish_) {
+  } else if (was_error_page) {
     LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()), "Stop reload timer");
     net_error_reload_timer_.Stop();
@@ -1369,35 +1385,38 @@ void WebPageBlink::SetObserver(WebPageBlinkObserver* observer) {
   observer_ = observer;
 }
 
-WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory, int height, std::vector<std::string> additional_features) {
-
-  std::unique_ptr<ApplicationDescription> new_app_desc(new ApplicationDescription(app_desc_));
+WebView* WebPageBlink::CreateWindow(
+    const std::string& new_url,
+    std::unique_ptr<WebViewFactory> dedicated_factory,
+    int height,
+    std::vector<std::string> additional_features) {
+  auto new_app_desc = std::make_unique<ApplicationDescription>(app_desc_);
 
   Json::Value window_attributes;
-  // explore additional_features to determine our window type
-  // reminder: the features are a list of "key=value" strings, where value can also be a json string
-  for(const std::string &feature: additional_features) {
+  // Explore additional_features to determine our window type. Reminder: the
+  // features are a list of "key=value" strings, where value can also be a json
+  // string.
+  for (const std::string& feature : additional_features) {
     if (feature.find("attributes=") != std::string::npos) {
-      // for the webOS attributes, the value is a json string
+      // For the webOS attributes, the value is a json string.
       window_attributes = util::StringToJson(feature.substr(11));
     }
   }
 
   if (window_attributes["window"].asString() == "dashboard") {
     new_app_desc->SetDefaultWindowType("floating");
-  }
-
-  else if (window_attributes["window"].asString() == "popupalert") {
+  } else if (window_attributes["window"].asString() == "popupalert") {
     new_app_desc->SetDefaultWindowType("system_ui");
   }
 
-  // create a new page, with a factory associated with the new content
-  wam::Url newWamUrl(newUrl);
-  WebPageBlink *newPage = new WebPageBlink(newWamUrl, *new_app_desc, "{}", std::move(dedicatedFactory));
-  newPage->Init();
+  // Create a new page, with a factory associated with the new content.
+  wam::Url const new_wam_url(new_url);
+  WebPageBlink* new_page = new WebPageBlink(new_wam_url, *new_app_desc, "{}",
+                                            std::move(dedicated_factory));
+  new_page->Init();
 
-  // Create a new webApp instance for this page
-  WebAppManager *webAppMgr = WebAppManager::Instance();
+  // Create a new webApp instance for this page.
+  WebAppManager* web_app_mgr = WebAppManager::Instance();
   // Inherit the type the parent was actually launched with, falling back to
   // what appinfo.json asked for. It matters for exhibition (dock) mode: those
   // applications are typically "noWindow": true, so the window the user
@@ -1409,30 +1428,32 @@ WebView* WebPageBlink::CreateWindow(const std::string& newUrl, std::unique_ptr<W
   // instead turned com.palm.systemui's dashboards (a system_ui application)
   // into system_ui windows the shell never lists in the notification area.
   std::string child_win_type =
-      webAppMgr->WindowTypeFromString(new_app_desc->DefaultWindowType());
+      web_app_mgr->WindowTypeFromString(new_app_desc->DefaultWindowType());
   if (window_attributes["window"].asString().empty()) {
-    WebAppBase *parentApp = webAppMgr->FindAppById(app_id_);
-    if (parentApp && !parentApp->WindowType().empty())
-      child_win_type = parentApp->WindowType();
+    const WebAppBase* parent_app = web_app_mgr->FindAppById(app_id_);
+    if (parent_app && !parent_app->WindowType().empty()) {
+      child_win_type = parent_app->WindowType();
+    }
   }
 
-  WebAppBase *newWebApp = webAppMgr->CreateWindowForAppPage(child_win_type,
-                                    std::move(new_app_desc), "{}", app_id_, newPage);
+  WebAppBase* new_web_app = web_app_mgr->CreateWindowForAppPage(
+      child_win_type, std::move(new_app_desc), "{}", app_id_, new_page);
 
-  if (newWebApp && height > 0) {
-    newWebApp->Resize(CurrentUiWidth(), height);
+  if (new_web_app && height > 0) {
+    new_web_app->Resize(CurrentUiWidth(), height);
   }
 
-  if (newWebApp) {
-    for (auto window_attr_iter = window_attributes.begin(); window_attr_iter != window_attributes.end(); ++window_attr_iter) {
-      std::string attr_key = window_attr_iter.name();
-      std::string attr_value = window_attr_iter->asString();
+  if (new_web_app) {
+    for (auto attr = window_attributes.begin(); attr != window_attributes.end();
+         ++attr) {
+      std::string const attr_key = attr.name();
+      std::string const attr_value = attr->asString();
 
-      if (attr_key != "" && attr_value != "") {
-        newWebApp->SetWindowProperty("LuneOS_" + attr_key, attr_value);
+      if (!attr_key.empty() && !attr_value.empty()) {
+        new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);
       }
     }
   }
 
-  return newPage->PageView();
+  return new_page->PageView();
 }

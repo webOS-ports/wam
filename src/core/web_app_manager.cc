@@ -19,7 +19,6 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <cassert>
 #include <sstream>
 #include <string>
 
@@ -63,7 +62,7 @@ WebAppManager::~WebAppManager() {
 
 void WebAppManager::NotifyMemoryPressure(
     webos::WebViewBase::MemoryPressureLevel level) {
-  std::list<const WebAppBase*> app_list = RunningApps();
+  std::list<const WebAppBase*> const app_list = RunningApps();
   for (const WebAppBase* app : app_list) {
     // Skip memory pressure handling on preloaded apps if chromium pressure is
     // critical (when system is on low or critical) because they will be killed
@@ -361,9 +360,9 @@ WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
                                            const std::string& launching_app_id,
                                            WebPageBase* page) {
 
-  std::string instance_id = GenerateInstanceId();
-  std::string app_desc_id = app_desc->Id();
-  std::string app_desc_version = app_desc->Version();
+  std::string const instance_id = GenerateInstanceId();
+  std::string const app_desc_id = app_desc->Id();
+  std::string const app_desc_version = app_desc->Version();
 
   WebAppFactoryManager* factory = GetWebAppFactory();
   WebAppBase* app = factory->CreateWebApp(win_type.c_str(), *app_desc,
@@ -416,13 +415,19 @@ void WebAppManager::RemoveClosingAppList(const std::string& instance_id) {
 void WebAppManager::CloseAppInternal(WebAppBase* app,
                                      bool ignore_clean_resource) {
   WebPageBase* page = app->Page();
-  assert(page);
+  if (!page) {
+    LOG_ERROR(MSGID_CLOSE_APP_INTERNAL, 2,
+              PMLOGKS("APP_ID", app->AppId().c_str()),
+              PMLOGKS("INSTANCE_ID", app->InstanceId().c_str()),
+              "No page attached; return");
+    return;
+  }
   if (page->IsClosing()) {
-    LOG_INFO(MSGID_CLOSE_APP_INTERNAL, 3,
-             PMLOGKS("APP_ID", app->AppId().c_str()),
-             PMLOGKS("INSTANCE_ID", app->InstanceId().c_str()),
-             PMLOGKFV("PID", "%d", app->Page()->GetWebProcessPID()),
-             "In Closing; return");
+    LOG_INFO(
+        MSGID_CLOSE_APP_INTERNAL, 3, PMLOGKS("APP_ID", app->AppId().c_str()),
+        PMLOGKS("INSTANCE_ID", app->InstanceId().c_str()),
+        PMLOGKFV("PID", "%d", page->GetWebProcessPID()), "In Closing; return");
+    return;
   }
 
   LOG_INFO(MSGID_CLOSE_APP_INTERNAL, 3, PMLOGKS("APP_ID", app->AppId().c_str()),
@@ -432,7 +437,7 @@ void WebAppManager::CloseAppInternal(WebAppBase* app,
     return;
   }
 
-  std::string type = app->GetAppDescription()->DefaultWindowType();
+  std::string const type = app->GetAppDescription()->DefaultWindowType();
   AppDeleted(app);
   WebPageRemoved(app->Page());
   PostRunningAppList();
@@ -509,7 +514,7 @@ void WebAppManager::WebPageAdded(WebPageBase* page) {
 void WebAppManager::WebPageRemoved(WebPageBase* page) {
   if (!deleting_pages_) {
     // Remove from list of pending delete pages
-    PageList::iterator iter = std::find(pages_to_delete_list_.begin(),
+    PageList::iterator const iter = std::find(pages_to_delete_list_.begin(),
                                         pages_to_delete_list_.end(), page);
     if (iter != pages_to_delete_list_.end()) {
       pages_to_delete_list_.erase(iter);
@@ -616,7 +621,7 @@ bool WebAppManager::ProcessCrashed(const std::string& app_id,
   if (app->IsWindowed()) {
     if (app->IsActivated()) {
       last_crashed_app_ids_[app->AppId()]++;
-      int reloading_limit = app->IsNormal() ? kContinuousReloadingLimit - 1
+      int const reloading_limit = app->IsNormal() ? kContinuousReloadingLimit - 1
                                             : kContinuousReloadingLimit;
 
       if (last_crashed_app_ids_[app->AppId()] >= reloading_limit) {
@@ -740,7 +745,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
     win_type = kWtDock;
   }
 
-  Json::Value affinity = json["displayAffinity"];
+  const Json::Value& affinity = json["displayAffinity"];
   if (affinity.isInt()) {
     desc->SetDisplayAffinity(affinity.asInt());
   }
@@ -773,7 +778,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
 }
 
 bool WebAppManager::IsRunningApp(const std::string& id) {
-  std::list<const WebAppBase*> running = RunningApps();
+  std::list<const WebAppBase*> const running = RunningApps();
 
   for (const WebAppBase* app : running) {
     if (app->InstanceId() == id) {
@@ -786,7 +791,7 @@ bool WebAppManager::IsRunningApp(const std::string& id) {
 std::vector<ApplicationInfo> WebAppManager::List(bool include_system_apps) {
   std::vector<ApplicationInfo> list;
 
-  std::list<const WebAppBase*> running = RunningApps();
+  std::list<const WebAppBase*> const running = RunningApps();
   for (const WebAppBase* app : running) {
     if (!app->AppId().empty() || include_system_apps) {
       uint32_t pid = web_process_manager_->GetWebProcessPID(app);
@@ -833,7 +838,7 @@ void WebAppManager::PostWebProcessCreated(const std::string& app_id,
 uint32_t WebAppManager::GetWebProcessId(const std::string& app_id,
                                         const std::string& instance_id) {
   uint32_t pid = 0;
-  WebAppBase* app = FindAppByInstanceId(instance_id);
+  WebAppBase const* app = FindAppByInstanceId(instance_id);
 
   if (app && app->AppId() == app_id && web_process_manager_) {
     pid = web_process_manager_->GetWebProcessPID(app);
@@ -909,13 +914,96 @@ void WebAppManager::UpdateNetworkStatus(const Json::Value& object) {
   }
 }
 
-bool WebAppManager::IsEnyoApp(const std::string& app_id) {
-  WebAppBase* app = FindAppById(app_id);
-  if (app && !app->GetAppDescription()->EnyoVersion().empty()) {
+// Pushed in by the compositor over com.palm.webappmanager/setOrientation.
+//
+// LunaSysMgr kept the same value - WebAppManager::m_orientation - and served
+// PalmSystem.screenOrientation from it, so this restores the property legacy
+// applications read rather than inventing one. Note that on its own it is not
+// enough to make Enyo dispatch onWindowRotated: enyo.sendOrientationChange is
+// bound to the window's resize event and only then compares the property
+// against its own last value, so a page that is never resized never asks.
+bool WebAppManager::SetOrientation(const std::string& orientation) {
+  // The four names legacy webOS used. Anything else is dropped rather than
+  // stored, so the property never reports something no application can read.
+  if (orientation != "up" && orientation != "down" && orientation != "left" &&
+      orientation != "right") {
+    LOG_WARNING(MSGID_TYPE_ERROR, 1, PMLOGKS("ORIENTATION", orientation.c_str()),
+                "Ignoring unknown orientation");
+    return false;
+  }
+
+  // Already there is a success: the caller asked for a state the device is in.
+  if (orientation_ == orientation) {
     return true;
   }
 
-  return false;
+  orientation_ = orientation;
+
+  // LunaSysMgr told the page through Mojo.screenOrientationChanged(), which
+  // Enyo 1 defines but deliberately leaves empty - see the note in
+  // compatibility/webosGesture.js. It is called anyway because the legacy
+  // frameworks error out when the callback is missing rather than unused, and
+  // because anything else listening for it now gets it.
+  const std::string args = "\"" + orientation_ + "\"";
+  for (WebAppBase* app : app_list_) {
+    if (!app->Page()) {
+      continue;
+    }
+    // Before the callback, so anything reading the property from inside it
+    // sees the orientation being announced rather than the previous one.
+    //
+    // This push is what makes the property change at all. webOSSystem hands
+    // the page a snapshot of its values when the page is created and
+    // PalmSystem.screenOrientation reads that snapshot, so without this an
+    // application launched before the device was turned keeps reporting the
+    // orientation it started in - and Enyo, which compares the property
+    // against its own last value on every resize, never sees a difference.
+    app->Page()->UpdateExtensionData("screenOrientation", orientation_);
+    app->Page()->CallLegacyMojoCallback("screenOrientationChanged", args);
+  }
+
+  return true;
+}
+
+bool WebAppManager::SetAppShownWhileDeactivated(
+    const std::string& instance_id,
+    const std::string& app_id,
+    bool shown) {
+  // Either identifier will do. The compositor's surface item carries an appId
+  // and no instance id, so a shell has only the former to offer, while
+  // everything else on this API addresses an instance.
+  WebAppBase* app = nullptr;
+  if (!instance_id.empty()) {
+    app = FindAppByInstanceId(instance_id);
+  } else if (!app_id.empty()) {
+    app = FindAppById(app_id);
+  }
+
+  if (!app) {
+    LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("INSTANCE_ID", instance_id.c_str()),
+             PMLOGKS("APP_ID", app_id.c_str()),
+             "SetAppShownWhileDeactivated: application not found");
+    return false;
+  }
+
+  app->SetShownWhileDeactivated(shown);
+  return true;
+}
+
+bool WebAppManager::IsEnyoApp(const std::string& app_id) {
+  WebAppBase const* app = FindAppById(app_id);
+  if (!app) {
+    return false;
+  }
+
+  // enyoVersion is the upstream marker and nothing on this distribution sets
+  // it - every appinfo.json in the image leaves it empty - so on its own this
+  // answered false for every application and webruntime was never told it had
+  // an Enyo application in the foreground. The framework the entry document
+  // actually loads is the honest test, and it also covers Mojo, which has no
+  // marker of its own at all.
+  const ApplicationDescription* app_desc = app->GetAppDescription();
+  return !app_desc->EnyoVersion().empty() || app_desc->UsesLegacyFramework();
 }
 
 void WebAppManager::ClearBrowsingData(const int remove_browsing_data_mask) {

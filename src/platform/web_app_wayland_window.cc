@@ -23,7 +23,7 @@
 WebAppWaylandWindow* WebAppWaylandWindow::instance_ = nullptr;
 
 WebAppWaylandWindow* WebAppWaylandWindow::Take() {
-  WebAppWaylandWindow* window;
+  WebAppWaylandWindow* window = nullptr;
 
   if (!instance_) {
     instance_ = new WebAppWaylandWindow();
@@ -211,7 +211,7 @@ bool WebAppWaylandWindow::HandleWebOSEvent(WebOSEvent* event) {
       web_app_->Unfocus();
       break;
     case WebOSEvent::InputPanelVisible: {
-      float height =
+      float const height =
           static_cast<WebOSVirtualKeyboardEvent*>(event)->GetHeight();
       if (static_cast<WebOSVirtualKeyboardEvent*>(event)->GetVisible()) {
         web_app_->KeyboardVisibilityChanged(true, height);
@@ -299,9 +299,11 @@ void WebAppWaylandWindow::LogEventDebugging(WebOSEvent* event) {
       } else {
         // mouse button event
         float scale = 1.0;
-        if (web_app_->GetAppDescription()->HeightOverride().has_value()) {
+        const auto height_override =
+            web_app_->GetAppDescription()->HeightOverride();
+        if (height_override.has_value()) {
           scale = static_cast<float>(DisplayHeight()) /
-                  web_app_->GetAppDescription()->HeightOverride().value();
+                  static_cast<float>(height_override.value());
         }
         LOG_INFO(
             MSGID_MOUSE_BUTTON_EVENT, 6,

@@ -179,6 +179,8 @@ static constexpr char kLocaleInfo[] = R"({
 
 }  // namespace
 
+namespace {
+
 class LaunchAppTestSuite : public ::testing::Test {
  public:
   LaunchAppTestSuite() = default;
@@ -187,13 +189,15 @@ class LaunchAppTestSuite : public ::testing::Test {
   void SetUp() override;
   void TearDown() override;
 
-  WebAppWindowFactoryMock* web_app_window_factory_;
-  WebAppWindowMock* web_app_window_;
-  WebPageBlinkDelegate* web_view_delegate_;
-  WebViewFactoryMock* web_view_factory_;
-  WebViewMock* web_view_;
+  WebAppWindowFactoryMock* web_app_window_factory_ = nullptr;
+  WebAppWindowMock* web_app_window_ = nullptr;
+  WebPageBlinkDelegate* web_view_delegate_ = nullptr;
+  WebViewFactoryMock* web_view_factory_ = nullptr;
+  WebViewMock* web_view_ = nullptr;
   std::string view_url_;
 };
+
+}  // namespace
 
 void LaunchAppTestSuite::SetUp() {
   WebAppManager::Instance()->SetPlatformModules(
@@ -341,7 +345,7 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   constexpr char var_name[] = "WAM_ERROR_PAGE";
   const auto actual_value = getenv(var_name);
   if (!actual_value) {
-    int result = setenv(var_name, path, false);
+    int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   }
   WebAppManager::Instance()->SetPlatformModules(
@@ -392,7 +396,8 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   ASSERT_TRUE(result.isMember("appId"));
 
   if (!actual_value) {
-    int result = unsetenv(var_name);
-    ASSERT_FALSE(result);
+    int const unset_result = unsetenv(var_name);
+    ASSERT_FALSE(unset_result);
   }
 }
+

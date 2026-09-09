@@ -42,6 +42,8 @@ class WebAppManagerServiceLuna : public PalmServiceBase,
   Json::Value launchApp(const Json::Value& request) override;
   Json::Value killApp(const Json::Value& request) override;
   Json::Value logControl(const Json::Value& request) override;
+  Json::Value setOrientation(const Json::Value& request) override;
+  Json::Value setAppVisibility(const Json::Value& request) override;
   Json::Value setInspectorEnable(const Json::Value& request) override;
   Json::Value closeAllApps(const Json::Value& request) override;
   Json::Value listRunningApps(const Json::Value& request,

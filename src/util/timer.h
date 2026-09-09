@@ -22,7 +22,7 @@ typedef struct _GTimer GTimer;
 class Timer {
  public:
   explicit Timer(bool is_repeating) : is_repeating_(is_repeating) {}
-  virtual ~Timer() = default;
+  virtual ~Timer() { Stop(); }
 
   // Timer
   virtual void HandleCallback() = 0;
@@ -36,6 +36,11 @@ class Timer {
   void Running(bool is_running) { is_running_ = is_running; }
 
  private:
+  // GLib trampolines. Members so that they can clear source_id_ once GLib is
+  // about to destroy the source.
+  static int OnTimeout(void* data);
+  static int OnTimeoutAndDestroy(void* data);
+
   int source_id_ = 0;
   bool is_running_ = false;
   bool is_repeating_;
@@ -47,12 +52,6 @@ class BaseTimer : public Timer {
   typedef void (Receiver::*ReceiverMethod)();
 
   BaseTimer() : Timer(kIsRepeating) {}
-
-  ~BaseTimer() override {
-    if (IsRunning()) {
-      Stop();
-    }
-  }
 
   void HandleCallback() override {
     Running(kIsRepeating);

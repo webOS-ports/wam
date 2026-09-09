@@ -18,6 +18,8 @@
 
 #include "device_info.h"
 
+namespace {
+
 class DeviceInfoTest : public ::testing::Test {
  public:
   DeviceInfoTest() = default;
@@ -25,6 +27,8 @@ class DeviceInfoTest : public ::testing::Test {
 
   DeviceInfo device_info_;
 };
+
+}  // namespace
 
 TEST_F(DeviceInfoTest, checkAsciStringDeviceInfo) {
   const char* expected_value = "ASCII String";
@@ -69,8 +73,8 @@ TEST_F(DeviceInfoTest, checkSystemLanguage) {
 }
 
 TEST_F(DeviceInfoTest, checkDisplayWidth) {
-  int expected_value = 1900;
-  int expected_value2 = 2000;
+  int const expected_value = 1900;
+  int const expected_value2 = 2000;
   int actual_value = 0;
 
   device_info_.SetDisplayWidth(expected_value);
@@ -83,8 +87,8 @@ TEST_F(DeviceInfoTest, checkDisplayWidth) {
 }
 
 TEST_F(DeviceInfoTest, checkDisplayHeight) {
-  int expected_value = 1080;
-  int expected_value2 = 1090;
+  int const expected_value = 1080;
+  int const expected_value2 = 1090;
   int actual_value = 0;
 
   device_info_.SetDisplayHeight(expected_value);
@@ -95,3 +99,4 @@ TEST_F(DeviceInfoTest, checkDisplayHeight) {
   ASSERT_TRUE(device_info_.GetDisplayHeight(actual_value));
   EXPECT_EQ(expected_value2, actual_value);
 }
+

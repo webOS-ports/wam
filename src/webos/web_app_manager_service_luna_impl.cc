@@ -57,7 +57,7 @@ Json::Value WebAppManagerServiceLunaImpl::setInspectorEnable(
 
 void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
     const Json::Value& reply) {
-  Json::Value settings = reply["settings"];
+  const Json::Value& settings = reply["settings"];
   // The settings is empty when service is crashed
   // The right value will be notified again when service is restarted
   if (!reply.isObject() || !reply["settings"].isObject() ||
@@ -69,17 +69,17 @@ void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
   LOG_INFO(MSGID_SETTING_SERVICE, 0,
            "Notified from settingsservice/getSystemSettings");
 
-  std::string country = reply["settings"]["country"].isString()
+  std::string const country = reply["settings"]["country"].isString()
                             ? settings["country"].asString()
                             : "";
-  std::string smart_service_country =
+  std::string const smart_service_country =
       reply["settings"]["country"].isString()
           ? settings["smartServiceCountryCode3"].asString()
           : "";
-  std::string audio_guidance = reply["settings"]["country"].isString()
+  std::string const audio_guidance = reply["settings"]["country"].isString()
                                    ? settings["audioGuidance"].asString()
                                    : "";
-  std::string screen_rotation = reply["settings"]["country"].isString()
+  std::string const screen_rotation = reply["settings"]["country"].isString()
                                     ? settings["screenRotation"].asString()
                                     : "";
 

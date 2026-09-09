@@ -37,7 +37,7 @@ WebAppBase* WebProcessManager::FindAppByInstanceId(
 }
 
 std::string WebProcessManager::GetWebProcessMemSize(uint32_t pid) const {
-  std::string path = "/proc/" + std::to_string(pid) + "/status";
+  std::string const path = "/proc/" + std::to_string(pid) + "/status";
   std::ifstream in(path);
 
   if (!in.is_open()) {

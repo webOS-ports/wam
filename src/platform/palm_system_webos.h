@@ -17,6 +17,7 @@
 #ifndef PLATFORM_PALM_SYSTEM_WEBOS_H_
 #define PLATFORM_PALM_SYSTEM_WEBOS_H_
 
+#include <cstdint>
 #include <string>
 
 #include "palm_system_base.h"
@@ -33,14 +34,24 @@ class PalmSystemWebOS : public PalmSystemBase {
   virtual void SetLaunchParams(const std::string& params);
 
  protected:
-  enum GroupClientCallKey { kKeyMask = 1, kFocusOwner, kFocusLayer };
+  enum GroupClientCallKey : std::uint8_t {
+    kKeyMask = 1,
+    kFocusOwner,
+    kFocusLayer
+  };
 
   virtual std::string Identifier() const = 0;
   virtual std::string LaunchParams() const { return launch_params_; }
   virtual std::string Version() const { return std::string(); }
 
-  virtual std::string ScreenOrientation() const { return std::string("up"); }
-  virtual std::string WindowOrientation() const { return std::string("free"); }
+  // Both were hard-coded here, which is harmless on a display that never
+  // rotates and wrong on a handset: PalmSystem.screenOrientation is what
+  // Enyo's enyo.getWindowOrientation() reads, and a constant means
+  // enyo.sendOrientationChange() never sees a change and never dispatches
+  // onWindowRotated. Served from WebAppManager, which the compositor keeps
+  // current - the same place LunaSysMgr kept it.
+  virtual std::string ScreenOrientation() const;
+  virtual std::string WindowOrientation() const;
 
   virtual bool IsActivated() const;
   virtual bool IsKeyboardVisible() const;
@@ -65,7 +76,7 @@ class PalmSystemWebOS : public PalmSystemBase {
                                const std::string& perf_group);
   virtual void LogMsgString(int32_t level,
                             const std::string& msg_id,
-                            const std::string& kv_pairs,
+                            const std::string& kvpairs,
                             const std::string& message);
   virtual bool CursorVisibility();
   virtual void UpdateLaunchParams(const std::string& launch_params);

@@ -22,7 +22,10 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <fstream>
+
+#include "utils.h"
 
 int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
   static long old_cpu_time[4];
@@ -33,10 +36,10 @@ int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
     cpu_time = old_cpu_time;
   }
 
-  int fd;
-  if ((fd = open("/proc/stat", O_RDONLY)) != -1) {
+  const int fd = open("/proc/stat", O_RDONLY);
+  if (fd != -1) {
     char buffer[4096 + 1];
-    int len = read(fd, buffer, sizeof(buffer) - 1);
+    int const len = read(fd, buffer, sizeof(buffer) - 1);
     if (len > 0) {
       buffer[len] = '\0';
       char* p = SkipToken(buffer); /* "cpu" */
@@ -61,10 +64,10 @@ int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
 }
 
 char* WebAppManagerUtils::SkipToken(const char* p) {
-  while (isspace(*p)) {
+  while (isspace(static_cast<unsigned char>(*p))) {
     p++;
   }
-  while (*p && !isspace(*p)) {
+  while (*p && !isspace(static_cast<unsigned char>(*p))) {
     p++;
   }
   return const_cast<char*>(p);
@@ -81,8 +84,8 @@ long WebAppManagerUtils::Percentages(int cnt,
   for (int i = 0; i < cnt; i++) {
     long change = *now - *old;
     if (change < 0) {
-      change = static_cast<int>(static_cast<unsigned long>(*now) -
-                                static_cast<unsigned long>(*old));
+      change = static_cast<long>(static_cast<unsigned long>(*now) -
+                                 static_cast<unsigned long>(*old));
     }
     total_change += (*dp++ = change);
     *old++ = *now++;
@@ -92,7 +95,7 @@ long WebAppManagerUtils::Percentages(int cnt,
     total_change = 1;
   }
 
-  long half_total = total_change / 2l;
+  long const half_total = total_change / 2L;
   for (int i = 0; i < cnt; i++) {
     *out++ = static_cast<int>((*diffs++ * 1000 + half_total) / total_change);
   }
@@ -115,25 +118,19 @@ void WebAppManagerUtils::Tokenize(std::string& str,
 
 bool WebAppManagerUtils::InVector(std::vector<std::string>& tokens,
                                   const char* arg) {
-  unsigned int i;
-  int len;
-  len = strlen(arg);
+  const size_t len = strlen(arg);
 
-  for (i = 0; i < tokens.size(); i++) {
-    int tlen = strlen(tokens[i].c_str());
-
-    if (strncmp(arg, tokens[i].c_str(), (len > tlen) ? len : tlen) == 0) {
-      return true;
-    }
-  }
-
-  return false;
+  return std::any_of(
+      tokens.begin(), tokens.end(), [arg, len](const std::string& token) {
+        const size_t tlen = token.size();
+        return strncmp(arg, token.c_str(), (len > tlen) ? len : tlen) == 0;
+      });
 }
 
-bool WebAppManagerUtils::InGroup(std::string line, const char* user_name) {
+bool WebAppManagerUtils::InGroup(const std::string& line, const char* user_name) {
   // only tokenize the lines that have users in the groups.
   // empty groups have the last character as ":".
-  size_t pos = line.find_last_of(":");
+  size_t const pos = line.find_last_of(':');
 
   if (pos == (line.size() - 1)) {
     return false;
@@ -147,28 +144,37 @@ bool WebAppManagerUtils::InGroup(std::string line, const char* user_name) {
 }
 
 bool WebAppManagerUtils::SetGroups() {
-  gid_t gid_list[128];
+  constexpr size_t max_groups = 128;
+  gid_t gid_list[max_groups];
   size_t num_groups = 0;
 
-  std::string line;
-  std::string new_group_path = "/etc/group";
+  std::string const new_group_path = "/etc/group";
 
   std::ifstream ifs(new_group_path.c_str());
-
-  if (ifs.is_open()) {
-    while (!ifs.eof()) {
-      getline(ifs, line);
-
-      if (line[0] != 0 && line[0] != '#' && line[0] != '\r') {
-        if (InGroup(line, "webappmanager3")) {
-          std::vector<std::string> tok;
-          Tokenize(line, tok, ":");
-          gid_list[num_groups++] = atoi(tok[2].c_str());
-        }
-      }
-    }
-  } else {
+  if (!ifs.is_open()) {
     return false;
+  }
+
+  std::string line;
+  while (num_groups < max_groups && getline(ifs, line)) {
+    if (line.empty() || line[0] == '#' || line[0] == '\r') {
+      continue;
+    }
+
+    if (!InGroup(line, "webappmanager3")) {
+      continue;
+    }
+
+    std::vector<std::string> tok;
+    Tokenize(line, tok, ":");
+    // An /etc/group entry is name:passwd:gid:members. Anything shorter is
+    // malformed, and indexing tok[2] would run off the end.
+    if (tok.size() < 3) {
+      continue;
+    }
+
+    gid_list[num_groups++] =
+        static_cast<gid_t>(util::StrToIntWithDefault(tok[2], 0));
   }
   ifs.close();
 

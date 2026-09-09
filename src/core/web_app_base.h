@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_APP_BASE_H_
 #define CORE_WEB_APP_BASE_H_
 
+#include <cstdint>
 #include <memory>
 #include <string>
 
@@ -24,6 +25,23 @@
 #include "web_page_observer.h"
 
 class ApplicationDescription;
+// Whether the shell this runs under keeps a window on screen after it stops
+// being the foreground one, from WAM_SHELL_KEEPS_DEACTIVATED_WINDOWS_SHOWN.
+//
+// It decides what happens by default when a window loses the stage. On a
+// display where the foreground application is the only visible one, losing the
+// stage means leaving the screen and suspending the page is right, which is
+// what WAM has always done and what this returns false for. A card shell keeps
+// deactivated windows on screen and has to keep painting them, so it sets the
+// variable and the default flips.
+//
+// A default rather than something the shell states per window because getting
+// it wrong in one direction blanks a card the user is looking at, and in the
+// other merely leaves an application running that could have been suspended.
+// The per-window call exists for a shell that can tell when a window really is
+// covered; until it says otherwise this is the answer.
+bool ShellKeepsDeactivatedWindowsShown();
+
 class WebAppBasePrivate;
 class WebPageBase;
 
@@ -33,7 +51,7 @@ class Value;
 
 class WebAppBase : public WebPageObserver {
  public:
-  enum PreloadState {
+  enum PreloadState : std::uint8_t {
     kNonePreload = 0,
     kFullPreload = 1,
     kSemiFullPreload = 2,
@@ -91,6 +109,16 @@ class WebAppBase : public WebPageObserver {
   virtual bool IsKeyboardVisible() { return false; }
   static void OnCursorVisibilityChanged(const std::string& jsscript);
   virtual bool HideWindow() = 0;
+
+  // Whether this window is still on screen after it stopped being the
+  // foreground one - a carded window in a card shell is. See
+  // ShellKeepsDeactivatedWindowsShown() for where the initial value comes from;
+  // a shell can correct it per window through
+  // com.palm.webappmanager/setAppVisibility.
+  bool IsShownWhileDeactivated() const { return shown_while_deactivated_; }
+  void SetShownWhileDeactivated(bool shown) {
+    shown_while_deactivated_ = shown;
+  }
   virtual void SetDisplayFirstActivateTimeoutMs(uint32_t /*timeout*/) {}
   bool GetCrashState() const;
   void SetCrashState(bool state);
@@ -162,6 +190,7 @@ class WebAppBase : public WebPageObserver {
   std::string in_progress_relaunch_launching_app_id_;
   float scale_factor_ = 1.0f;
 
+  bool shown_while_deactivated_ = ShellKeepsDeactivatedWindowsShown();
  private:
   std::unique_ptr<WebAppBasePrivate> app_private_;
   bool need_reload_ = false;

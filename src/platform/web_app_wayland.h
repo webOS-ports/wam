@@ -144,6 +144,28 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void StateAboutToChange(webos::NativeWindowState will_be);
   void StateChanged(webos::NativeWindowState new_state);
 
+  void NotifyStageChange(const char* callback);
+  void ApplyStateChange(webos::NativeWindowState new_state);
+
+  // A stage transition is not re-entrant.
+  //
+  // Resuming the page, changing its visibility, showing the window and running
+  // script all reach into the runtime and turn the message loop, so a Wayland
+  // event queued behind the one being handled is delivered from inside the
+  // transition and arrives back through StateChanged(). The second entry runs
+  // against half-applied state - the first has not reached SetActiveInstanceId()
+  // or Show() yet - and the process goes down inside the runtime. Four cores on
+  // sargo, all the same:
+  //
+  //   OnStageActivated -> ... -> HandleWebOSEvent -> StateChanged
+  //                           -> OnStageActivated -> SIGSEGV
+  //
+  // A state that arrives during a transition is remembered and applied after
+  // it, rather than dropped: it is the newer truth about the window.
+  bool in_stage_transition_ = false;
+  bool has_pending_state_ = false;
+  webos::NativeWindowState pending_state_ = webos::NATIVE_WINDOW_DEFAULT;
+
   // from WebPageBlinkObserver
   void DidSwapPageCompositorFrame() override;
   void DidResumeDOM() override;

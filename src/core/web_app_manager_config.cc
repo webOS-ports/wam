@@ -36,13 +36,13 @@ void WebAppManagerConfig::InitConfiguration() {
     web_app_factory_plugin_path_ = "/usr/lib/webappmanager/plugins";
   }
 
-  std::string suspend_delay = WamGetEnv("WAM_SUSPEND_DELAY_IN_MS");
-  int suspend_delay_int = util::StrToIntWithDefault(suspend_delay, 0);
+  std::string const suspend_delay = WamGetEnv("WAM_SUSPEND_DELAY_IN_MS");
+  int const suspend_delay_int = util::StrToIntWithDefault(suspend_delay, 0);
   suspend_delay_time_ = std::max(suspend_delay_int, 1);
 
-  std::string max_custom_suspend_delay =
+  std::string const max_custom_suspend_delay =
       WamGetEnv("MAX_CUSTOM_SUSPEND_DELAY_IN_MS");
-  int max_custom_suspend_delay_int =
+  int const max_custom_suspend_delay_int =
       util::StrToIntWithDefault(max_custom_suspend_delay, 0);
   max_custom_suspend_delay_time_ = std::max(max_custom_suspend_delay_int, 0);
 

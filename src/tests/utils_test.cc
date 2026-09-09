@@ -120,83 +120,139 @@ TEST(UtilsTestSuite, replaceAll) {
 }
 
 TEST(UtilsTestSuite, strToInt_IncorrectString) {
-  std::string str = "not a number";
-  int value;
-  bool result = util::StrToInt(str, value);
+  std::string const str = "not a number";
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 
 TEST(UtilsTestSuite, strToInt_CorrectPositive) {
-  std::string str = "10";
+  std::string const str = "10";
   const int32_t expected = 10;
-  int value;
-  bool result = util::StrToInt(str, value);
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_CorrectNegative) {
-  std::string str = "-10";
+  std::string const str = "-10";
   const int32_t expected = -10;
-  int value;
-  bool result = util::StrToInt(str, value);
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Overflow) {
-  std::string str = "+2147483648";
-  int value;
-  bool result = util::StrToInt(str, value);
+  std::string const str = "+2147483648";
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 
 TEST(UtilsTestSuite, strToInt_MAX_VALUE) {
-  std::string str = "+2147483647";
+  std::string const str = "+2147483647";
   const int32_t expected = INT_MAX;
-  int value;
-  bool result = util::StrToInt(str, value);
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Underflow) {
-  std::string str = "-2147483649";
-  int value;
-  bool result = util::StrToInt(str, value);
+  std::string const str = "-2147483649";
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
 }
 
 TEST(UtilsTestSuite, strToInt_MIN_VALUE) {
-  std::string str = "-2147483648";
+  std::string const str = "-2147483648";
   const int32_t expected = INT_MIN;
-  int value;
-  bool result = util::StrToInt(str, value);
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Mixed) {
-  std::string str = "21 some words";
+  std::string const str = "21 some words";
   const int32_t expected = 21;
-  int value;
-  bool result = util::StrToInt(str, value);
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Mixed_Underscore) {
-  std::string str = "21_some_words";
+  std::string const str = "21_some_words";
   const int32_t expected = 21;
-  int value;
-  bool result = util::StrToInt(str, value);
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_TRUE(result);
   EXPECT_EQ(value, expected);
 }
 
 TEST(UtilsTestSuite, strToInt_Mixed_Underscore_Suffix) {
-  std::string str = "some_words_21";
-  int value;
-  bool result = util::StrToInt(str, value);
+  std::string const str = "some_words_21";
+  int value = 0;
+  bool const result = util::StrToInt(str, value);
   EXPECT_FALSE(result);
+}
+
+// UTF-8 <-> UTF-16 conversion
+
+TEST(UtilsTestSuite, utf16ToUtf8_Ascii) {
+  EXPECT_EQ(util::Utf16ToUtf8(u"hello"), "hello");
+}
+
+TEST(UtilsTestSuite, utf8ToUtf16_Ascii) {
+  EXPECT_EQ(util::Utf8ToUtf16("hello"), u"hello");
+}
+
+TEST(UtilsTestSuite, utf8ToUtf16_MultiByte) {
+  // U+00E9 (2 bytes), U+20AC (3 bytes)
+  EXPECT_EQ(util::Utf8ToUtf16("\xC3\xA9\xE2\x82\xAC"), u"é€");
+}
+
+TEST(UtilsTestSuite, utf16ToUtf8_MultiByte) {
+  EXPECT_EQ(util::Utf16ToUtf8(u"é€"), "\xC3\xA9\xE2\x82\xAC");
+}
+
+TEST(UtilsTestSuite, utf8ToUtf16_SurrogatePair) {
+  // U+1F600 GRINNING FACE encodes as a surrogate pair in UTF-16
+  const std::u16string converted = util::Utf8ToUtf16("\xF0\x9F\x98\x80");
+  ASSERT_EQ(converted.size(), 2u);
+  EXPECT_EQ(converted[0], 0xD83D);
+  EXPECT_EQ(converted[1], 0xDE00);
+}
+
+TEST(UtilsTestSuite, utf16ToUtf8_SurrogatePair) {
+  const std::u16string emoji = {0xD83D, 0xDE00};
+  EXPECT_EQ(util::Utf16ToUtf8(emoji), "\xF0\x9F\x98\x80");
+}
+
+TEST(UtilsTestSuite, utf_RoundTrip) {
+  const std::string original = "a\xC3\xA9\xE2\x82\xAC\xF0\x9F\x98\x80z";
+  EXPECT_EQ(util::Utf16ToUtf8(util::Utf8ToUtf16(original)), original);
+}
+
+TEST(UtilsTestSuite, utf8ToUtf16_InvalidIsReplaced) {
+  // Stray continuation byte, over-long encoding and a surrogate half must all
+  // decode to U+FFFD instead of throwing.
+  EXPECT_EQ(util::Utf8ToUtf16("\x80"), u"�");
+  EXPECT_EQ(util::Utf8ToUtf16("\xC0\xAF"), u"��");
+  EXPECT_EQ(util::Utf8ToUtf16("\xED\xA0\x80"), u"���");
+}
+
+TEST(UtilsTestSuite, utf8ToUtf16_TruncatedIsReplaced) {
+  EXPECT_EQ(util::Utf8ToUtf16("\xF0\x9F"), u"��");
+}
+
+TEST(UtilsTestSuite, utf16ToUtf8_UnpairedSurrogateIsReplaced) {
+  const std::u16string lone_high = {0xD83D};
+  const std::u16string lone_low = {0xDE00};
+  EXPECT_EQ(util::Utf16ToUtf8(lone_high), "\xEF\xBF\xBD");
+  EXPECT_EQ(util::Utf16ToUtf8(lone_low), "\xEF\xBF\xBD");
 }

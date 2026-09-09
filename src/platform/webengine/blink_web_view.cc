@@ -22,28 +22,33 @@
 #include "web_view_factory.h"
 #include "web_view_impl.h"
 
-class WebViewFactoryExistingWebContents: public WebViewFactory {
+namespace {
+
+class WebViewFactoryExistingWebContents : public WebViewFactory {
  public:
-  WebViewFactoryExistingWebContents(WebView* webViewNewContents):
-    webViewNewContents_(webViewNewContents) {}
+  explicit WebViewFactoryExistingWebContents(WebView* web_view_new_contents)
+      : web_view_new_contents_(web_view_new_contents) {}
 
   WebView* CreateWebView() override {
-    WebView *newView = webViewNewContents_;
-    webViewNewContents_ = nullptr; // if CreateWebView is called again, don't reuse this WebView
-    if (!newView) newView = new WebViewImpl(std::make_unique<BlinkWebView>());
-    return newView;
+    WebView* new_view = web_view_new_contents_;
+    // If CreateWebView() is called again, do not hand out this WebView twice.
+    web_view_new_contents_ = nullptr;
+    if (!new_view) {
+      new_view = new WebViewImpl(std::make_unique<BlinkWebView>());
+    }
+    return new_view;
   }
+
  private:
-  WebView* webViewNewContents_;
+  WebView* web_view_new_contents_;
 };
+
+}  // namespace
 
 BlinkWebView::BlinkWebView(bool /*do_initialize*/) {}
 
-BlinkWebView::BlinkWebView(neva_app_runtime::WebView *webview)
-    : WebViewBase::WebViewBase(webview),
-      delegate_(nullptr),
-      progress_(0),
-      user_script_executed_(false) {}
+BlinkWebView::BlinkWebView(neva_app_runtime::WebView* webview)
+    : WebViewBase(webview) {}
 
 void BlinkWebView::AddUserScript(const std::string& script) {
   user_scripts_.push_back(script);
@@ -265,30 +270,36 @@ void BlinkWebView::DidResumeDOM() {
   }
 }
 
-  content::WebContents *BlinkWebView::CreateWindowForWebView(const std::string& newUrl,
-                                                           neva_app_runtime::WebView *webview,
-                                                           int height,
-                                                           std::vector<std::string> additional_features)
-  {
-    if (!delegate_)
-      return nullptr;
-
-	LOG_DEBUG("Creating window for webview with height = %d", height);
-
-    // create a new factory for this new_contents
-    WebView* webViewNewContents = new WebViewImpl(std::make_unique<BlinkWebView>(webview));
-    std::unique_ptr<WebViewFactory> dedicatedFactory(new WebViewFactoryExistingWebContents(webViewNewContents));
-    // create a new WebPage using this factory
-    WebView *newWebView = delegate_->CreateWindow(newUrl, std::move(dedicatedFactory), height, additional_features);
-
-    // CreateWindow() returns the new page's view, which is null if the page could not be
-    // created. Returning null here tells the engine no window was made (window.open() then
-    // yields null / the navigation is blocked) instead of crashing the browser process.
-    if (!newWebView)
-      return nullptr;
-
-    return newWebView->GetWebContents();
+content::WebContents* BlinkWebView::CreateWindowForWebView(
+    const std::string& new_url,
+    neva_app_runtime::WebView* webview,
+    int height,
+    std::vector<std::string> additional_features) {
+  if (!delegate_) {
+    return nullptr;
   }
+
+  LOG_DEBUG("Creating window for webview with height = %d", height);
+
+  // Create a new factory for this new_contents.
+  WebView* new_contents_view =
+      new WebViewImpl(std::make_unique<BlinkWebView>(webview));
+  auto dedicated_factory =
+      std::make_unique<WebViewFactoryExistingWebContents>(new_contents_view);
+  // Create a new WebPage using this factory.
+  WebView* new_web_view = delegate_->CreateWindow(
+      new_url, std::move(dedicated_factory), height, additional_features);
+
+  // CreateWindow() returns the new page's view, which is null if the page could
+  // not be created. Returning null here tells the engine no window was made
+  // (window.open() then yields null / the navigation is blocked) instead of
+  // crashing the browser process.
+  if (!new_web_view) {
+    return nullptr;
+  }
+
+  return new_web_view->GetWebContents();
+}
 
 void BlinkWebView::DidErrorPageLoadedFromNetErrorHelper() {
   if (!delegate_) {

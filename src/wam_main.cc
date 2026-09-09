@@ -21,7 +21,7 @@
 #include <webos/app/webos_main.h>
 #include <webos/public/runtime.h>
 
-#include <cassert>
+#include <cstdlib>
 
 #include "log_manager.h"
 #include "platform/platform_factory.h"
@@ -30,44 +30,73 @@
 #include "web_app_manager.h"
 #include "web_app_manager_service_luna.h"
 
-static void ChangeUserIDGroupID() {
-  std::string uid, gid;
-  uid = util::GetEnvVar("WAM_UID");
-  gid = util::GetEnvVar("WAM_GID");
+// Drops privileges when WAM_UID/WAM_GID ask for it. Returns false if a drop was
+// requested but did not fully succeed. These checks used to be assert()s, which
+// release builds compile out (-DNDEBUG), so a failed drop went unnoticed and
+// WAM carried on with the privileges it was started with.
+static bool ChangeUserIDGroupID() {
+  std::string const uid = util::GetEnvVar("WAM_UID");
+  std::string const gid = util::GetEnvVar("WAM_GID");
 
-  if (uid.size() && gid.size()) {
-    struct passwd* pwd = getpwnam(uid.c_str());
-    struct group* grp = getgrnam(gid.c_str());
-
-    assert(pwd);
-    assert(grp);
-
-    [[maybe_unused]] int ret = -1;
-    if (grp) {
-      ret = setgid(grp->gr_gid);
-      assert(ret == 0);
-      ret = initgroups(uid.c_str(), grp->gr_gid);
-      assert(ret == 0);
-    }
-
-    if (pwd) {
-      ret = setuid(pwd->pw_uid);
-      assert(ret == 0);
-      setenv("HOME", pwd->pw_dir, 1);
-    }
+  if (uid.empty() || gid.empty()) {
+    return true;
   }
+
+  struct passwd const* pwd = getpwnam(uid.c_str());
+  if (!pwd) {
+    LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_UID", uid.c_str()),
+              "Unknown user; cannot drop privileges");
+    return false;
+  }
+
+  struct group const* grp = getgrnam(gid.c_str());
+  if (!grp) {
+    LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_GID", gid.c_str()),
+              "Unknown group; cannot drop privileges");
+    return false;
+  }
+
+  // Order matters: the group has to be set while still privileged, otherwise
+  // setgid()/initgroups() would fail after setuid() has already run.
+  if (setgid(grp->gr_gid) != 0) {
+    LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_GID", gid.c_str()),
+              "setgid failed");
+    return false;
+  }
+
+  if (initgroups(uid.c_str(), grp->gr_gid) != 0) {
+    LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_UID", uid.c_str()),
+              "initgroups failed");
+    return false;
+  }
+
+  if (setuid(pwd->pw_uid) != 0) {
+    LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_UID", uid.c_str()),
+              "setuid failed");
+    return false;
+  }
+
+  setenv("HOME", pwd->pw_dir, 1);
+  return true;
 }
 
 static void StartWebAppManager() {
-  ChangeUserIDGroupID();
+  if (!ChangeUserIDGroupID()) {
+    LOG_CRITICAL(MSGID_WAM_DEBUG, 0,
+                 "Refusing to continue with undropped privileges");
+    _exit(EXIT_FAILURE);
+  }
 
   WebAppManagerServiceLuna* luna_service = WebAppManagerServiceLuna::Instance();
-  assert(luna_service);
-  [[maybe_unused]] bool result = luna_service->StartService();
-  assert(result);
+  if (!luna_service || !luna_service->StartService()) {
+    LOG_ERROR(MSGID_WAM_DEBUG, 0, "Failed to start the Luna service");
+  }
+
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
 }
+
+namespace {
 
 class WebOSMainDelegateWAM : public webos::WebOSMainDelegate {
  public:
@@ -77,6 +106,8 @@ class WebOSMainDelegateWAM : public webos::WebOSMainDelegate {
   }
   void AboutToCreateContentBrowserClient() override { StartWebAppManager(); }
 };
+
+}  // namespace
 
 int main(int argc, const char** argv) {
   WebOSMainDelegateWAM delegate;

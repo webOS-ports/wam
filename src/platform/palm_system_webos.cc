@@ -25,11 +25,25 @@
 #include "log_manager.h"
 #include "utils.h"
 #include "web_app_base.h"
+#include "web_app_manager.h"
 #include "web_app_wayland.h"
 #include "web_page_base.h"
 
 PalmSystemWebOS::PalmSystemWebOS(WebAppBase* app)
     : app_(static_cast<WebAppWayland*>(app)) {}
+
+std::string PalmSystemWebOS::ScreenOrientation() const {
+  return WebAppManager::Instance()->Orientation();
+}
+
+std::string PalmSystemWebOS::WindowOrientation() const {
+  // LunaSysMgr distinguished the two: screenOrientation is where the device
+  // is pointing, windowOrientation is what this window was allowed to become.
+  // Nothing here restricts a window's orientation yet, so it follows the
+  // screen. "free" was the old default and means "unconstrained", which is
+  // not an orientation and is not what an application asking for one expects.
+  return WebAppManager::Instance()->Orientation();
+}
 
 void PalmSystemWebOS::SetLaunchParams(const std::string& params) {
   Json::Value json_doc = Json::nullValue;
@@ -64,7 +78,7 @@ int PalmSystemWebOS::ActivityId() const {
 }
 
 void PalmSystemWebOS::Activate() {
-  ApplicationDescription* app_desc = app_->GetAppDescription();
+  ApplicationDescription const* app_desc = app_->GetAppDescription();
   if (app_desc && !app_desc->HandlesRelaunch()) {
     return;
   }
@@ -115,7 +129,7 @@ void PalmSystemWebOS::SetGroupClientEnvironment(GroupClientCallKey call_key,
                                                 const std::string& params) {
   ApplicationDescription* app_desc = app_ ? app_->GetAppDescription() : nullptr;
   if (app_desc) {
-    ApplicationDescription::WindowGroupInfo group_info =
+    ApplicationDescription::WindowGroupInfo const group_info =
         app_desc->GetWindowGroupInfo();
     if (!group_info.name.empty() && !group_info.is_owner) {
       switch (call_key) {

@@ -14,6 +14,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <cerrno>
 #include <string>
 
 #include <gmock/gmock.h>
@@ -31,7 +32,6 @@
 
 namespace {
 
-using ::testing::_;
 using ::testing::HasSubstr;
 using ::testing::Return;
 
@@ -92,6 +92,10 @@ class WebViewFactoryMock : public WebViewFactory {
   WebViewFactoryMock();
   ~WebViewFactoryMock() override = default;
 
+  // Owns a raw WebViewMock*; copying it would hand out the same pointer twice.
+  WebViewFactoryMock(const WebViewFactoryMock&) = delete;
+  WebViewFactoryMock& operator=(const WebViewFactoryMock&) = delete;
+
   MOCK_METHOD(WebView*, CreateWebView, (), (override));
 
   WebViewMock* web_view_;
@@ -100,6 +104,8 @@ class WebViewFactoryMock : public WebViewFactory {
 WebViewFactoryMock::WebViewFactoryMock() : web_view_(new NiceWebViewMock()) {}
 
 }  // namespace
+
+namespace {
 
 class WebPageBlinkTestSuite : public ::testing::Test {
  public:
@@ -110,6 +116,8 @@ class WebPageBlinkTestSuite : public ::testing::Test {
   std::shared_ptr<ApplicationDescription> description;
   std::unique_ptr<WebViewFactoryMock> factory;
 };
+
+}  // namespace
 
 WebPageBlinkTestSuite::WebPageBlinkTestSuite() {
   WebAppManager::Instance()->SetPlatformModules(
@@ -156,7 +164,7 @@ TEST_F(WebPageBlinkTestSuite, AddCustomPluginDir) {
   constexpr char path[] =
       "/usr/palm/applications/com.webos.app.test.webrtc/plugins";
   int result = mkdir(path, 0777);
-  ASSERT_FALSE(result && result == EEXIST);
+  ASSERT_FALSE(result != 0 && errno != EEXIST);
 
   EXPECT_CALL(*factory->web_view_, AddCustomPluginDir(path));
   EXPECT_CALL(*factory->web_view_, AddAvailablePluginDir(path));
@@ -175,7 +183,7 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   auto actual_value = getenv(var_name);
   std::string test_value(path);
   if (!actual_value) {
-    int result = setenv(var_name, path, false);
+    int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   } else {
     test_value = actual_value;
@@ -188,7 +196,7 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   web_page.Init();
 
   if (!actual_value) {
-    int result = unsetenv(var_name);
+    int const result = unsetenv(var_name);
     ASSERT_FALSE(result);
   }
 }
@@ -198,7 +206,7 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
   constexpr char var_name[] = "TELLURIUM_NUB_PATH";
   auto actual_value = getenv(var_name);
   if (!actual_value) {
-    int result = setenv(var_name, path, false);
+    int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   }
 
@@ -214,7 +222,8 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
   web_page.Init();
 
   if (!actual_value) {
-    int result = unsetenv(var_name);
+    int const result = unsetenv(var_name);
     ASSERT_FALSE(result);
   }
 }
+

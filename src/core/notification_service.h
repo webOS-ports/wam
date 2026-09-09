@@ -23,7 +23,7 @@
 struct NotificationData {
   struct ButtonInfo {
     // TODO: Remove the constructor when C++20 is everywhere.
-    ButtonInfo(const std::string& title, const std::string icon_path)
+    ButtonInfo(const std::string& title, const std::string& icon_path)
         : title(title), icon_path(icon_path) {}
     std::string title;
     std::string icon_path;
@@ -43,6 +43,10 @@ class NotificationService {
 
   virtual bool Display(const NotificationData& notification) = 0;
   virtual bool Close(const std::string& notification_id) = 0;
+
+ protected:
+  // Implementations are singletons; nothing deletes through this interface.
+  ~NotificationService() = default;
 };
 
 #endif  // CORE_NOTIFICATION_SERVICE_H_

@@ -40,13 +40,19 @@ std::string LocalToUri(const std::string& uri);
 std::string GetEnvVar(const char* env);
 
 // STRING
-bool StrToInt(const std::string& str, int32_t& value);
+bool StrToInt(const std::string& str, int32_t& num);
 int StrToIntWithDefault(const std::string& str, int default_value);
 std::vector<std::string> SplitString(const std::string& str, char delimiter);
 std::string TrimString(const std::string& str);
 void ReplaceSubstr(std::string& in,
                    const std::string& to_search,
                    const std::string& replace_str = {});
+
+// UTF-8 <-> UTF-16 conversion. Replaces std::wstring_convert /
+// std::codecvt_utf8_utf16, which are deprecated since C++17 and removed in
+// C++26. Malformed input is replaced with U+FFFD rather than throwing.
+std::string Utf16ToUtf8(const std::u16string& utf16);
+std::u16string Utf8ToUtf16(const std::string& utf8);
 
 // JSON
 bool StringToJson(const std::string& str, Json::Value& value);

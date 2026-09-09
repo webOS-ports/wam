@@ -10,6 +10,8 @@
     "com.palm.webappmanager/logControl",
     "com.palm.webappmanager/pauseApp",
     "com.palm.webappmanager/setInspectorEnable",
+    "com.palm.webappmanager/setAppVisibility",
+    "com.palm.webappmanager/setOrientation",
     "com.palm.webappmanager/webProcessCreated"
   ],
   "webapplication.push": [

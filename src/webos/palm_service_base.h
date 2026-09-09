@@ -37,7 +37,7 @@ class PalmServiceBase;
 
 class LSErrorSafe : public LSError {
  public:
-  LSErrorSafe() { LSErrorInit(this); }
+  LSErrorSafe() : LSError() { LSErrorInit(this); }
   ~LSErrorSafe() { LSErrorFree(this); }
 };
 
@@ -57,7 +57,7 @@ class LSCallbackHandler {
   friend class PalmServiceBase;
 
  protected:
-  Json::Value Called(Json::Value payload) { return func_(payload); }
+  Json::Value Called(const Json::Value& payload) { return func_(payload); }
 
   static bool Callback(LSHandle* handle, LSMessage* message, void* user_data) {
     LSErrorSafe ls_error;
@@ -81,8 +81,7 @@ class LSCallbackHandler {
 
     Json::Value reply;
 
-    reply =
-        static_cast<LSCallbackHandler*>(user_data)->Called(std::move(request));
+    reply = static_cast<LSCallbackHandler*>(user_data)->Called(request);
 
     if (!reply.isNull()) {
       return LSMessageReply(handle, message, util::JsonToString(reply).c_str(),
@@ -245,7 +244,7 @@ class PalmServiceBase {
    * methods to post subscription updates TODO make subscriptions represented
    *through objects
    **/
-  bool PostSubscription(const char* subscription, Json::Value reply) {
+  bool PostSubscription(const char* subscription, const Json::Value& reply) {
     LSErrorSafe ls_error;
     return LSSubscriptionPost(service_handle_, Category(), subscription,
                               util::JsonToString(reply).c_str(), &ls_error);
@@ -300,7 +299,7 @@ class PalmServiceBase {
                                      LSMessage* message,
                                      void* ctx);
 
-  bool Call(LSHandle* service,
+  bool Call(LSHandle* handle,
             const char* what,
             Json::Value parameters,
             const char* application_id,

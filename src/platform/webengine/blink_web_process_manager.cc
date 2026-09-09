@@ -49,7 +49,7 @@ Json::Value BlinkWebProcessManager::GetWebProcessProfiling() {
     running_app_list.emplace(pid, app);
   }
 
-  for (uint32_t pid : process_id_list) {
+  for (uint32_t const pid : process_id_list) {
     Json::Value app_object;
     Json::Value app_array(Json::arrayValue);
 

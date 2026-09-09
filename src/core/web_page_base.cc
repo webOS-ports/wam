@@ -93,7 +93,7 @@ void WebPageBase::Load() {
 
 void WebPageBase::SetupLaunchEvent() {
   std::stringstream launch_event;
-  std::string params = LaunchParams().empty() ? "{}" : LaunchParams();
+  std::string const params = LaunchParams().empty() ? "{}" : LaunchParams();
   launch_event
       << "(function() {" << "    var dispatchLaunchEvent = function() {"
       << "        var launchEvent = new CustomEvent('webOSLaunch', { detail: "
@@ -144,7 +144,7 @@ bool WebPageBase::Relaunch(const std::string& launch_params,
   if (json_obj.isMember("sw_clients_openwindow")) {
     const auto& sw_clients_openwindow = json_obj["sw_clients_openwindow"];
     if (sw_clients_openwindow.isString()) {
-      std::string target_url = sw_clients_openwindow.asString();
+      std::string const target_url = sw_clients_openwindow.asString();
       LOG_DEBUG("[%s] service worker clients.openWindow(%s) relaunch",
                 app_id_.c_str(), target_url.c_str());
       LoadUrl(target_url);
@@ -213,10 +213,10 @@ bool WebPageBase::DoDeeplinking(const std::string& launch_params) {
     return false;
   }
 
-  std::string handled_by =
+  std::string const handled_by =
       obj["handledBy"].isNull() ? "default" : obj["handledBy"].asString();
   if (handled_by == "platform") {
-    std::string target_url = obj["contentTarget"].asString();
+    std::string const target_url = obj["contentTarget"].asString();
     LOG_INFO(MSGID_DEEPLINKING, 4, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", GetWebProcessPID()),
@@ -250,7 +250,7 @@ void WebPageBase::SendRelaunchEvent() {
   // This is a workaround for a problem where WebKit can't free the page
   // if we don't use a timeout here.
   std::stringstream relaunch_event;
-  std::string detail = LaunchParams().empty() ? "{}" : LaunchParams();
+  std::string const detail = LaunchParams().empty() ? "{}" : LaunchParams();
   relaunch_event
       << "setTimeout(function () {"
       << "    console.log('[WAM] fires webOSRelaunch event');"
@@ -264,6 +264,14 @@ void WebPageBase::SendRelaunchEvent() {
       << "    }"
       << "}, 1);";
   EvaluateJavaScript(relaunch_event.str().c_str());
+}
+
+void WebPageBase::CallLegacyMojoCallback(const std::string& name,
+                                         const std::string& args) {
+  std::stringstream script;
+  script << "if (typeof Mojo !== 'undefined' && typeof Mojo." << name
+         << " === 'function') { Mojo." << name << "(" << args << "); }";
+  EvaluateJavaScript(script.str());
 }
 
 void WebPageBase::HandleLoadStarted() {
@@ -354,7 +362,7 @@ bool WebPageBase::HasLoadErrorPolicy(bool is_http_response_error,
                                      int error_code) {
   if (load_error_policy_ == "event") {
     std::stringstream jss;
-    std::string generic_error = is_http_response_error ? "false" : "true";
+    std::string const generic_error = is_http_response_error ? "false" : "true";
     jss << "{" << "    console.log('[WAM3] create webOSLoadError event');"
         << "    var launchEvent=new CustomEvent('webOSLoadError',"
         << "        { detail : { genericError : " << generic_error
@@ -373,7 +381,7 @@ void WebPageBase::ApplyPolicyForErrorPage(bool is_main_frame,
   // error_code can be both HTTP Status and Network Error
   // HTTP Status : Positive values
   // Network Error : Negative values
-  wam::Url response_url(url);
+  wam::Url const response_url(url);
   static const int http_error_status_code = 400;
   if (response_url.Scheme() != "file" &&
       !HasLoadErrorPolicy(error_code >= http_error_status_code, error_code) &&
@@ -461,13 +469,13 @@ void WebPageBase::UpdateIsLoadErrorPageFinish() {
   }
 
   fs::path url_path(Url().ToLocalFile());
-  std::string url_file_name = url_path.filename();
-  std::string url_dir_path = url_path.remove_filename();
+  std::string const url_file_name = url_path.filename();
+  std::string const url_dir_path = url_path.remove_filename();
 
   fs::path err_path(
       wam::Url(GetWebAppManagerConfig()->GetErrorPageUrl()).ToLocalFile());
-  std::string err_file_name = err_path.filename();
-  std::string err_dir_path = err_path.remove_filename();
+  std::string const err_file_name = err_path.filename();
+  std::string const err_dir_path = err_path.remove_filename();
 
   if (url_dir_path.starts_with(err_dir_path) &&
       url_file_name == err_file_name) {

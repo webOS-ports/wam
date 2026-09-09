@@ -49,6 +49,15 @@ class WebAppBasePrivate {
   std::string url_;
 };
 
+bool ShellKeepsDeactivatedWindowsShown() {
+  static const bool shown = []() {
+    const std::string value =
+        util::GetEnvVar("WAM_SHELL_KEEPS_DEACTIVATED_WINDOWS_SHOWN");
+    return value == "1" || value == "true";
+  }();
+  return shown;
+}
+
 WebAppBase::WebAppBase()
     : app_private_(std::make_unique<WebAppBasePrivate>(this)) {}
 
@@ -334,7 +343,7 @@ void WebAppBase::SetAppProperties(const std::string& properties) {
 void WebAppBase::SetPreloadState(const std::string& properties) {
   Json::Value obj = util::StringToJson(properties);
 
-  std::string preload = obj["preload"].asString();
+  std::string const preload = obj["preload"].asString();
 
   if (preload == "full") {
     preload_state_ = kFullPreload;
@@ -480,7 +489,7 @@ void WebAppBase::CloseWebApp() {
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()),
            "closeCallback/about:blank is DONE");
   WebAppManager::Instance()->AppDeleted(this);
-  WebAppManager::Instance()->RemoveClosingAppList(AppId());
+  WebAppManager::Instance()->RemoveClosingAppList(InstanceId());
   delete this;
 }
 

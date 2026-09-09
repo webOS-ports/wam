@@ -35,7 +35,7 @@ namespace {
 std::unordered_set<std::string> SplitPluginTypes(const std::string& types) {
   size_t start = 0;
   size_t end = 0;
-  std::string delim = ":";
+  std::string const delim = ":";
   std::unordered_set<std::string> result;
   while ((start = types.find_first_not_of(delim, end)) != std::string::npos) {
     end = types.find(delim, start);
@@ -45,13 +45,13 @@ std::unordered_set<std::string> SplitPluginTypes(const std::string& types) {
 }
 
 std::vector<std::string> GetFileList(const std::string& path) {
-  std::string fixed_path = path.back() == '/' ? path : path + '/';
+  std::string const fixed_path = path.back() == '/' ? path : path + '/';
   std::vector<std::string> files;
   DIR* dir = opendir(fixed_path.c_str());
   if (dir != nullptr) {
-    struct dirent* entry;
+    struct dirent* entry = nullptr;
     while ((entry = readdir(dir)) != nullptr) {
-      std::string file_name = entry->d_name;
+      std::string const file_name = entry->d_name;
       if (file_name == "." || file_name == "..") {
         continue;
       }
@@ -91,9 +91,9 @@ WebAppFactoryManagerImpl::WebAppFactoryManagerImpl()
     : load_pluggable_on_demand_(false),
       plugin_loader_(std::make_unique<PluginLoader>(
           std::make_unique<PluginLibWrapper>())) {
-  WebAppManagerConfig* config = WebAppManager::Instance()->Config();
+  WebAppManagerConfig const* config = WebAppManager::Instance()->Config();
 
-  std::string factory_env = config->GetWebAppFactoryPluginTypes();
+  std::string const factory_env = config->GetWebAppFactoryPluginTypes();
   factory_env_ = SplitPluginTypes(factory_env);
   factory_env_.emplace("default");
 
@@ -141,7 +141,7 @@ WebAppFactoryInterface* WebAppFactoryManagerImpl::LoadPluggable(
     return nullptr;
   }
 
-  WebAppFactoryInterface* interface;
+  WebAppFactoryInterface* interface = nullptr;
   for (const auto& file : GetFileList(web_app_factory_plugin_path_)) {
     if (!plugin_loader_->Load(file)) {
       LOG_WARNING(MSGID_PLUGIN_LOAD_FAIL, 1,

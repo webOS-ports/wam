@@ -30,7 +30,7 @@ WebAppWindow* WebAppWindowFactoryMock::CreateWindow() {
 
   std::cerr << "Missing WebAppWindow pointer. Method setWebAppWindow should be "
                "called prior to createWindow"
-            << std::endl;
+            << '\n';
   return nullptr;
 }
 

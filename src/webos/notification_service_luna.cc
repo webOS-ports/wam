@@ -144,7 +144,7 @@ bool NotificationServiceLuna::Close(const std::string& notification_id,
     return false;
   }
 
-  std::string id = map.at(notification_id);
+  std::string const id = map.at(notification_id);
   map.erase(notification_id);
 
   Json::Value close_params;

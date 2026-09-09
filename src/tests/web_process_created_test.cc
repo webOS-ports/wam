@@ -105,7 +105,7 @@ TEST(WebProcessCreatedTest, WebProcessNotExist) {
 }
 
 TEST(WebProcessCreatedTest, BadRequest) {
-  Json::Value request(Json::objectValue);
+  Json::Value const request(Json::objectValue);
   const auto reply =
       WebAppManagerServiceLuna::Instance()->webProcessCreated(request, false);
 

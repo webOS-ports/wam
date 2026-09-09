@@ -21,6 +21,10 @@ class WebPageBlinkObserver {
  public:
   virtual void DidSwapPageCompositorFrame() = 0;
   virtual void DidResumeDOM() {}
+
+ protected:
+  // WebPageBlink only observes; it never owns or deletes its observer.
+  ~WebPageBlinkObserver() = default;
 };
 
 #endif  // PLATFORM_WEBENGINE_WEB_PAGE_BLINK_OBSERVER_H_

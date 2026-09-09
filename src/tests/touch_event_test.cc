@@ -36,11 +36,8 @@
 namespace {
 
 using ::testing::_;
-using ::testing::AnyNumber;
 using ::testing::Invoke;
-using ::testing::Return;
 using ::testing::ReturnRef;
-using ::testing::StrEq;
 
 // TODO: Move it to separate file.
 static constexpr char launchBareAppJsonBody[] = R"({
@@ -97,6 +94,8 @@ static constexpr char launchBareAppJsonBody[] = R"({
 
 }  // namespace
 
+namespace {
+
 class TouchEventTestSuite : public ::testing::Test {
  public:
   TouchEventTestSuite() = default;
@@ -115,6 +114,8 @@ class TouchEventTestSuite : public ::testing::Test {
   WebPageBlinkDelegate* web_view_delegate_ = nullptr;
   std::string view_url_;
 };
+
+}  // namespace
 
 void TouchEventTestSuite::SetUp() {
   WebAppManager::Instance()->SetPlatformModules(
@@ -186,3 +187,4 @@ TEST_F(TouchEventTestSuite, LeaveEventTest) {
 
   web_app_->SendWebOSMouseEvent("Leave");
 }
+

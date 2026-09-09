@@ -18,28 +18,36 @@
 
 #include <glib.h>
 
-static int TimeoutCallback(void* data) {
+int Timer::OnTimeout(void* data) {
   Timer* timer = static_cast<Timer*>(data);
-  bool is_repeating = timer->IsRepeating();
+  bool const is_repeating = timer->IsRepeating();
+  if (!is_repeating) {
+    // GLib destroys the source as soon as we return false, so drop the id now.
+    // Otherwise a later Stop() would pass a dead - and possibly already
+    // recycled - id to g_source_remove().
+    timer->source_id_ = 0;
+  }
   timer->HandleCallback();
   return is_repeating;
 }
 
-static int TimeoutCallbackDestroy(void* data) {
+int Timer::OnTimeoutAndDestroy(void* data) {
   Timer* timer = static_cast<Timer*>(data);
+  timer->source_id_ = 0;
   timer->HandleCallback();
   delete timer;
   return 0;
 }
 
 void Timer::Start(int delay_in_milli_seconds, bool will_destroy) {
+  // Cancel a source that is still pending. Without this the previous source
+  // keeps the only reference to it out of reach of Stop(), so it stays armed
+  // and fires into a receiver that may already be gone.
+  Stop();
   is_running_ = true;
-  if (!will_destroy) {
-    source_id_ = g_timeout_add(delay_in_milli_seconds, TimeoutCallback, this);
-  } else {
-    source_id_ =
-        g_timeout_add(delay_in_milli_seconds, TimeoutCallbackDestroy, this);
-  }
+  source_id_ =
+      g_timeout_add(delay_in_milli_seconds,
+                    will_destroy ? OnTimeoutAndDestroy : OnTimeout, this);
 }
 
 void Timer::Stop() {

@@ -36,6 +36,8 @@ const std::map<std::string, std::string> kEnvironmentVariables = {
 
 }  // namespace
 
+namespace {
+
 class WebAppManagerConfigTest : public ::testing::Test {
  public:
   WebAppManagerConfigTest() = default;
@@ -45,6 +47,8 @@ class WebAppManagerConfigTest : public ::testing::Test {
   WebAppManagerConfigMock config_with_no_variables_;
   WebAppManagerConfigMock config_with_set_variables_{&kEnvironmentVariables};
 };
+
+}  // namespace
 
 TEST_F(WebAppManagerConfigTest, checkDynamicPluggableLoadEnabledIfNotDefined) {
   EXPECT_FALSE(config_with_no_variables_.IsDynamicPluggableLoadEnabled());
@@ -150,3 +154,4 @@ TEST_F(WebAppManagerConfigTest, checkNameIfNotDefined) {
 TEST_F(WebAppManagerConfigTest, checkNameIfDefined) {
   EXPECT_STREQ("Testing", config_with_set_variables_.GetName().c_str());
 }
+

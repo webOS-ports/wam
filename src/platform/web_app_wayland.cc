@@ -147,7 +147,7 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
                             app_window_->DisplayHeight());
   }
 
-  webos::WebAppWindowBase::LocationHint location_hint =
+  webos::WebAppWindowBase::LocationHint const location_hint =
       GetLocationHintFromString(location_hint_);
   if (location_hint != webos::WebAppWindowBase::LocationHint::kUnknown) {
     app_window_->SetLocationHint(location_hint);
@@ -164,7 +164,7 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
     LOG_DEBUG("App window for display[%d]", display_id_);
   }
 
-  int timeout = util::StrToIntWithDefault(
+  int const timeout = util::StrToIntWithDefault(
       util::GetEnvVar("LAUNCH_FINISH_ASSURE_TIMEOUT"), 0);
   if (timeout != 0) {
     kLaunchFinishAssureTimeoutMs = timeout;
@@ -228,13 +228,14 @@ void WebAppWayland::Attach(WebPageBase* page) {
   SetKeyMask(webos::WebOSKeyMask::KEY_MASK_EXIT,
              GetAppDescription()->HandleExitKey());
 
-  if (GetAppDescription()->WidthOverride().has_value() &&
-      GetAppDescription()->HeightOverride().has_value() &&
+  const auto width_override = GetAppDescription()->WidthOverride();
+  const auto height_override = GetAppDescription()->HeightOverride();
+  if (width_override.has_value() && height_override.has_value() &&
       !GetAppDescription()->IsTransparent()) {
-    float scale_x = static_cast<float>(app_window_->DisplayWidth()) /
-                    GetAppDescription()->WidthOverride().value();
-    float scale_y = static_cast<float>(app_window_->DisplayHeight()) /
-                    GetAppDescription()->HeightOverride().value();
+    float const scale_x = static_cast<float>(app_window_->DisplayWidth()) /
+                    static_cast<float>(width_override.value());
+    float const scale_y = static_cast<float>(app_window_->DisplayHeight()) /
+                    static_cast<float>(height_override.value());
     scale_factor_ = (scale_x < scale_y) ? scale_x : scale_y;
     static_cast<WebPageBlink*>(page)->SetAdditionalContentsScale(scale_x,
                                                                  scale_y);
@@ -282,6 +283,10 @@ bool WebAppWayland::IsNormal() {
   return app_window_->GetWindowHostState() == webos::NATIVE_WINDOW_DEFAULT;
 }
 
+void WebAppWayland::NotifyStageChange(const char* callback) {
+  Page()->CallLegacyMojoCallback(callback);
+}
+
 void WebAppWayland::OnStageActivated() {
   if (GetCrashState()) {
     LOG_INFO(MSGID_WEBAPP_STAGE_ACITVATED, 4,
@@ -309,11 +314,53 @@ void WebAppWayland::OnStageActivated() {
   LOG_INFO(MSGID_WEBAPP_STAGE_ACITVATED, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()), "");
+
+  // enyo.windows.events.handleActivated() -> ApplicationEvents
+  // onWindowActivated. Last, once this window is in the state being announced:
+  // the call runs script, and script pumps the loop.
+  NotifyStageChange("stageActivated");
 }
 
 void WebAppWayland::OnStageDeactivated() {
-  Page()->SuspendWebPageMedia();
+  // enyo.windows.events.handleDeactivated() -> ApplicationEvents
+  // onWindowDeactivated. Sent before anything below suspends the page: script
+  // evaluated after that does not run, and the application would never hear
+  // that it had lost the stage.
+  NotifyStageChange("stageDeactivated");
+
+  // Losing the stage and leaving the screen are two different things, and
+  // suspending is only right for the second.
+  //
+  // On a display where the foreground application is the only one visible they
+  // coincide, which is why this used to suspend unconditionally. In a card
+  // shell they do not: a carded window is still on screen and has to keep
+  // painting, and suspending it leaves the card blank. LunaSysMgr sent
+  // stageDeactivated for exactly that case and never suspended the page.
+  //
+  // The shell says which it is; without a shell that says anything this is
+  // false and the behaviour is unchanged.
+  if (IsShownWhileDeactivated()) {
+    LOG_INFO(MSGID_WEBAPP_STAGE_DEACITVATED, 2,
+             PMLOGKS("APP_ID", AppId().c_str()),
+             PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
+             "Still shown by the shell; not suspending");
+    did_activate_stage_ = false;
+    return;
+  }
+
+  // Unfocus() only on the way off screen, for the same reason.
+  //
+  // Nothing puts the focus back: OnStageActivated() does not focus, because
+  // focus normally arrives on its own as the compositor's FocusIn and FocusOut
+  // events. Unfocusing a window that stays on screen therefore sticks, and
+  // PalmSystem.isActivated - which is app_->IsFocused() - reads false from then
+  // on for every window of the application. Enyo picks the window to act on
+  // with enyo.windows.getActiveWindow(), which returns the first window whose
+  // PalmSystem.isActivated is true, so it finds none and the application menu
+  // stops opening.
   Unfocus();
+
+  Page()->SuspendWebPageMedia();
   Page()->SetVisibilityState(
       WebPageBase::WebPageVisibilityState::kWebPageVisibilityStateHidden);
   Page()->SuspendWebPageAll();
@@ -361,7 +408,7 @@ void WebAppWayland::SetupWindowGroup(ApplicationDescription* desc) {
     return;
   }
 
-  ApplicationDescription::WindowGroupInfo group_info =
+  ApplicationDescription::WindowGroupInfo const group_info =
       desc->GetWindowGroupInfo();
   if (group_info.name.empty()) {
     return;
@@ -384,7 +431,7 @@ void WebAppWayland::SetupWindowGroup(ApplicationDescription* desc) {
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()), "");
   } else {
-    ApplicationDescription::WindowClientInfo client_info =
+    ApplicationDescription::WindowClientInfo const client_info =
         desc->GetWindowClientInfo();
     app_window_->AttachToWindowGroup(group_info.name, client_info.layer);
     LOG_INFO(MSGID_ATTACH_SURFACEGROUP, 4, PMLOGKS("APP_ID", AppId().c_str()),
@@ -414,11 +461,10 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
 
   if (value.isArray()) {
     for (const auto& region : value) {
-      input_region_.emplace_back(
-          gfx::Rect(region["x"].asInt() * scale_factor_,
-                    region["y"].asInt() * scale_factor_,
-                    region["width"].asInt() * scale_factor_,
-                    region["height"].asInt() * scale_factor_));
+      input_region_.emplace_back(region["x"].asInt() * scale_factor_,
+                                 region["y"].asInt() * scale_factor_,
+                                 region["width"].asInt() * scale_factor_,
+                                 region["height"].asInt() * scale_factor_);
     }
   }
 
@@ -474,7 +520,7 @@ void WebAppWayland::FocusLayer() {
   app_window_->FocusWindowGroupLayer();
   ApplicationDescription* desc = GetAppDescription();
   if (desc) {
-    ApplicationDescription::WindowClientInfo client_info =
+    ApplicationDescription::WindowClientInfo const client_info =
         desc->GetWindowClientInfo();
     LOG_DEBUG("FocusLayer(layer:%s) [%s]", client_info.layer.c_str(),
               AppId().c_str());
@@ -527,7 +573,7 @@ void WebAppWayland::DoAttach() {
 }
 
 void WebAppWayland::Raise() {
-  bool was_minimized_state = IsMinimized();
+  bool const was_minimized_state = IsMinimized();
 
   // There's no fullscreen event from LSM for below cases, so onStageActivated
   // should be called
@@ -642,6 +688,35 @@ void WebAppWayland::StateChanged(webos::NativeWindowState new_state) {
     return;
   }
 
+  // Delivered from inside a transition that is still running - see
+  // in_stage_transition_. Remember it and let the outer call apply it once it
+  // has finished, instead of starting a second transition on top of a
+  // half-applied one.
+  if (in_stage_transition_) {
+    LOG_INFO(MSGID_WINDOW_STATE_CHANGED, 2, PMLOGKS("APP_ID", AppId().c_str()),
+             PMLOGKFV("HOST_STATE", "%d", new_state),
+             "Arrived during a stage transition; deferred");
+    pending_state_ = new_state;
+    has_pending_state_ = true;
+    return;
+  }
+
+  in_stage_transition_ = true;
+  ApplyStateChange(new_state);
+  in_stage_transition_ = false;
+
+  // Anything that arrived while we were busy is the newer truth about this
+  // window; apply it now, iteratively so a chain of them cannot recurse.
+  while (has_pending_state_) {
+    const webos::NativeWindowState state = pending_state_;
+    has_pending_state_ = false;
+    in_stage_transition_ = true;
+    ApplyStateChange(state);
+    in_stage_transition_ = false;
+  }
+}
+
+void WebAppWayland::ApplyStateChange(webos::NativeWindowState new_state) {
   switch (new_state) {
     case webos::NATIVE_WINDOW_DEFAULT:
     case webos::NATIVE_WINDOW_MAXIMIZED:
@@ -678,6 +753,11 @@ void WebAppWayland::ShowWindow() {
 
   SetHiddenWindow(false);
 
+  // enyo.windows.events.handleWindowShown() -> ApplicationEvents
+  // onWindowShown. LunaSysMgr sent this for a keepAlive application's window;
+  // the stage activation below is a separate notification, as it was then.
+  Page()->CallLegacyMojoCallback("show");
+
   OnStageActivated();
   added_to_window_mgr_ = true;
   WebAppBase::ShowWindow();
@@ -692,6 +772,10 @@ bool WebAppWayland::HideWindow() {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()),
            "WebAppWayland::hideWindow(); just hide this app");
+  // enyo.windows.events.handleWindowHidden() -> ApplicationEvents
+  // onWindowHidden, sent while the page can still run script.
+  Page()->CallLegacyMojoCallback("hide");
+
   Page()->CloseVkb();
   Hide(true);
   added_to_window_mgr_ = false;
@@ -836,6 +920,18 @@ void WebAppWayland::MoveInputRegion(int height) {
 void WebAppWayland::KeyboardVisibilityChanged(bool visible, int height) {
   WebAppBase::KeyboardVisibilityChanged(visible, height);
   MoveInputRegion(height);
+
+  // ApplicationEvents onKeyboardShown. The framework documents the timing as
+  // true before the window is resized and false after it, which is the order
+  // the InputPanelVisible event arrives in.
+  //
+  // Mojo.positiveSpaceChanged() is deliberately not sent alongside it. Enyo
+  // stores those numbers as modalBounds and lays out against them, so they
+  // have to be css pixels of the page, while `height` here is in window units
+  // - and the two differ by the legacy zoom factor, which this class does not
+  // know. Sending window units would put the keyboard cutout out by that
+  // factor on every device with a scale.
+  Page()->CallLegacyMojoCallback("keyboardShown", visible ? "true" : "false");
 }
 
 void WebAppWayland::SetUseVirtualKeyboard(const bool enable) {

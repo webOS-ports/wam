@@ -42,63 +42,63 @@ const char* kFileName = "/usr/opt/webos test#?%/test.txt";
 }  // namespace
 
 TEST(UrlTest, Scheme) {
-  wam::Url https_url(kHttpsSimpleUri);
+  wam::Url const https_url(kHttpsSimpleUri);
   EXPECT_EQ("https", https_url.Scheme());
 
-  wam::Url file_url(kFileWithHost);
+  wam::Url const file_url(kFileWithHost);
   EXPECT_EQ("file", file_url.Scheme());
 
-  wam::Url about_blank(kAboutBlank);
+  wam::Url const about_blank(kAboutBlank);
   EXPECT_EQ("about", about_blank.Scheme());
 }
 
 TEST(UrlTest, Host) {
-  wam::Url https_url(kHttpsWithPathUri);
+  wam::Url const https_url(kHttpsWithPathUri);
   EXPECT_EQ("google.com", https_url.Host());
 
-  wam::Url https_user_info_url(kHttpsWithUSerInfoUri);
+  wam::Url const https_user_info_url(kHttpsWithUSerInfoUri);
   EXPECT_EQ("google.com", https_user_info_url.Host());
 
-  wam::Url simple_uri(kHttpsSimpleUri);
+  wam::Url const simple_uri(kHttpsSimpleUri);
   EXPECT_EQ("www.google.com", simple_uri.Host());
 
-  wam::Url file_with_host_url(kFileWithHost);
+  wam::Url const file_with_host_url(kFileWithHost);
   EXPECT_EQ("server", file_with_host_url.Host());
 
-  wam::Url file_url(kFileUri);
+  wam::Url const file_url(kFileUri);
   EXPECT_EQ("", file_url.Host());
 }
 
 TEST(UrlTest, Port) {
-  wam::Url https_with_port_url(kHttpsWithPortUri);
+  wam::Url const https_with_port_url(kHttpsWithPortUri);
   EXPECT_EQ("8080", https_with_port_url.Port());
 
-  wam::Url https_url(kHttpsWithQueryAndFragmentUri);
+  wam::Url const https_url(kHttpsWithQueryAndFragmentUri);
   EXPECT_EQ("", https_url.Port());
 }
 
 TEST(UrlTest, Path) {
-  wam::Url https_url(kHttpsWithPathUri);
+  wam::Url const https_url(kHttpsWithPathUri);
   EXPECT_EQ("/notexist/virtual/path/index.php", https_url.Path());
 
-  wam::Url https_short_path_url(kHttpsSimpleUri);
+  wam::Url const https_short_path_url(kHttpsSimpleUri);
   EXPECT_EQ("/", https_short_path_url.Path());
 
-  wam::Url file_with_host_url(kFileWithHost);
+  wam::Url const file_with_host_url(kFileWithHost);
   EXPECT_EQ("/foo.html", file_with_host_url.Path());
 
-  wam::Url https_no_path_url(kHttpsNoPathUri);
+  wam::Url const https_no_path_url(kHttpsNoPathUri);
   EXPECT_EQ("", https_no_path_url.Path());
 
-  wam::Url about_blank(kAboutBlank);
+  wam::Url const about_blank(kAboutBlank);
   EXPECT_EQ("blank", about_blank.Path());
 }
 
 TEST(UrlTest, Query) {
-  wam::Url https_url(kHttpsWithQueryAndFragmentUri);
+  wam::Url const https_url(kHttpsWithQueryAndFragmentUri);
   EXPECT_EQ("?test=value", https_url.Query());
 
-  wam::Url file_url(kFileWithQueryAndFragment);
+  wam::Url const file_url(kFileWithQueryAndFragment);
   EXPECT_EQ("?f=v", file_url.Query());
 }
 
@@ -116,43 +116,43 @@ TEST(UrlTest, SetQuery) {
 }
 
 TEST(UrlTest, Fragment) {
-  wam::Url https_url(kHttpsWithQueryAndFragmentUri);
+  wam::Url const https_url(kHttpsWithQueryAndFragmentUri);
   EXPECT_EQ("#somefragment", https_url.Fragment());
 
-  wam::Url file_url(kFileWithQueryAndFragment);
+  wam::Url const file_url(kFileWithQueryAndFragment);
   EXPECT_EQ("#fragment", file_url.Fragment());
 }
 
 TEST(UrlTest, UrlToString) {
-  wam::Url https_url(kHttpsWithQueryAndFragmentUri);
+  wam::Url const https_url(kHttpsWithQueryAndFragmentUri);
   EXPECT_EQ(kHttpsWithQueryAndFragmentUri, https_url.ToString());
 }
 
 TEST(UrlTest, FromLocalFile) {
-  wam::Url url = wam::Url::FromLocalFile(kFileName);
+  wam::Url const url = wam::Url::FromLocalFile(kFileName);
   EXPECT_EQ(kFileUri, url.ToString());
 }
 
 TEST(UrlTest, ToLocalFile) {
-  wam::Url url(kFileUri);
+  wam::Url const url(kFileUri);
   EXPECT_EQ(kFileName, url.ToLocalFile());
 }
 
 TEST(UrlTest, IsLocalFile) {
-  wam::Url https_url(kHttpsSimpleUri);
+  wam::Url const https_url(kHttpsSimpleUri);
   EXPECT_FALSE(https_url.IsLocalFile());
 
-  wam::Url file_url(kFileUri);
+  wam::Url const file_url(kFileUri);
   EXPECT_TRUE(file_url.IsLocalFile());
 }
 
 TEST(UrlTest, FileName) {
-  wam::Url https_url(kHttpsSimpleUri);
+  wam::Url const https_url(kHttpsSimpleUri);
   EXPECT_EQ(https_url.FileName(), "");
 
-  wam::Url file_url(kFileUri);
+  wam::Url const file_url(kFileUri);
   EXPECT_EQ(file_url.FileName(), "test.txt");
 
-  wam::Url file_with_host_url(kFileWithHost);
+  wam::Url const file_with_host_url(kFileWithHost);
   EXPECT_EQ(file_with_host_url.FileName(), "foo.html");
 }

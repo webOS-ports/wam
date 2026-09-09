@@ -109,6 +109,8 @@ const char* kApplicationDescriptionJson = R"({
 
 }  // namespace
 
+namespace {
+
 class ApplicationDescriptionTest : public ::testing::Test {
  public:
   ApplicationDescriptionTest() = default;
@@ -120,6 +122,8 @@ class ApplicationDescriptionTest : public ::testing::Test {
   std::unique_ptr<ApplicationDescription> application_description_ =
       ApplicationDescription::FromJsonString(kApplicationDescriptionJson);
 };
+
+}  // namespace
 
 TEST_F(ApplicationDescriptionTest, checkGetIsTransparent) {
   EXPECT_FALSE(application_description_->IsTransparent());
@@ -223,7 +227,7 @@ TEST_F(ApplicationDescriptionTest, checkGetId) {
 }
 
 TEST_F(ApplicationDescriptionTest, checkGetEntryPoint) {
-  struct stat info;
+  struct stat info{};
   if (stat("/usr/palm/applications/bareapp/index.html", &info)) {
     EXPECT_STREQ("index.html", application_description_->EntryPoint().c_str());
   } else {
@@ -233,7 +237,7 @@ TEST_F(ApplicationDescriptionTest, checkGetEntryPoint) {
 }
 
 TEST_F(ApplicationDescriptionTest, checkGetIcon) {
-  struct stat info;
+  struct stat info{};
   if (stat("/usr/palm/applications/bareapp/icon.png", &info)) {
     EXPECT_STREQ("icon.png", application_description_->Icon().c_str());
   } else {
@@ -324,7 +328,7 @@ TEST_F(ApplicationDescriptionTest, checkGetWindowOwnertInfo) {
 }
 
 TEST_F(ApplicationDescriptionTest, checkGetSupportedEnyoBundleVersions) {
-  std::set<std::string> expected_versions = {"Version 1.0.1", "Version 2.0.1",
+  std::set<std::string> const expected_versions = {"Version 1.0.1", "Version 2.0.1",
                                              "Version 3.0.1"};
   const auto actual_versions =
       application_description_->SupportedEnyoBundleVersions();
@@ -333,9 +337,10 @@ TEST_F(ApplicationDescriptionTest, checkGetSupportedEnyoBundleVersions) {
 }
 
 TEST_F(ApplicationDescriptionTest, checkGetKeyFilterTable) {
-  std::unordered_map<int, std::pair<int, int>> expected_table = {
+  std::unordered_map<int, std::pair<int, int>> const expected_table = {
       {1, {2, 3}}, {4, {5, 6}}, {7, {8, 9}}};
   const auto actual_table = application_description_->KeyFilterTable();
 
   EXPECT_EQ(expected_table, actual_table);
 }
+

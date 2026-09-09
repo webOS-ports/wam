@@ -76,7 +76,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void KeyboardVisibilityChanged(bool visible) override;
   void HandleDeviceInfoChanged(const std::string& device_info) override;
   void EvaluateJavaScript(const std::string& js_code) override;
-  void EvaluateJavaScriptInAllFrames(const std::string& js_code,
+  void EvaluateJavaScriptInAllFrames(const std::string& script,
                                      const char* method = {}) override;
   uint32_t GetWebProcessPID() const override { return RenderProcessPid(); }
   void CreatePalmSystem(WebAppBase* app) override;
@@ -137,7 +137,8 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void DidSwapCompositorFrame() override;
   void DidResumeDOM() override;
 
-  void UpdateExtensionData(const std::string& key, const std::string& value);
+  void UpdateExtensionData(const std::string& key,
+                           const std::string& value) override;
   void SetLoadErrorPolicy(const std::string& policy);
   void SetTrustLevel(const std::string& trust_level) {
     trust_level_ = trust_level;
@@ -152,12 +153,19 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetAdditionalContentsScale(float scale_x, float scale_y);
   void UpdateHardwareResolution();
 
-  WebView* CreateWindow(const std::string& newUrl, std::unique_ptr<WebViewFactory> dedicatedFactory, int height, std::vector<std::string> additional_features) override;
+  WebView* CreateWindow(const std::string& new_url,
+                        std::unique_ptr<WebViewFactory> dedicated_factory,
+                        int height,
+                        std::vector<std::string> additional_features) override;
 
   // Timer callback
   void TimeoutCloseCallback();
 
   void UpdateBackHistoryAPIDisabled();
+
+  // The page zoom this application is displayed at: 1.0 for anything written
+  // against the runtime as it stands, the legacy scale for Mojo and Enyo.
+  double UiScaleFactor() const;
 
  protected:
   WebView* PageView() const;

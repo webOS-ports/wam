@@ -20,15 +20,78 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include <algorithm>
+#include <cctype>
+#include <fstream>
 #include <iostream>
+#include <iterator>
 #include <sstream>
+#include <string_view>
 
 #include <json/json.h>
 
 #include "log_manager.h"
 #include "utils.h"
 
-bool ApplicationDescription::CheckTrustLevel(std::string trust_level) {
+namespace {
+
+// Enough of the entry document to carry the framework's fingerprint. Mojo and
+// Enyo 1 load theirs with a script tag in the head; an Enyo 2 bundle inlines
+// the loader preamble and the framework stylesheet, and both come before any
+// application code. Applications that inline their artwork run to several
+// megabytes, so the file is not read whole.
+constexpr std::streamsize kFrameworkSniffBytes = 512 * 1024;
+
+// Fingerprints of the frameworks this distribution carries for compatibility.
+//
+// These match on how the framework is loaded, not on the string "enyo"
+// appearing anywhere: applications that use nothing of Enyo still turn up
+// carrying an enyo-* class on their body element, copied out of a template
+// years ago, and classifying those as legacy would scale them wrongly.
+constexpr std::string_view kLegacyFrameworkMarkers[] = {
+    // Mojo, and Enyo 1 through the shared framework in /usr/palm/frameworks.
+    "frameworks/mojo",
+    "mojoloader.js",
+    "frameworks/enyo",
+    // Enyo 2 deployed alongside the application, which the enyo-dev deploy
+    // script lays down as build/enyo.js and build/enyo.css.
+    "enyo.js",
+    "enyo.css",
+    "enyo.min.js",
+    "enyo.min.css",
+    // Enyo 2 built by enyo-dev, which inlines the module loader and the
+    // framework stylesheet rather than linking them.
+    "hasownproperty(\"enyo\")",
+    "hasownproperty('enyo')",
+    "enyo-body-fit",
+    "enyo-document-fit",
+};
+
+bool EntryPointUsesLegacyFramework(const std::string& path) {
+  std::ifstream file(path, std::ios::binary);
+  if (!file) {
+    return false;
+  }
+
+  std::string head(static_cast<size_t>(kFrameworkSniffBytes), '\0');
+  file.read(head.data(), kFrameworkSniffBytes);
+  head.resize(static_cast<size_t>(file.gcount()));
+
+  // The markers are written in lower case; the paths and attributes they match
+  // are not consistently cased in the wild.
+  std::transform(head.begin(), head.end(), head.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+
+  return std::any_of(std::begin(kLegacyFrameworkMarkers),
+                     std::end(kLegacyFrameworkMarkers),
+                     [&head](std::string_view marker) {
+                       return head.find(marker) != std::string::npos;
+                     });
+}
+
+}  // namespace
+
+bool ApplicationDescription::CheckTrustLevel(const std::string& trust_level) {
   if (trust_level.empty()) {
     return false;
   }
@@ -72,7 +135,7 @@ ApplicationDescription::GetWindowOwnerInfo() {
   if (!group_window_desc_.empty()) {
     Json::Value json = util::StringToJson(group_window_desc_);
 
-    auto owner_info = json["ownerInfo"];
+    const auto& owner_info = json["ownerInfo"];
     if (owner_info.isObject()) {
       if (owner_info["allowAnonymous"].isBool()) {
         info.allow_anonymous = owner_info["allowAnonymous"].asBool();
@@ -99,7 +162,7 @@ ApplicationDescription::GetWindowClientInfo() {
   if (!group_window_desc_.empty()) {
     Json::Value json = util::StringToJson(group_window_desc_);
 
-    auto client_info = json["clientInfo"];
+    const auto& client_info = json["clientInfo"];
     if (client_info.isObject()) {
       const auto& layer = client_info["layer"];
       if (layer.isString()) {
@@ -209,7 +272,7 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   // Handle resolution
   const auto& resolution = json_obj["resolution"];
   if (resolution.isString()) {
-    std::string override_resolution = json_obj["resolution"].asString();
+    std::string const override_resolution = json_obj["resolution"].asString();
     auto res_list = util::SplitString(override_resolution, 'x');
     if (res_list.size() == 2) {
       int width_override = 0;
@@ -220,6 +283,20 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
         app_desc->width_override_ = width_override;
         app_desc->height_override_ = height_override;
       }
+    }
+  }
+
+  // Handle an explicit UI scale, which overrides the framework classification
+  // in both directions - for a legacy application that wants none of the
+  // legacy zoom, and for a modern one that does want it.
+  if (json_obj.isMember("uiScale")) {
+    const auto& ui_scale = json_obj["uiScale"];
+    if (!ui_scale.isNumeric() || ui_scale.asDouble() <= 0.0) {
+      LOG_ERROR(MSGID_TYPE_ERROR, 2, PMLOGKS("APP_ID", app_desc->Id().c_str()),
+                PMLOGKFV("DATA_TYPE", "%d", ui_scale.type()),
+                "uiScale must be a positive number");
+    } else {
+      app_desc->ui_scale_ = ui_scale.asDouble();
     }
   }
 
@@ -236,9 +313,9 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
       if (!k.isObject()) {
         continue;
       }
-      int from = k["from"].asInt();
-      int to = k["to"].asInt();
-      int modifier = k["modifier"].asInt();
+      int const from = k["from"].asInt();
+      int const to = k["to"].asInt();
+      int const modifier = k["modifier"].asInt();
       app_desc->key_filter_table_[from] = std::make_pair(to, modifier);
     }
   }
@@ -273,8 +350,14 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   if (!app_desc->folder_path_.empty()) {
     std::string temp_path =
         app_desc->folder_path_ + "/" + app_desc->entry_point_;
-    struct stat stat_ent_pt;
+    struct stat stat_ent_pt = {};
     if (!stat(temp_path.c_str(), &stat_ent_pt)) {
+      // Classified here, while the local path is still in hand and before any
+      // renderer exists, so the scale is known ahead of the first paint. A
+      // remote entry point is never classified as legacy: those frameworks are
+      // only ever loaded off the device.
+      app_desc->uses_legacy_framework_ =
+          EntryPointUsesLegacyFramework(temp_path);
       app_desc->entry_point_ = "file://" + temp_path;
     }
     temp_path.clear();

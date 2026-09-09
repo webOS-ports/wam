@@ -82,7 +82,7 @@ constexpr char kLaunchAppJsonBody[] = R"({
 }  // namespace
 
 TEST(SetInspectorEnableTest, checkLunaRequestIsDummy) {
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
 
   WebAppManagerServiceLuna* luna_service = WebAppManagerServiceLuna::Instance();
   const Json::Value request(Json::objectValue);
@@ -94,14 +94,14 @@ TEST(SetInspectorEnableTest, checkLunaRequestIsDummy) {
 }
 
 TEST(SetInspectorEnableTest, checkCaseNoApplications) {
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
 
-  std::string app_id(kApplicationId);
+  std::string const app_id(kApplicationId);
   EXPECT_FALSE(WebAppManager::Instance()->SetInspectorEnable(app_id));
 }
 
 TEST(SetInspectorEnableTest, checkCaseApplicationNotExists) {
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
 
   Json::Value request_launch;
   ASSERT_TRUE(util::StringToJson(kLaunchAppJsonBody, request_launch));
@@ -112,12 +112,12 @@ TEST(SetInspectorEnableTest, checkCaseApplicationNotExists) {
   ASSERT_TRUE(response_launch.isMember("returnValue"));
   ASSERT_TRUE(response_launch["returnValue"].asBool());
 
-  std::string app_id("NotExistingAppId");
+  std::string const app_id("NotExistingAppId");
   EXPECT_FALSE(WebAppManager::Instance()->SetInspectorEnable(app_id));
 }
 
 TEST(SetInspectorEnableTest, checkCaseApplicationExists) {
-  BaseMockInitializer<> mock_initializer;
+  BaseMockInitializer<> const mock_initializer;
 
   Json::Value request_launch;
   ASSERT_TRUE(util::StringToJson(kLaunchAppJsonBody, request_launch));
@@ -128,6 +128,6 @@ TEST(SetInspectorEnableTest, checkCaseApplicationExists) {
   ASSERT_TRUE(response_launch.isMember("returnValue"));
   ASSERT_TRUE(response_launch["returnValue"].asBool());
 
-  std::string app_id(kApplicationId);
+  std::string const app_id(kApplicationId);
   EXPECT_TRUE(WebAppManager::Instance()->SetInspectorEnable(app_id));
 }

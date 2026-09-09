@@ -79,7 +79,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     return toStr(IsActivated());
   } else if (command == "isKeyboardVisible") {
     return toStr(IsKeyboardVisible());
-  } else if (command == "getIdentifier" || command == "identifier") {
+  } else if (command == "getIdentifier") {
     return Identifier();
   } else if (command == "launchParams") {
     LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
@@ -88,8 +88,6 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
              "webOSSystem.launchParams Updated by app; %s",
              arguments[0].c_str());
     UpdateLaunchParams(arguments[0]);
-  } else if (command == "screenOrientation") {
-    return ScreenOrientation();
   } else if (command == "keepAlive") {
     if (arguments.size() > 0) {
       SetKeepAlive(arguments[0] == "true");
@@ -100,7 +98,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     }
   } else if (command == "PmLogString") {
     if (arguments.size() > 3) {
-      int32_t v1;
+      int32_t v1 = 0;
       if (util::StrToInt(arguments[0], v1)) {
         LogMsgString(v1, arguments[1], arguments[2], arguments[3]);
       }
@@ -122,8 +120,8 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     app_->PlatformBack();
   } else if (command == "setCursor") {
     if (arguments.size() == 3) {
-      std::string v1 = arguments[0];
-      int32_t v2, v3;
+      const std::string& v1 = arguments[0];
+      int32_t v2 = 0, v3 = 0;
       const bool v2_conversion = util::StrToInt(arguments[1], v2);
       const bool v3_conversion = util::StrToInt(arguments[2], v3);
       if (v2_conversion && v3_conversion) {
@@ -182,20 +180,22 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     }
   } else if (command == "getResource") {
     if (arguments.size() == 1) {
-      std::string path = arguments[0];
+      const std::string& path = arguments[0];
       std::string file_str = util::ReadFile(path);
       return file_str;
     }
   } else if (command == "addBannerMessage") {
-    std::string _msg           = arguments.size()>=1 ? arguments[0] : "";
-    std::string _params        = arguments.size()>=2 ? arguments[1] : "";
-    std::string _icon          = arguments.size()>=3 ? arguments[2] : "";
-    std::string _soundClass    = arguments.size()>=4 ? arguments[3] : "";
-    std::string _soundFile     = arguments.size()>=5 ? arguments[4] : "";
-    std::string _duration      = arguments.size()>=6 ? arguments[5] : "";
-    std::string _doNotSuppress = arguments.size()>=7 ? arguments[6] : "false";
+    std::string const msg = arguments.size() >= 1 ? arguments[0] : "";
+    std::string const params = arguments.size() >= 2 ? arguments[1] : "";
+    std::string const icon = arguments.size() >= 3 ? arguments[2] : "";
+    std::string const sound_class = arguments.size() >= 4 ? arguments[3] : "";
+    std::string const sound_file = arguments.size() >= 5 ? arguments[4] : "";
+    std::string const duration = arguments.size() >= 6 ? arguments[5] : "";
+    std::string const do_not_suppress =
+        arguments.size() >= 7 ? arguments[6] : "false";
 
-    return std::to_string(AddBannerMessage(_msg, _params, _icon, _soundClass, _soundFile, _duration, _doNotSuppress));
+    return std::to_string(AddBannerMessage(
+        msg, params, icon, sound_class, sound_file, duration, do_not_suppress));
   } else if (command == "removeBannerMessage") {
     if (arguments.size() == 1) {
       RemoveBannerMessage(arguments[0]);
@@ -254,70 +254,118 @@ double PalmSystemBlink::DevicePixelRatio() {
 }
 
 // banner management
-int PalmSystemBlink::AddBannerMessage(const std::string &msgTitle, const std::string &launchParams,
-                                      const std::string &msgIconUrl, const std::string &soundClass,
-                                      const std::string &msgSoundFile, const std::string &soundDuration,
-                                      const std::string &doNotSuppress) {
+int PalmSystemBlink::AddBannerMessage(const std::string& msg_title,
+                                      const std::string& launch_params,
+                                      const std::string& msg_icon_url,
+                                      const std::string& /*sound_class*/,
+                                      const std::string& /*msg_sound_file*/,
+                                      const std::string& /*sound_duration*/,
+                                      const std::string& /*do_not_suppress*/) {
   // we define a banner as a toast
   Json::Value create_params;
   create_params["type"] = "standard";
-  create_params["message"] = msgTitle;
-  create_params["launchParams"] = launchParams;
-  create_params["iconUrl"] = msgIconUrl;
+  create_params["message"] = msg_title;
+  create_params["launchParams"] = launch_params;
+  create_params["iconUrl"] = msg_icon_url;
 
-// unsupported attributes for now
-//  create_params["soundClass"] = soundClass;
-//  create_params["soundFile"] = msgSoundFile;
-//  create_params["duration"] = soundDuration;
-//  create_params["doNotSuppress"] = doNotSuppress;
-//  create_params["expireTimeout"] = "0";
+  // unsupported attributes for now
+  //  create_params["soundClass"] = sound_class;
+  //  create_params["soundFile"] = msg_sound_file;
+  //  create_params["duration"] = sound_duration;
+  //  create_params["doNotSuppress"] = do_not_suppress;
+  //  create_params["expireTimeout"] = "0";
 
-  static int currentNotifId = 0; // always increment a static int, to return a unique id
+  // Always increment a static int, to return a unique id.
+  static int current_notif_id = 0;
 
-  const int bannerId = ++currentNotifId; // ids start at 1, so 0 can mean "none"
+  // Ids start at 1, so 0 can mean "none".
+  const int banner_id = ++current_notif_id;
 
   // Left empty until createToast answers. RemoveBannerMessage() treats an
   // empty entry as "not created yet" rather than closing toastId "".
-  bannerIds_[bannerId] = std::string();
+  banner_ids_[banner_id] = std::string();
 
-  // bannerId is captured by value: currentNotifId is a static local and will
+  // banner_id is captured by value: current_notif_id is a static local and will
   // have moved on by the time this reply arrives if another banner was posted
   // in the meantime.
   banner_contexts.emplace(
-      bannerId, LSCalloutContext([this, bannerId](const Json::Value& payload) {
+      banner_id,
+      LSCalloutContext([this, banner_id](const Json::Value& payload) {
         if (payload.isObject() && payload["toastId"].isString()) {
-          this->bannerIds_[bannerId] = payload["toastId"].asString();
+          this->banner_ids_[banner_id] = payload["toastId"].asString();
         }
-        banner_contexts.erase(bannerId);
+        banner_contexts.erase(banner_id);
         return Json::Value();
       }));
 
   WebAppManagerServiceLuna::Instance()->Call(
       "luna://com.webos.notification/createToast", create_params,
-      app_->AppId().c_str(), &banner_contexts.at(bannerId));
+      app_->AppId().c_str(), &banner_contexts.at(banner_id));
 
-  return bannerId;
+  return banner_id;
 }
 
-void PalmSystemBlink::RemoveBannerMessage(std::string id) {
-  const auto it = bannerIds_.find(std::atoi(id.c_str()));
-  if (it == bannerIds_.end() || it->second.empty()) {
+void PalmSystemBlink::RemoveBannerMessage(const std::string& id) {
+  const auto it = banner_ids_.find(util::StrToIntWithDefault(id, 0));
+  if (it == banner_ids_.end() || it->second.empty()) {
     // Unknown banner, or createToast has not returned its id yet.
     return;
   }
 
-  std::string remove_params = R"({"toastId":")" + it->second + R"("})";
+  std::string const remove_params = R"({"toastId":")" + it->second + R"("})";
 
   app_->ServiceCall("luna://com.webos.notification/closeToast", remove_params, app_->AppId());
-  bannerIds_.erase(it);
+  banner_ids_.erase(it);
 }
 
 void PalmSystemBlink::ClearBannerMessages() {
   // closeToast's bulk form: drop everything this application posted.
-  std::string clear_params = R"({"sourceId":")" + app_->AppId() + R"("})";
+  std::string const clear_params = R"({"sourceId":")" + app_->AppId() + R"("})";
 
   app_->ServiceCall("luna://com.webos.notification/closeToast", clear_params, app_->AppId());
-  bannerIds_.clear();
+  banner_ids_.clear();
+}
+
+// PalmSystem.deviceInfo, in the coordinate space the application is laid out
+// in rather than the panel's.
+//
+// Enyo documents screenWidth/screenHeight and maximumCardWidth/maximumCardHeight
+// as the numbers an application sizes itself from, and Mojo derives its menu row
+// count from maximumCardHeight. DeviceInfoImpl fills them from the window size,
+// which is the panel: on sargo 1080x2220. That was right when the scale reached
+// Blink as --force-device-scale-factor, because the window itself was then
+// reported in DIP and came out at 450x925 - the same space the application lays
+// out in. Page zoom does not touch the window, so the two parted company and a
+// legacy application reading these gets numbers 2.4x larger than the viewport it
+// actually has.
+//
+// Divided per application rather than in DeviceInfoImpl because the scale is per
+// application: a modern application at zoom 1 must keep the panel's own numbers.
+std::string PalmSystemBlink::ScaledDeviceInfo() const {
+  const std::string device_info = GetDeviceInfo("TvDeviceInfo");
+
+  auto* page = static_cast<WebPageBlink*>(app_->Page());
+  if (!page)
+    return device_info;
+
+  const double scale = page->UiScaleFactor();
+  if (scale == 1.0)
+    return device_info;
+
+  Json::Value json;
+  if (!util::StringToJson(device_info, json) || !json.isObject())
+    return device_info;
+
+  // Only the geometry. Everything else in the object describes the device, not
+  // a space that the zoom moves.
+  static constexpr const char* scaled_keys[] = {
+      "screenWidth", "screenHeight", "maximumCardWidth", "maximumCardHeight"};
+  for (const char* key : scaled_keys) {
+    if (json.isMember(key) && json[key].isNumeric())
+      json[key] = static_cast<int>(json[key].asDouble() / scale);
+  }
+
+  return util::JsonToString(json);
 }
 
 Json::Value PalmSystemBlink::Initialize() {
@@ -333,7 +381,7 @@ Json::Value PalmSystemBlink::Initialize() {
   data["isMinimal"] = IsMinimal();
   data["identifier"] = Identifier();
   data["screenOrientation"] = ScreenOrientation();
-  data["deviceInfo"] = GetDeviceInfo("TvDeviceInfo");
+  data["deviceInfo"] = ScaledDeviceInfo();
   data["activityId"] = static_cast<double>(ActivityId());
   data["phoneRegion"] = PhoneRegion();
   data["folderPath"] = app_->GetAppDescription()->FolderPath();

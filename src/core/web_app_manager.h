@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_APP_MANAGER_H_
 #define CORE_WEB_APP_MANAGER_H_
 
+#include <cstdint>
 #include <list>
 #include <map>
 #include <memory>
@@ -56,7 +57,7 @@ class ApplicationInfo {
 
 class WebAppManager {
  public:
-  enum WebAppMessageType { kDeviceInfoChanged = 1 };
+  enum WebAppMessageType : std::uint8_t { kDeviceInfoChanged = 1 };
 
   static WebAppManager* Instance();
 
@@ -104,9 +105,15 @@ class WebAppManager {
                  const std::string& instance_id,
                  bool force = false);
   bool OnPauseApp(const std::string& instance_id);
+
+  // The shell reporting whether a window it has just taken off the foreground
+  // is still on screen. See WebAppBase::IsShownWhileDeactivated().
+  bool SetAppShownWhileDeactivated(const std::string& instance_id,
+                                   const std::string& app_id,
+                                   bool shown);
   bool SetInspectorEnable(const std::string& app_id);
 
-  void SetSystemLanguage(const std::string& value);
+  void SetSystemLanguage(const std::string& language);
   void SetDeviceInfo(const std::string& name, const std::string& value);
   WebAppManagerConfig* Config() { return web_app_manager_config_.get(); }
 
@@ -153,6 +160,14 @@ class WebAppManager {
   void NotifyMemoryPressure(webos::WebViewBase::MemoryPressureLevel level);
 
   bool IsEnyoApp(const std::string& app_id);
+
+  // The orientation the shell is currently displaying, as one of the four
+  // names legacy webOS used: "up", "down", "left" or "right". Pushed in by the
+  // compositor; see SetOrientation().
+  const std::string& Orientation() const { return orientation_; }
+  // False when the value is not one of the four names, so the caller can be
+  // told it was rejected rather than silently dropped.
+  bool SetOrientation(const std::string& orientation);
 
   void CloseApp(const std::string& app_id);
 
@@ -216,6 +231,7 @@ class WebAppManager {
   std::map<std::string, std::string> app_version_;
 
   bool is_accessibility_enabled_ = false;
+  std::string orientation_ = "up";
 };
 
 #endif  // CORE_WEB_APP_MANAGER_H_

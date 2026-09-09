@@ -43,6 +43,10 @@ class NotificationService {
 
   virtual bool Display(const NotificationData& notification) = 0;
   virtual bool Close(const std::string& notification_id) = 0;
+
+ protected:
+  // Implementations are singletons; nothing deletes through this interface.
+  ~NotificationService() = default;
 };
 
 #endif  // CORE_NOTIFICATION_SERVICE_H_

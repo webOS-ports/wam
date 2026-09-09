@@ -67,9 +67,9 @@ void DeviceInfoImpl::Initialize() {
 }
 
 void DeviceInfoImpl::UpdateTvDeviceInfo() {
-  Json::Value deviceInfo_json(Json::objectValue);
-  deviceInfo_json["modelName"] = model_name_;
-  deviceInfo_json["platformVersion"] = platform_version_;
+  Json::Value device_info_json(Json::objectValue);
+  device_info_json["modelName"] = model_name_;
+  device_info_json["platformVersion"] = platform_version_;
   {
     int major = 0, minor = 0, dot = 0;
     const int fields_count =
@@ -78,25 +78,25 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
       major = minor = dot = -1;
     }
 
-    deviceInfo_json["platformVersionMajor"] = major;
-    deviceInfo_json["platformVersionMinor"] = minor;
-    deviceInfo_json["platformVersionDot"] = dot;
+    device_info_json["platformVersionMajor"] = major;
+    device_info_json["platformVersionMinor"] = minor;
+    device_info_json["platformVersionDot"] = dot;
   }
-  deviceInfo_json["screenWidth"] = screen_width_;
-  deviceInfo_json["screenHeight"] = screen_height_;
+  device_info_json["screenWidth"] = screen_width_;
+  device_info_json["screenHeight"] = screen_height_;
 
   // LunaSysMgr reported the card area next to the screen size and legacy
   // frameworks lay themselves out from it. A full-screen card is the display;
   // the shell takes its own system UI out of that.
-  deviceInfo_json["maximumCardWidth"] = screen_width_;
-  deviceInfo_json["maximumCardHeight"] = screen_height_;
+  device_info_json["maximumCardWidth"] = screen_width_;
+  device_info_json["maximumCardHeight"] = screen_height_;
 
   // Also reported by LunaSysMgr, and read by legacy applications.
-  deviceInfo_json["keyboardAvailable"] = false;
-  deviceInfo_json["keyboardSlider"] = false;
-  // deviceInfo_json["panelType"] = "";
+  device_info_json["keyboardAvailable"] = false;
+  device_info_json["keyboardSlider"] = false;
+  // device_info_json["panelType"] = "";
 
-  SetDeviceInfo("TvDeviceInfo", util::JsonToString(deviceInfo_json));
+  SetDeviceInfo("TvDeviceInfo", util::JsonToString(device_info_json));
 }
 
 // The display size is not known when Initialize() runs. HardwareScreenWidth /
@@ -172,10 +172,9 @@ void DeviceInfoImpl::InitPlatformInfo() {
     model_name_ = "LuneOS-dev";
     platform_version_ = "0.9.9";
 
-    std::ifstream buildinfoFile("/etc/buildinfo");
+    std::ifstream buildinfo_file("/etc/buildinfo");
     std::string line;
-    while (std::getline(buildinfoFile, line))
-    {
+    while (std::getline(buildinfo_file, line)) {
       size_t const startpos = line.find_first_of(" =");
       if( std::string::npos == startpos ) continue; // skip useless lines
       std::string const key = line.substr(0, startpos);

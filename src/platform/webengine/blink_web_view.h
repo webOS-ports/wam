@@ -77,10 +77,11 @@ class BlinkWebView : public webos::WebViewBase {
   void DidResumeDOM() override;
   void DidErrorPageLoadedFromNetErrorHelper() override;
 
-  content::WebContents *CreateWindowForWebView(const std::string& newUrl,
-                                               neva_app_runtime::WebView *webview,
-                                               int height,
-                                               std::vector<std::string> additional_features) override;
+  content::WebContents* CreateWindowForWebView(
+      const std::string& new_url,
+      neva_app_runtime::WebView* webview,
+      int height,
+      std::vector<std::string> additional_features) override;
 
  private:
   WebPageBlinkDelegate* delegate_ = nullptr;

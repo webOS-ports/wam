@@ -50,12 +50,12 @@ class WebAppBasePrivate {
 };
 
 bool ShellKeepsDeactivatedWindowsShown() {
-  static const bool kShown = []() {
+  static const bool shown = []() {
     const std::string value =
         util::GetEnvVar("WAM_SHELL_KEEPS_DEACTIVATED_WINDOWS_SHOWN");
     return value == "1" || value == "true";
   }();
-  return kShown;
+  return shown;
 }
 
 WebAppBase::WebAppBase()

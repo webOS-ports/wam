@@ -53,16 +53,19 @@ class PalmSystemBlink : public PalmSystemWebOS {
   virtual std::string TrustLevel() const;
   virtual void OnCloseNotify(const std::string& params);
 
-  int AddBannerMessage(const std::string &msgTitle, const std::string &launchParams,
-                       const std::string &msgIconUrl, const std::string &soundClass,
-                       const std::string &msgSoundFile, const std::string &soundDuration,
-                       const std::string &doNotSuppress);
+  int AddBannerMessage(const std::string& msg_title,
+                       const std::string& launch_params,
+                       const std::string& msg_icon_url,
+                       const std::string& sound_class,
+                       const std::string& msg_sound_file,
+                       const std::string& sound_duration,
+                       const std::string& do_not_suppress);
   void RemoveBannerMessage(const std::string& id);
   void ClearBannerMessages();
 
  private:
   bool initialized_ = false;
-  std::map<int, std::string> bannerIds_;
+  std::map<int, std::string> banner_ids_;
 };
 
 #endif  // PLATFORM_WEBENGINE_PALM_SYSTEM_BLINK_H_

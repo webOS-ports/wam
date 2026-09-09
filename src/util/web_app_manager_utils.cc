@@ -24,6 +24,8 @@
 
 #include <fstream>
 
+#include "utils.h"
+
 int WebAppManagerUtils::UpdateAndGetCpuIdle(bool update_only) {
   static long old_cpu_time[4];
   long cur_cpu_time[4] = {0};
@@ -145,28 +147,37 @@ bool WebAppManagerUtils::InGroup(const std::string& line, const char* user_name)
 }
 
 bool WebAppManagerUtils::SetGroups() {
-  gid_t gid_list[128];
+  constexpr size_t max_groups = 128;
+  gid_t gid_list[max_groups];
   size_t num_groups = 0;
 
-  std::string line;
   std::string const new_group_path = "/etc/group";
 
   std::ifstream ifs(new_group_path.c_str());
-
-  if (ifs.is_open()) {
-    while (!ifs.eof()) {
-      getline(ifs, line);
-
-      if (line[0] != 0 && line[0] != '#' && line[0] != '\r') {
-        if (InGroup(line, "webappmanager3")) {
-          std::vector<std::string> tok;
-          Tokenize(line, tok, ":");
-          gid_list[num_groups++] = atoi(tok[2].c_str());
-        }
-      }
-    }
-  } else {
+  if (!ifs.is_open()) {
     return false;
+  }
+
+  std::string line;
+  while (num_groups < max_groups && getline(ifs, line)) {
+    if (line.empty() || line[0] == '#' || line[0] == '\r') {
+      continue;
+    }
+
+    if (!InGroup(line, "webappmanager3")) {
+      continue;
+    }
+
+    std::vector<std::string> tok;
+    Tokenize(line, tok, ":");
+    // An /etc/group entry is name:passwd:gid:members. Anything shorter is
+    // malformed, and indexing tok[2] would run off the end.
+    if (tok.size() < 3) {
+      continue;
+    }
+
+    gid_list[num_groups++] =
+        static_cast<gid_t>(util::StrToIntWithDefault(tok[2], 0));
   }
   ifs.close();
 

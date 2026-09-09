@@ -283,6 +283,19 @@ bool WebAppWayland::IsNormal() {
   return app_window_->GetWindowHostState() == webos::NATIVE_WINDOW_DEFAULT;
 }
 
+void WebAppWayland::NotifyStageChange(const char* callback) {
+  if (notifying_stage_change_) {
+    LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
+             PMLOGKS("CALLBACK", callback),
+             "Stage change already being notified; skipping the nested one");
+    return;
+  }
+
+  notifying_stage_change_ = true;
+  Page()->CallLegacyMojoCallback(callback);
+  notifying_stage_change_ = false;
+}
+
 void WebAppWayland::OnStageActivated() {
   if (GetCrashState()) {
     LOG_INFO(MSGID_WEBAPP_STAGE_ACITVATED, 4,
@@ -295,11 +308,6 @@ void WebAppWayland::OnStageActivated() {
   }
 
   Page()->ResumeWebPageAll();
-
-  // enyo.windows.events.handleActivated() -> ApplicationEvents onWindowActivated.
-  // LunaSysMgr called this when the window was maximized or opened, which is
-  // the state change that brought us here.
-  Page()->CallLegacyMojoCallback("stageActivated");
 
   if(!GetHiddenWindow()) {
       Page()->SetVisibilityState(
@@ -315,6 +323,11 @@ void WebAppWayland::OnStageActivated() {
   LOG_INFO(MSGID_WEBAPP_STAGE_ACITVATED, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()), "");
+
+  // enyo.windows.events.handleActivated() -> ApplicationEvents
+  // onWindowActivated. Last, once this window is in the state being announced:
+  // the call runs script, and script pumps the loop.
+  NotifyStageChange("stageActivated");
 }
 
 void WebAppWayland::OnStageDeactivated() {
@@ -322,7 +335,7 @@ void WebAppWayland::OnStageDeactivated() {
   // onWindowDeactivated. Sent before anything below suspends the page: script
   // evaluated after that does not run, and the application would never hear
   // that it had lost the stage.
-  Page()->CallLegacyMojoCallback("stageDeactivated");
+  NotifyStageChange("stageDeactivated");
 
   // Losing the stage and leaving the screen are two different things, and
   // suspending is only right for the second.

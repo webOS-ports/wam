@@ -144,6 +144,20 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void StateAboutToChange(webos::NativeWindowState will_be);
   void StateChanged(webos::NativeWindowState new_state);
 
+  // Tell the page it gained or lost the stage, without letting the message
+  // loop turn under us.
+  //
+  // Evaluating script runs Blink synchronously and pumps the loop, so a Wayland
+  // event queued behind the one being handled can be delivered from inside
+  // here and arrive back through StateChanged(). The second entry then runs
+  // against half-applied state and takes the process down. Measured twice on
+  // sargo, both cores identical:
+  //
+  //   OnStageActivated -> ... -> HandleWebOSEvent -> StateChanged
+  //                           -> OnStageActivated -> SIGSEGV
+  void NotifyStageChange(const char* callback);
+  bool notifying_stage_change_ = false;
+
   // from WebPageBlinkObserver
   void DidSwapPageCompositorFrame() override;
   void DidResumeDOM() override;

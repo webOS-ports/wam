@@ -19,7 +19,6 @@
 #include <unistd.h>
 
 #include <algorithm>
-#include <cassert>
 #include <sstream>
 #include <string>
 
@@ -416,13 +415,19 @@ void WebAppManager::RemoveClosingAppList(const std::string& instance_id) {
 void WebAppManager::CloseAppInternal(WebAppBase* app,
                                      bool ignore_clean_resource) {
   WebPageBase* page = app->Page();
-  assert(page);
+  if (!page) {
+    LOG_ERROR(MSGID_CLOSE_APP_INTERNAL, 2,
+              PMLOGKS("APP_ID", app->AppId().c_str()),
+              PMLOGKS("INSTANCE_ID", app->InstanceId().c_str()),
+              "No page attached; return");
+    return;
+  }
   if (page->IsClosing()) {
-    LOG_INFO(MSGID_CLOSE_APP_INTERNAL, 3,
-             PMLOGKS("APP_ID", app->AppId().c_str()),
-             PMLOGKS("INSTANCE_ID", app->InstanceId().c_str()),
-             PMLOGKFV("PID", "%d", app->Page()->GetWebProcessPID()),
-             "In Closing; return");
+    LOG_INFO(
+        MSGID_CLOSE_APP_INTERNAL, 3, PMLOGKS("APP_ID", app->AppId().c_str()),
+        PMLOGKS("INSTANCE_ID", app->InstanceId().c_str()),
+        PMLOGKFV("PID", "%d", page->GetWebProcessPID()), "In Closing; return");
+    return;
   }
 
   LOG_INFO(MSGID_CLOSE_APP_INTERNAL, 3, PMLOGKS("APP_ID", app->AppId().c_str()),

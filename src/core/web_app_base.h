@@ -68,6 +68,9 @@ class WebAppBase : public WebPageObserver {
   virtual void ResumeAppRendering() = 0;
   virtual bool IsFocused() const = 0;
   virtual void Resize(int width, int height) = 0;
+  // The compositor's output rotation became known or changed after this app
+  // was created. See WebAppManager::SetDisplayRotation().
+  virtual void DisplayRotationChanged() {}
   virtual bool IsActivated() const = 0;
   virtual bool IsMinimized() = 0;
   virtual bool IsNormal() = 0;

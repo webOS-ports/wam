@@ -16,6 +16,7 @@
 
 #include "web_app_manager_service_luna.h"
 
+#include <cstdlib>
 #include <string>
 #include <vector>
 
@@ -504,12 +505,64 @@ void WebAppManagerServiceLuna::DidConnect() {
                 "Failed to connect to application manager");
   }
 
+  params["serviceName"] = std::string("com.webos.service.config");
+  if (!GET_LS2_SERVER_STATUS(ConfigServiceConnectCallback, params)) {
+    LOG_WARNING(MSGID_SERVICE_CONNECT_FAIL, 0, "Failed to connect to configd");
+  }
+
   params["serviceName"] = std::string("com.webos.service.connectionmanager");
   if (!GET_LS2_SERVER_STATUS(NetworkConnectionStatusCallback,
                              std::move(params))) {
     LOG_WARNING(MSGID_NETWORK_CONNECT_FAIL, 0,
                 "Failed to connect to connectionmanager");
   }
+}
+
+// The compositor's output rotation, from the value the compositor itself uses.
+//
+// A panel can be mounted a quarter turn off from the way the device is held -
+// the Minimal Phone MP01 scans out 800x600 in a portrait device - and
+// surface-manager then rotates its whole output by the "r" field of
+// com.webos.surfacemanager.compositorGeometry ("800x600+0+0r270s1"). The
+// Wayland display this process sees still reports the panel's native size, and
+// nothing in the window API carries the transform, so without this every app
+// is initialised landscape: PalmSystem.deviceInfo reports 800 wide, Enyo lays
+// out 800 pixels into a 600 pixel surface, and the page is only right once the
+// device is turned the other way.
+//
+// Reading the same configd key keeps a single source for the geometry rather
+// than a second declaration that could drift from the compositor's.
+void WebAppManagerServiceLuna::ConfigServiceConnectCallback(
+    const Json::Value& reply) {
+  if (!reply.isObject() || reply["connected"] != true) {
+    return;
+  }
+  Json::Value params;
+  params["subscribe"] = true;
+  Json::Value names;
+  names.append("com.webos.surfacemanager.compositorGeometry");
+  params["configNames"] = std::move(names);
+  LS2_CALL(GetCompositorGeometryCallback,
+           "luna://com.webos.service.config/getConfigs", std::move(params));
+}
+
+void WebAppManagerServiceLuna::GetCompositorGeometryCallback(
+    const Json::Value& reply) {
+  const Json::Value& value =
+      reply["configs"]["com.webos.surfacemanager.compositorGeometry"];
+  if (!value.isString()) {
+    // Absent on devices that leave the geometry to surface-manager, which
+    // then applies no rotation either.
+    return;
+  }
+  // "WxH+X+YrRsS" - only the rotation matters here.
+  const std::string geometry = value.asString();
+  const size_t r = geometry.find('r');
+  if (r == std::string::npos) {
+    return;
+  }
+  const int degrees = std::atoi(geometry.c_str() + r + 1);
+  WebAppManagerService::SetDisplayRotation(degrees);
 }
 
 void WebAppManagerServiceLuna::SystemServiceConnectCallback(

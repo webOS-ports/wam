@@ -26,6 +26,7 @@
 #include "application_description.h"
 #include "log_manager.h"
 #include "utils.h"
+#include "web_app_manager.h"
 #include "web_app_wayland_window.h"
 #include "web_app_window_impl.h"
 #include "web_page_base.h"
@@ -128,6 +129,22 @@ static webos::WebAppWindowBase::LocationHint GetLocationHintFromString(
   return hint;
 }
 
+static bool IsQuarterTurn(int degrees) {
+  return degrees == 90 || degrees == 270;
+}
+
+int WebAppWayland::LogicalDisplayWidth() {
+  return IsQuarterTurn(WebAppManager::Instance()->DisplayRotation())
+             ? app_window_->DisplayHeight()
+             : app_window_->DisplayWidth();
+}
+
+int WebAppWayland::LogicalDisplayHeight() {
+  return IsQuarterTurn(WebAppManager::Instance()->DisplayRotation())
+             ? app_window_->DisplayWidth()
+             : app_window_->DisplayHeight();
+}
+
 void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
   if (!app_window_) {
     if (window_factory_) {
@@ -142,9 +159,11 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
     SetUiSize(width.value(), height.value());
     app_window_->InitWindow(width.value(), height.value());
   } else {
-    SetUiSize(app_window_->DisplayWidth(), app_window_->DisplayHeight());
-    app_window_->InitWindow(app_window_->DisplayWidth(),
-                            app_window_->DisplayHeight());
+    const int display_width = LogicalDisplayWidth();
+    const int display_height = LogicalDisplayHeight();
+    SetUiSize(display_width, display_height);
+    app_window_->InitWindow(display_width, display_height);
+    sized_from_display_ = true;
   }
 
   webos::WebAppWindowBase::LocationHint const location_hint =
@@ -232,9 +251,9 @@ void WebAppWayland::Attach(WebPageBase* page) {
   const auto height_override = GetAppDescription()->HeightOverride();
   if (width_override.has_value() && height_override.has_value() &&
       !GetAppDescription()->IsTransparent()) {
-    float const scale_x = static_cast<float>(app_window_->DisplayWidth()) /
+    float const scale_x = static_cast<float>(LogicalDisplayWidth()) /
                     static_cast<float>(width_override.value());
-    float const scale_y = static_cast<float>(app_window_->DisplayHeight()) /
+    float const scale_y = static_cast<float>(LogicalDisplayHeight()) /
                     static_cast<float>(height_override.value());
     scale_factor_ = (scale_x < scale_y) ? scale_x : scale_y;
     static_cast<WebPageBlink*>(page)->SetAdditionalContentsScale(scale_x,
@@ -263,6 +282,22 @@ void WebAppWayland::ResumeAppRendering() {
 
 bool WebAppWayland::IsFocused() const {
   return is_focused_;
+}
+
+// The rotation arrives from configd asynchronously, and WebAppMgr relaunches
+// its keep-alive applications as soon as it starts - so the first of them can be
+// initialised before the reply is in, landscape on a portrait device, and stay
+// that way. Put such an app right as soon as the rotation is known. The resize
+// is also what makes Enyo re-measure: enyo.sendOrientationChange and its layout
+// both hang off the window's resize event.
+void WebAppWayland::DisplayRotationChanged() {
+  if (!app_window_ || !sized_from_display_) {
+    return;
+  }
+  const int display_width = LogicalDisplayWidth();
+  const int display_height = LogicalDisplayHeight();
+  SetUiSize(display_width, display_height);
+  Resize(display_width, display_height);
 }
 
 void WebAppWayland::Resize(int width, int height) {

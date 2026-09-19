@@ -26,6 +26,7 @@
           "com.webos.service.activitymanager",
           "com.webos.service.connectionmanager",
           "com.webos.settingsservice",
+          "com.webos.service.config",
           "com.palm.applicationManager-webappmgr",
           "com.webos.notification",
           "com.webos.lunasend-*"

@@ -169,6 +169,14 @@ class WebAppManager {
   // told it was rejected rather than silently dropped.
   bool SetOrientation(const std::string& orientation);
 
+  // How far the compositor rotates its output relative to the panel's native
+  // scanout: 0, 90, 180 or 270. This is a property of how the panel is
+  // mounted, not of how the device is being held - that is Orientation().
+  // Taken from the same com.webos.surfacemanager.compositorGeometry value the
+  // compositor itself applies, so the two can never disagree.
+  int DisplayRotation() const { return display_rotation_; }
+  void SetDisplayRotation(int degrees);
+
   void CloseApp(const std::string& app_id);
 
   void ClearBrowsingData(const int remove_browsing_data_mask);
@@ -232,6 +240,7 @@ class WebAppManager {
 
   bool is_accessibility_enabled_ = false;
   std::string orientation_ = "up";
+  int display_rotation_ = 0;
 };
 
 #endif  // CORE_WEB_APP_MANAGER_H_

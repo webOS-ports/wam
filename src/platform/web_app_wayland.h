@@ -86,6 +86,7 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void ResumeAppRendering() override;
   bool IsFocused() const override;
   void Resize(int width, int height) override;
+  void DisplayRotationChanged() override;
   bool IsActivated() const override;
   bool IsMinimized() override;
   bool IsNormal() override;
@@ -186,6 +187,17 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
 
  private:
   void Init(std::optional<int> width, std::optional<int> height);
+
+  // The display as the compositor presents it, i.e. after its output rotation.
+  // app_window_->DisplayWidth()/DisplayHeight() are the panel's native size;
+  // on a panel mounted a quarter turn off those two are swapped relative to
+  // what every client surface actually lives in.
+  int LogicalDisplayWidth();
+  int LogicalDisplayHeight();
+
+  // Whether Init() took its size from the display rather than from the
+  // launch parameters, i.e. whether a rotation change should re-size it.
+  bool sized_from_display_ = false;
 
   std::unique_ptr<WebAppWindow> app_window_;
   std::string window_type_;

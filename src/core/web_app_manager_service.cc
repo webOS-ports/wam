@@ -158,6 +158,10 @@ bool WebAppManagerService::SetOrientation(const std::string& orientation) {
   return WebAppManager::Instance()->SetOrientation(orientation);
 }
 
+void WebAppManagerService::SetDisplayRotation(int degrees) {
+  WebAppManager::Instance()->SetDisplayRotation(degrees);
+}
+
 int WebAppManagerService::MaskForBrowsingDataType(const char* type) {
   return WebAppManager::Instance()->MaskForBrowsingDataType(type);
 }

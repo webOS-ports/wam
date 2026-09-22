@@ -127,6 +127,7 @@ class WebAppManagerService {
 
   bool IsEnyoApp(const std::string& app_id);
   bool SetOrientation(const std::string& orientation);
+  void SetDisplayRotation(int degrees);
 };
 
 #endif  // CORE_WEB_APP_MANAGER_SERVICE_H_

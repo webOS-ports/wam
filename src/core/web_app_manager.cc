@@ -965,6 +965,26 @@ bool WebAppManager::SetOrientation(const std::string& orientation) {
   return true;
 }
 
+void WebAppManager::SetDisplayRotation(int degrees) {
+  degrees %= 360;
+  if (degrees < 0) {
+    degrees += 360;
+  }
+  if (degrees != 0 && degrees != 90 && degrees != 180 && degrees != 270) {
+    LOG_WARNING(MSGID_TYPE_ERROR, 0, "Ignoring display rotation %d", degrees);
+    return;
+  }
+  if (display_rotation_ == degrees) {
+    return;
+  }
+  LOG_INFO(MSGID_TYPE_ERROR, 0, "Display rotation %d -> %d", display_rotation_,
+           degrees);
+  display_rotation_ = degrees;
+  for (WebAppBase* app : app_list_) {
+    app->DisplayRotationChanged();
+  }
+}
+
 bool WebAppManager::SetAppShownWhileDeactivated(
     const std::string& instance_id,
     const std::string& app_id,

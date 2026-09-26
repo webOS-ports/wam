@@ -277,18 +277,9 @@ void WebAppBase::WebPageClosePageRequested() {
   }
 
   close_page_requested_ = true;
-  // Pages created by window.open() get a purely numeric instance id counting up from
-  // 1000 (WebAppManager::GenerateInstanceId); everything else gets a UUID from SAM.
-  // stoi() throws std::invalid_argument on a UUID that starts with a hex letter
-  // ("a486711d-..."), and that uncaught exception aborts WebAppMgr -- so require the
-  // whole id to be numeric instead of converting blindly. strtoll() also cannot throw,
-  // and demanding that the entire string was consumed correctly rejects a UUID that
-  // merely begins with digits ("1000abcd-...", which stoi() happily read as 1000).
   const std::string instance_id = InstanceId();
-  char* end = nullptr;
-  const long long numeric_id = std::strtoll(instance_id.c_str(), &end, 10);
   const bool created_by_window_open =
-      !instance_id.empty() && end && *end == '\0' && numeric_id >= 1000;
+      WebAppManager::IsWindowOpenInstanceId(instance_id);
   if (created_by_window_open) {
     // this page was created by a window.open call => close it internally only
     WebAppManager::Instance()->CloseAppInternal(this);

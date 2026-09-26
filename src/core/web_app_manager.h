@@ -79,6 +79,11 @@ class WebAppManager {
 
   std::list<const WebAppBase*> RunningApps();
   std::list<const WebAppBase*> RunningApps(uint32_t pid);
+  // A page created by window.open() gets a purely numeric instance id counting
+  // up from 1000 (GenerateInstanceId); everything else gets a UUID from SAM.
+  // Such a page is not separately launchable - it belongs to its parent app.
+  static bool IsWindowOpenInstanceId(const std::string& instance_id);
+
   WebAppBase* FindAppById(const std::string& app_id);
   std::list<WebAppBase*> FindAppsById(const std::string& app_id);
   WebAppBase* FindAppByInstanceId(const std::string& instance_id);

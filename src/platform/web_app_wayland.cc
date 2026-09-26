@@ -628,6 +628,22 @@ void WebAppWayland::Raise() {
              PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()),
              "WebAppWayland::raise(); call "
              "setWindowState(webos::NATIVE_WINDOW_FULLSCREEN)");
+    // SetWindowHostState() does nothing when the state is unchanged, and the
+    // host state is not reliably reset when this window loses the stage:
+    // nothing tells a backgrounded card it is no longer fullscreen, so it
+    // stays latched at NATIVE_WINDOW_FULLSCREEN from its previous raise. The
+    // second and every later raise of the same app then sends no set_state at
+    // all - the request dies here, and neither the compositor nor the shell
+    // ever sees it. Measured on a device: three raises, HOST_STATE 0 then 3
+    // then 3, one set_state, and the app came forward exactly once.
+    //
+    // Step through MINIMIZED so the transition is real. The compositor turns
+    // that into a minimize request, which the card shell ignores - it decides
+    // for itself when a card leaves the stage - so this costs nothing beyond
+    // one extra event.
+    if (app_window_->GetWindowHostState() == webos::NATIVE_WINDOW_FULLSCREEN) {
+      app_window_->SetWindowHostState(webos::NATIVE_WINDOW_MINIMIZED);
+    }
     app_window_->SetWindowHostState(webos::NATIVE_WINDOW_FULLSCREEN);
   }
 

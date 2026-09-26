@@ -14,6 +14,8 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <cstdlib>
+
 #include "web_app_manager.h"
 
 #include <unistd.h>
@@ -164,6 +166,22 @@ void WebAppManager::OnRelaunchApp(const std::string& instance_id,
   PMTRACE_FUNCTION;
 
   WebAppBase* app = FindAppByInstanceId(instance_id);
+
+  // Belt and braces for the same confusion: should a caller still aim a
+  // relaunch at a window.open() child - an older sam, or a cached instance id
+  // - act on the app it belongs to rather than on a page that has no window
+  // of its own and would swallow the request.
+  if (app && IsWindowOpenInstanceId(instance_id)) {
+    WebAppBase* parent = FindAppById(app_id);
+    if (parent && parent != app &&
+        !IsWindowOpenInstanceId(parent->InstanceId())) {
+      LOG_INFO(MSGID_APP_RELAUNCH, 3, PMLOGKS("APP_ID", app_id.c_str()),
+               PMLOGKS("INSTANCE_ID", instance_id.c_str()),
+               PMLOGKS("PARENT_INSTANCE_ID", parent->InstanceId().c_str()),
+               "relaunch aimed at a window.open() page; using the parent app");
+      app = parent;
+    }
+  }
 
   if (!app) {
     LOG_WARNING(MSGID_APP_RELAUNCH, 0,
@@ -793,6 +811,15 @@ std::vector<ApplicationInfo> WebAppManager::List(bool include_system_apps) {
 
   std::list<const WebAppBase*> const running = RunningApps();
   for (const WebAppBase* app : running) {
+    // A window.open() page is not a separately launchable instance of its
+    // parent app, but it shares the parent's app id. Reporting it here made
+    // it a second "running instance" of that app, and sam then resolved a
+    // launch of the app id to this child - whose WebAppWindow has no platform
+    // window, so SetWindowHostState() silently did nothing and the app could
+    // never be brought forward.
+    if (IsWindowOpenInstanceId(app->InstanceId())) {
+      continue;
+    }
     if (!app->AppId().empty() || include_system_apps) {
       uint32_t pid = web_process_manager_->GetWebProcessPID(app);
       list.emplace_back(app->InstanceId(), app->AppId(), pid);
@@ -845,6 +872,15 @@ uint32_t WebAppManager::GetWebProcessId(const std::string& app_id,
   }
 
   return pid;
+}
+
+bool WebAppManager::IsWindowOpenInstanceId(const std::string& instance_id) {
+  // strtoll() cannot throw, unlike stoi() which aborts WebAppMgr on a UUID
+  // beginning with a hex letter. Requiring the whole string to be consumed
+  // also rejects a UUID that merely starts with digits ("1000abcd-...").
+  char* end = nullptr;
+  const long long numeric_id = std::strtoll(instance_id.c_str(), &end, 10);
+  return !instance_id.empty() && end && *end == '\0' && numeric_id >= 1000;
 }
 
 std::string WebAppManager::GenerateInstanceId() {

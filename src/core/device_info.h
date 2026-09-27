@@ -37,6 +37,17 @@ class DeviceInfo {
   virtual void SetSystemLanguage(const std::string& value);
 
   virtual bool GetDeviceInfo(const std::string& name, std::string& value) const;
+
+  /*! Tells this object what the input method found: whether a physical keyboard
+   *  is attached, and whether it folds or slides away.
+   *
+   *  The keyboard facts are read straight from procfs at startup, because
+   *  applications read PalmSystem.deviceInfo as they launch and an answer over
+   *  the bus would arrive too late for them. This is the other half: a keyboard
+   *  plugged in or pulled off while WebAppMgr runs, which procfs was only
+   *  consulted for once.
+   */
+  virtual void SetHardwareKeyboard(bool /*present*/, bool /*slider*/) {}
   virtual void SetDeviceInfo(const std::string& name, const std::string& value);
 
  private:

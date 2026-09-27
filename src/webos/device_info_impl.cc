@@ -205,6 +205,14 @@ DeviceInfoImpl::DeviceInfoImpl() = default;
 void DeviceInfoImpl::Initialize() {
   GatherInfo();
 
+  // Seeded from procfs rather than waited for over the bus: applications read
+  // PalmSystem.deviceInfo as they launch, and com.webos.service.ime is started
+  // on demand, so a subscription alone would leave the first applications told
+  // there is no keyboard.
+  const KeyboardFacts keyboard = ReadKeyboardFacts();
+  keyboard_present_ = keyboard.available;
+  keyboard_slider_ = keyboard.slider;
+
   // Published here rather than at the end of this function: the locale block
   // below returns early when localeInfo cannot be parsed, which would leave
   // PalmSystem.deviceInfo unset altogether.
@@ -280,9 +288,8 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   // webos-keyboard's data, and for a USB or Bluetooth keyboard it is in the
   // compositor's xkb keymap. Absent reads as falsy, which is what applications
   // already handle.
-  const KeyboardFacts keyboard = ReadKeyboardFacts();
-  device_info_json["keyboardAvailable"] = keyboard.available;
-  device_info_json["keyboardSlider"] = keyboard.slider;
+  device_info_json["keyboardAvailable"] = keyboard_present_;
+  device_info_json["keyboardSlider"] = keyboard_slider_;
   // device_info_json["panelType"] = "";
 
   SetDeviceInfo("TvDeviceInfo", util::JsonToString(device_info_json));
@@ -293,6 +300,23 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
 // fallback is only filled in by WebAppManager::SetUiSize() once a window
 // exists. Republish whenever it lands, or PalmSystem.deviceInfo keeps the
 // zeroes it was built with and every application reads screenWidth: 0.
+void DeviceInfoImpl::SetHardwareKeyboard(bool present, bool slider) {
+  if (keyboard_present_ == present && keyboard_slider_ == slider) {
+    return;
+  }
+
+  LOG_INFO(MSGID_WAM_DEBUG, 0,
+           "hardware keyboard: present=%d slider=%d (was present=%d)",
+           present ? 1 : 0, slider ? 1 : 0, keyboard_present_ ? 1 : 0);
+
+  keyboard_present_ = present;
+  keyboard_slider_ = slider;
+
+  // Applications that already read deviceInfo keep what they were given; this
+  // is for the ones launched from here on.
+  UpdateTvDeviceInfo();
+}
+
 void DeviceInfoImpl::SetDisplayWidth(int value) {
   DeviceInfo::SetDisplayWidth(value);
   screen_width_ = static_cast<int>(value / screen_density_);

@@ -27,6 +27,7 @@ class DeviceInfoImpl : public DeviceInfo {
 
   void SetDisplayWidth(int value) override;
   void SetDisplayHeight(int value) override;
+  void SetHardwareKeyboard(bool present, bool slider) override;
 
  private:
   void UpdateTvDeviceInfo();
@@ -43,6 +44,12 @@ class DeviceInfoImpl : public DeviceInfo {
   int version_major_ = 0;
   int version_minor_ = 0;
   int version_dot_ = 0;
+
+  // What procfs said at startup, then whatever the input method reports. Kept
+  // rather than re-read on every publish so that a live answer is not thrown
+  // away by an unrelated republish.
+  bool keyboard_present_ = false;
+  bool keyboard_slider_ = false;
 
   std::string ota_id_;
   std::string hardware_version_ = "0x00000001";

@@ -103,6 +103,16 @@ void WebAppManagerServiceLunaImpl::GetKeyboardStatusCallback(
 
   const Json::Value& keyboard = reply["hardwareKeyboard"];
 
+  // Logged on arrival and not only on change. The status moves rarely - a
+  // keyboard plugged in or pulled off - and the seed from procfs is usually
+  // already right, so a log gated on change says nothing at all and leaves no
+  // way to tell whether this subscription is working.
+  LOG_INFO(MSGID_WAM_DEBUG, 0,
+           "input method reports a keyboard: present=%d usable=%d slider=%d",
+           keyboard["present"].asBool() ? 1 : 0,
+           keyboard["usable"].asBool() ? 1 : 0,
+           keyboard["slider"].asBool() ? 1 : 0);
+
   // "present" is the physical fact - a keyboard is attached - and not whether
   // the on-screen keyboard is currently suppressed, which is what "usable"
   // carries. Applications want to know a keyboard exists.

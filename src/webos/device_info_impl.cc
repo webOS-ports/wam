@@ -54,6 +54,10 @@ namespace {
 // not a keyboard advertises.
 constexpr int kMinimumLetterKeys = 20;
 
+//! What legacy reported when it had no layout to report; see
+//! luna-sysmgr-common's DeviceInfo.cpp, which localised this same string.
+constexpr char kUnknownKeyboardType[] = "Unknown";
+
 // SW_TABLET_MODE, from linux/input-event-codes.h. Spelled out rather than
 // included: it is one number, and this file is otherwise free of kernel headers.
 constexpr unsigned kSwTabletMode = 0x01;
@@ -198,6 +202,27 @@ KeyboardFacts ReadKeyboardFacts() {
   return facts;
 }
 
+//! \brief Maps the legacy KEYoBRD token to the layout name it stood for.
+//!
+//! The codes are Palm's, from luna-sysmgr-common's DeviceInfo.cpp: one letter
+//! for the layout, a trailing 1 for the variants that differed only in their
+//! locale. Kept because the token is what a real Pre or Veer still carries, and
+//! reading it costs one lookup.
+std::string LayoutFromKeyoBrdToken(const std::string& token) {
+  if (token == "z")
+    return "QWERTY";
+  if (token == "w")
+    return "AZERTY";
+  if (token == "y")
+    return "QWERTZ";
+  if (token == "w1")
+    return "AZERTY_FR";
+  if (token == "y1")
+    return "QWERTZ_DE";
+
+  return kUnknownKeyboardType;
+}
+
 }  // namespace
 
 DeviceInfoImpl::DeviceInfoImpl() = default;
@@ -212,6 +237,7 @@ void DeviceInfoImpl::Initialize() {
   const KeyboardFacts keyboard = ReadKeyboardFacts();
   keyboard_present_ = keyboard.available;
   keyboard_slider_ = keyboard.slider;
+  keyboard_type_ = ReadKeyboardType();
 
   // Published here rather than at the end of this function: the locale block
   // below returns early when localeInfo cannot be parsed, which would leave
@@ -282,14 +308,16 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   // WebAppMgr runs and nothing else changes; the subscription for that is
   // com.webos.service.ime/getKeyboardStatus, and wiring it up is the remaining
   // half of this.
-  //
-  // keyboardType is deliberately still absent. It is a layout - QWERTY, AZERTY,
-  // QWERTZ - which none of this knows: for the phones with a profile it is in
-  // webos-keyboard's data, and for a USB or Bluetooth keyboard it is in the
-  // compositor's xkb keymap. Absent reads as falsy, which is what applications
-  // already handle.
   device_info_json["keyboardAvailable"] = keyboard_present_;
   device_info_json["keyboardSlider"] = keyboard_slider_;
+
+  // A layout cannot be read off the hardware - evdev scancodes are positional,
+  // so a QWERTZ keyboard and a QWERTY one advertise exactly the same keys - so
+  // like legacy this is a per-device declaration and nothing else. And like
+  // legacy, with no keyboard attached there is no layout to report: the two
+  // moved together there because both came from the same token.
+  device_info_json["keyboardType"] =
+      keyboard_present_ ? keyboard_type_ : std::string(kUnknownKeyboardType);
   // device_info_json["panelType"] = "";
 
   SetDeviceInfo("TvDeviceInfo", util::JsonToString(device_info_json));
@@ -300,17 +328,50 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
 // fallback is only filled in by WebAppManager::SetUiSize() once a window
 // exists. Republish whenever it lands, or PalmSystem.deviceInfo keeps the
 // zeroes it was built with and every application reads screenWidth: 0.
-void DeviceInfoImpl::SetHardwareKeyboard(bool present, bool slider) {
-  if (keyboard_present_ == present && keyboard_slider_ == slider) {
+//! \brief The layout to start with, before the input method has said anything.
+//!
+//! Only the legacy token, which is what a real Pre or Veer carries. Everything
+//! else declares the layout to the input method instead, and it arrives here
+//! through com.webos.service.ime's getKeyboardStatus - the same subscription
+//! that carries whether a keyboard is attached at all, so the two cannot
+//! disagree. Deliberately not GetDeviceInfo(): that map is only ever written
+//! from inside this process.
+//!
+//! Nothing declaring a layout is the normal case, not an error - most devices
+//! have no physical keyboard, and a USB or Bluetooth one carries its layout in
+//! the compositor's xkb keymap rather than anywhere this can see.
+std::string DeviceInfoImpl::ReadKeyboardType() const {
+  std::string value;
+
+  if (GetInfoFromLunaPrefs("com.palm.properties.KEYoBRD", value))
+    return LayoutFromKeyoBrdToken(value);
+
+  return kUnknownKeyboardType;
+}
+
+void DeviceInfoImpl::SetHardwareKeyboard(bool present,
+                                        bool slider,
+                                        const std::string& layout) {
+  // An empty layout does not overwrite one already known: the seed read at
+  // startup is the fallback for a device that declares it to luna-prefs and not
+  // to the input method, and nothing about a keyboard being plugged in makes
+  // that seed wrong.
+  const std::string type =
+      layout.empty() ? keyboard_type_ : layout;
+
+  if (keyboard_present_ == present && keyboard_slider_ == slider &&
+      keyboard_type_ == type) {
     return;
   }
 
   LOG_INFO(MSGID_WAM_DEBUG, 0,
-           "hardware keyboard: present=%d slider=%d (was present=%d)",
-           present ? 1 : 0, slider ? 1 : 0, keyboard_present_ ? 1 : 0);
+           "hardware keyboard: present=%d slider=%d type=%s (was present=%d)",
+           present ? 1 : 0, slider ? 1 : 0, type.c_str(),
+           keyboard_present_ ? 1 : 0);
 
   keyboard_present_ = present;
   keyboard_slider_ = slider;
+  keyboard_type_ = type;
 
   // Applications that already read deviceInfo keep what they were given; this
   // is for the ones launched from here on.

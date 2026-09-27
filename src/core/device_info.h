@@ -47,7 +47,9 @@ class DeviceInfo {
    *  plugged in or pulled off while WebAppMgr runs, which procfs was only
    *  consulted for once.
    */
-  virtual void SetHardwareKeyboard(bool /*present*/, bool /*slider*/) {}
+  virtual void SetHardwareKeyboard(bool /*present*/,
+                                   bool /*slider*/,
+                                   const std::string& /*layout*/) {}
   virtual void SetDeviceInfo(const std::string& name, const std::string& value);
 
  private:

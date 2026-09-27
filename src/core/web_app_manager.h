@@ -122,7 +122,9 @@ class WebAppManager {
   void SetDeviceInfo(const std::string& name, const std::string& value);
   //! What the input method reports about the physical keyboard; see
   //! DeviceInfo::SetHardwareKeyboard().
-  void SetHardwareKeyboard(bool present, bool slider);
+  void SetHardwareKeyboard(bool present,
+                           bool slider,
+                           const std::string& layout);
   WebAppManagerConfig* Config() { return web_app_manager_config_.get(); }
 
   const std::string WindowTypeFromString(const std::string& str);

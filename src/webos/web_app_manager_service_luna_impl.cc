@@ -107,17 +107,24 @@ void WebAppManagerServiceLunaImpl::GetKeyboardStatusCallback(
   // keyboard plugged in or pulled off - and the seed from procfs is usually
   // already right, so a log gated on change says nothing at all and leaves no
   // way to tell whether this subscription is working.
+  // "layout" is empty on a device that declares none, and missing altogether
+  // against a server from before it was reported; both mean the same thing here.
+  const std::string layout = keyboard["layout"].isString()
+                                 ? keyboard["layout"].asString()
+                                 : std::string();
+
   LOG_INFO(MSGID_WAM_DEBUG, 0,
-           "input method reports a keyboard: present=%d usable=%d slider=%d",
+           "input method reports a keyboard: present=%d usable=%d slider=%d"
+           " layout=%s",
            keyboard["present"].asBool() ? 1 : 0,
            keyboard["usable"].asBool() ? 1 : 0,
-           keyboard["slider"].asBool() ? 1 : 0);
+           keyboard["slider"].asBool() ? 1 : 0, layout.c_str());
 
   // "present" is the physical fact - a keyboard is attached - and not whether
   // the on-screen keyboard is currently suppressed, which is what "usable"
   // carries. Applications want to know a keyboard exists.
   WebAppManager::Instance()->SetHardwareKeyboard(
-      keyboard["present"].asBool(), keyboard["slider"].asBool());
+      keyboard["present"].asBool(), keyboard["slider"].asBool(), layout);
 }
 
 Json::Value WebAppManagerServiceLunaImpl::setInspectorEnable(

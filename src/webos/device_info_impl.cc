@@ -16,8 +16,13 @@
 
 #include "device_info_impl.h"
 
+#include <algorithm>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
 #include <string>
 #include <fstream>
+#include <vector>
 
 #include <glib.h>
 #include <json/value.h>
@@ -26,10 +31,213 @@
 #include "log_manager.h"
 #include "utils.h"
 
+namespace {
+
+// Deciding whether the device has a physical keyboard, so that
+// PalmSystem.deviceInfo can say so. Legacy applications read it: the Enyo and
+// Mojo dialpads branch on keyboardType for dial-by-name, and anything that wants
+// to put the caret in a field on launch rather than wait for a tap needs to know
+// a keyboard is there.
+//
+// Read from /proc/bus/input/devices, which is world readable and needs no
+// service to be up - PalmSystem.deviceInfo is read by applications as they start,
+// so an answer that arrives later over the bus would be too late for them.
+//
+// The rules are the same ones MImKeyboard::keyboardKindOf() applies in
+// maliit-framework-webos, which decides the same question for the input method,
+// and they have to stay the same: a device where the keyboard takes the on-screen
+// keyboard away but applications are told there is no keyboard is worse off than
+// before either change. They look at one file for that reason.
+
+// Not all 26: a driver is free to leave a key out or report it as something else,
+// and these keyboards' drivers do. Still far above the handful a device that is
+// not a keyboard advertises.
+constexpr int kMinimumLetterKeys = 20;
+
+//! What legacy reported when it had no layout to report; see
+//! luna-sysmgr-common's DeviceInfo.cpp, which localised this same string.
+constexpr char kUnknownKeyboardType[] = "Unknown";
+
+// SW_TABLET_MODE, from linux/input-event-codes.h. Spelled out rather than
+// included: it is one number, and this file is otherwise free of kernel headers.
+constexpr unsigned kSwTabletMode = 0x01;
+
+// The 26 Latin letters in the order evdev numbers them, which is the three rows
+// of a US QWERTY: KEY_Q..KEY_P, KEY_A..KEY_L, KEY_Z..KEY_M.
+constexpr unsigned kLetterKeys[] = {16, 17, 18, 19, 20, 21, 22, 23, 24, 25,
+                                    30, 31, 32, 33, 34, 35, 36, 37, 38,
+                                    44, 45, 46, 47, 48, 49, 50};
+
+// One capability bitmap, as the kernel prints it after "B: KEY=" or "B: SW=":
+// hex words, most significant first. Whether it pads them is not something to
+// rely on - an MP01 fills every word, a Mindset pads nothing - so the width comes
+// from the longest word, falling back to this process's own long, which belongs
+// to the same kernel, when every value is small enough to be ambiguous.
+class CapabilityBitmap {
+ public:
+  explicit CapabilityBitmap(const std::string& words) {
+    std::vector<std::string> parsed;
+    std::size_t widest = 0;
+
+    for (std::size_t at = 0; at < words.size();) {
+      const std::size_t start = words.find_first_not_of(" \t", at);
+      if (start == std::string::npos)
+        break;
+      std::size_t end = words.find_first_of(" \t", start);
+      if (end == std::string::npos)
+        end = words.size();
+
+      parsed.push_back(words.substr(start, end - start));
+      widest = std::max(widest, parsed.back().size());
+      at = end;
+    }
+
+    if (parsed.empty())
+      return;
+
+    word_bits_ = widest > 8 ? 64 : static_cast<int>(sizeof(unsigned long) * 8);
+
+    // Least significant word last in the text, first in the vector, so a code
+    // indexes straight into it.
+    for (std::size_t i = parsed.size(); i-- > 0;)
+      words_.push_back(std::strtoull(parsed[i].c_str(), nullptr, 16));
+  }
+
+  bool Advertises(unsigned code) const {
+    if (word_bits_ <= 0)
+      return false;
+
+    const std::size_t word = code / static_cast<unsigned>(word_bits_);
+    const unsigned bit = code % static_cast<unsigned>(word_bits_);
+
+    if (word >= words_.size())
+      return false;
+
+    return (words_[word] >> bit) & 1u;
+  }
+
+  int LetterCount() const {
+    int found = 0;
+    for (unsigned code : kLetterKeys) {
+      if (Advertises(code))
+        ++found;
+    }
+    return found;
+  }
+
+ private:
+  std::vector<std::uint64_t> words_;
+  int word_bits_ = 0;
+};
+
+std::string ValueAfter(const std::string& line, const char* prefix) {
+  const std::size_t length = std::strlen(prefix);
+  if (line.compare(0, length, prefix) != 0)
+    return std::string();
+  return line.substr(length);
+}
+
+struct KeyboardFacts {
+  bool available = false;
+  bool slider = false;
+};
+
+// A device registered with no parent - directly under /devices/virtual/input/ -
+// was made by a program rather than plugged in. A remote-control tool such as
+// RustDesk registers a uinput keyboard advertising all 26 letters, and counting
+// it would tell every application there is a keyboard when there is not. Only
+// that one path: a Bluetooth keyboard arrives through uhid, lands under
+// /devices/virtual/misc/uhid/... and is real.
+bool IsSoftwareDevice(const std::string& sysfs) {
+  return sysfs.compare(0, 23, "/devices/virtual/input/") == 0;
+}
+
+KeyboardFacts ReadKeyboardFacts() {
+  KeyboardFacts facts;
+
+  std::ifstream devices("/proc/bus/input/devices");
+  if (!devices.is_open()) {
+    LOG_WARNING(MSGID_WAM_DEBUG, 0,
+                "cannot read /proc/bus/input/devices; reporting no keyboard");
+    return facts;
+  }
+
+  std::string sysfs;
+  std::string line;
+
+  while (std::getline(devices, line)) {
+    if (!line.empty() && line.back() == '\r')
+      line.pop_back();
+
+    // "N: Name=" opens a device; everything up to the next one belongs to it.
+    if (line.compare(0, 8, "N: Name=") == 0) {
+      sysfs.clear();
+      continue;
+    }
+
+    const std::string sysfs_value = ValueAfter(line, "S: Sysfs=");
+    if (!sysfs_value.empty()) {
+      sysfs = sysfs_value;
+      continue;
+    }
+
+    const std::string keys = ValueAfter(line, "B: KEY=");
+    if (!keys.empty()) {
+      if (!IsSoftwareDevice(sysfs) &&
+          CapabilityBitmap(keys).LetterCount() >= kMinimumLetterKeys) {
+        facts.available = true;
+      }
+      continue;
+    }
+
+    const std::string switches = ValueAfter(line, "B: SW=");
+    if (!switches.empty() &&
+        CapabilityBitmap(switches).Advertises(kSwTabletMode)) {
+      // The keyboard folds or slides away, so whether it can be reached is not
+      // fixed. Reported as legacy reported it, from DeviceInfo::keyboardSlider().
+      facts.slider = true;
+    }
+  }
+
+  return facts;
+}
+
+//! \brief Maps the legacy KEYoBRD token to the layout name it stood for.
+//!
+//! The codes are Palm's, from luna-sysmgr-common's DeviceInfo.cpp: one letter
+//! for the layout, a trailing 1 for the variants that differed only in their
+//! locale. Kept because the token is what a real Pre or Veer still carries, and
+//! reading it costs one lookup.
+std::string LayoutFromKeyoBrdToken(const std::string& token) {
+  if (token == "z")
+    return "QWERTY";
+  if (token == "w")
+    return "AZERTY";
+  if (token == "y")
+    return "QWERTZ";
+  if (token == "w1")
+    return "AZERTY_FR";
+  if (token == "y1")
+    return "QWERTZ_DE";
+
+  return kUnknownKeyboardType;
+}
+
+}  // namespace
+
 DeviceInfoImpl::DeviceInfoImpl() = default;
 
 void DeviceInfoImpl::Initialize() {
   GatherInfo();
+
+  // Seeded from procfs rather than waited for over the bus: applications read
+  // PalmSystem.deviceInfo as they launch, and com.webos.service.ime is started
+  // on demand, so a subscription alone would leave the first applications told
+  // there is no keyboard.
+  const KeyboardFacts keyboard = ReadKeyboardFacts();
+  keyboard_present_ = keyboard.available;
+  keyboard_slider_ = keyboard.slider;
+  keyboard_type_ = ReadKeyboardType();
 
   // Published here rather than at the end of this function: the locale block
   // below returns early when localeInfo cannot be parsed, which would leave
@@ -91,9 +299,25 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   device_info_json["maximumCardWidth"] = screen_width_;
   device_info_json["maximumCardHeight"] = screen_height_;
 
-  // Also reported by LunaSysMgr, and read by legacy applications.
-  device_info_json["keyboardAvailable"] = false;
-  device_info_json["keyboardSlider"] = false;
+  // Also reported by LunaSysMgr, and read by legacy applications. Both were
+  // hardcoded false, so every device with a physical keyboard told its
+  // applications it had none.
+  //
+  // Re-read here rather than cached at construction so that republishing device
+  // info picks up a change. That still misses a keyboard plugged in while
+  // WebAppMgr runs and nothing else changes; the subscription for that is
+  // com.webos.service.ime/getKeyboardStatus, and wiring it up is the remaining
+  // half of this.
+  device_info_json["keyboardAvailable"] = keyboard_present_;
+  device_info_json["keyboardSlider"] = keyboard_slider_;
+
+  // A layout cannot be read off the hardware - evdev scancodes are positional,
+  // so a QWERTZ keyboard and a QWERTY one advertise exactly the same keys - so
+  // like legacy this is a per-device declaration and nothing else. And like
+  // legacy, with no keyboard attached there is no layout to report: the two
+  // moved together there because both came from the same token.
+  device_info_json["keyboardType"] =
+      keyboard_present_ ? keyboard_type_ : std::string(kUnknownKeyboardType);
   // device_info_json["panelType"] = "";
 
   SetDeviceInfo("TvDeviceInfo", util::JsonToString(device_info_json));
@@ -104,6 +328,56 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
 // fallback is only filled in by WebAppManager::SetUiSize() once a window
 // exists. Republish whenever it lands, or PalmSystem.deviceInfo keeps the
 // zeroes it was built with and every application reads screenWidth: 0.
+//! \brief The layout to start with, before the input method has said anything.
+//!
+//! Only the legacy token, which is what a real Pre or Veer carries. Everything
+//! else declares the layout to the input method instead, and it arrives here
+//! through com.webos.service.ime's getKeyboardStatus - the same subscription
+//! that carries whether a keyboard is attached at all, so the two cannot
+//! disagree. Deliberately not GetDeviceInfo(): that map is only ever written
+//! from inside this process.
+//!
+//! Nothing declaring a layout is the normal case, not an error - most devices
+//! have no physical keyboard, and a USB or Bluetooth one carries its layout in
+//! the compositor's xkb keymap rather than anywhere this can see.
+std::string DeviceInfoImpl::ReadKeyboardType() const {
+  std::string value;
+
+  if (GetInfoFromLunaPrefs("com.palm.properties.KEYoBRD", value))
+    return LayoutFromKeyoBrdToken(value);
+
+  return kUnknownKeyboardType;
+}
+
+void DeviceInfoImpl::SetHardwareKeyboard(bool present,
+                                        bool slider,
+                                        const std::string& layout) {
+  // An empty layout does not overwrite one already known: the seed read at
+  // startup is the fallback for a device that declares it to luna-prefs and not
+  // to the input method, and nothing about a keyboard being plugged in makes
+  // that seed wrong.
+  const std::string type =
+      layout.empty() ? keyboard_type_ : layout;
+
+  if (keyboard_present_ == present && keyboard_slider_ == slider &&
+      keyboard_type_ == type) {
+    return;
+  }
+
+  LOG_INFO(MSGID_WAM_DEBUG, 0,
+           "hardware keyboard: present=%d slider=%d type=%s (was present=%d)",
+           present ? 1 : 0, slider ? 1 : 0, type.c_str(),
+           keyboard_present_ ? 1 : 0);
+
+  keyboard_present_ = present;
+  keyboard_slider_ = slider;
+  keyboard_type_ = type;
+
+  // Applications that already read deviceInfo keep what they were given; this
+  // is for the ones launched from here on.
+  UpdateTvDeviceInfo();
+}
+
 void DeviceInfoImpl::SetDisplayWidth(int value) {
   DeviceInfo::SetDisplayWidth(value);
   screen_width_ = static_cast<int>(value / screen_density_);

@@ -129,6 +129,14 @@ void WebAppManager::SetUiSize(int width, int height) {
   }
 }
 
+void WebAppManager::SetHardwareKeyboard(bool present,
+                                       bool slider,
+                                       const std::string& layout) {
+  if (device_info_) {
+    device_info_->SetHardwareKeyboard(present, slider, layout);
+  }
+}
+
 int WebAppManager::CurrentUiWidth() {
   int width = 0;
   if (device_info_) {

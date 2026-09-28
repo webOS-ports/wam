@@ -27,6 +27,9 @@ class DeviceInfoImpl : public DeviceInfo {
 
   void SetDisplayWidth(int value) override;
   void SetDisplayHeight(int value) override;
+  void SetHardwareKeyboard(bool present,
+                           bool slider,
+                           const std::string& layout) override;
 
  private:
   void UpdateTvDeviceInfo();
@@ -44,11 +47,21 @@ class DeviceInfoImpl : public DeviceInfo {
   int version_minor_ = 0;
   int version_dot_ = 0;
 
+  // What procfs said at startup, then whatever the input method reports. Kept
+  // rather than re-read on every publish so that a live answer is not thrown
+  // away by an unrelated republish.
+  bool keyboard_present_ = false;
+  bool keyboard_slider_ = false;
+  std::string keyboard_type_;
+
   std::string ota_id_;
   std::string hardware_version_ = "0x00000001";
   std::string firmware_version_ = "00.00.01";
 
   bool GetInfoFromLunaPrefs(const char* key, std::string& value) const;
+
+  //! \brief Reads the declared layout of the physical keyboard, or "Unknown".
+  std::string ReadKeyboardType() const;
   void InitDisplayInfo();
   void InitPlatformInfo();
   void GatherInfo();

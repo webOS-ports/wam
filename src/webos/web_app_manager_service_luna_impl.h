@@ -26,10 +26,17 @@ class Value;
 class WebAppManagerServiceLunaImpl : public WebAppManagerServiceLuna {
  public:
   // Overridden from WebAppManagerServiceLuna
+  void DidConnect() override;
   void SystemServiceConnectCallback(const Json::Value& reply) override;
   Json::Value setInspectorEnable(const Json::Value& request) override;
 
   void GetSystemOptionCallback(const Json::Value& reply);
+
+  //! com.webos.service.ime coming or going. It is started on demand, so this
+  //! fires well after WebAppMgr is up, and again if maliit-server is restarted.
+  void ImeServiceConnectCallback(const Json::Value& reply);
+  //! The keyboard status, on subscription and whenever it moves.
+  void GetKeyboardStatusCallback(const Json::Value& reply);
 };
 
 #endif  // WEBOS_WEB_APP_MANAGER_SERVICE_LUNA_IMPL_H_

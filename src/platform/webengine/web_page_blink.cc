@@ -208,8 +208,18 @@ void WebPageBlink::Init() {
               custom_suspend_dom_time_);
   }
 
+  // Selected text is webOS yellow with black letters on it - the pair Mojo's
+  // global-base.css set for every application of the era - rather than the
+  // blue Blink picks on its own, which belongs to no part of this system. A
+  // user stylesheet rather than anything per application: every web
+  // application gets it, and a page that really wants its own ::selection
+  // still wins.
+  //
+  // The engine's own default carries the same pair now, so this is belt and
+  // braces: it covers a runtime built without that change.
   page_private_->page_view_->AddUserStyleSheet(
-      "body { -webkit-user-select: none; } :focus { outline: none }");
+      "body { -webkit-user-select: none; } :focus { outline: none } "
+      "::selection { background-color: #ffea58; color: #000000; }");
   page_private_->page_view_->SetBackgroundColor(29, 29, 29, 0xFF);
 
   SetDefaultFont(DefaultFont());

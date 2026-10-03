@@ -257,23 +257,30 @@ double PalmSystemBlink::DevicePixelRatio() {
 int PalmSystemBlink::AddBannerMessage(const std::string& msg_title,
                                       const std::string& launch_params,
                                       const std::string& msg_icon_url,
-                                      const std::string& /*sound_class*/,
-                                      const std::string& /*msg_sound_file*/,
+                                      const std::string& sound_class,
+                                      const std::string& msg_sound_file,
                                       const std::string& /*sound_duration*/,
                                       const std::string& /*do_not_suppress*/) {
-  // we define a banner as a toast
+  // A banner is a "light" toast: on webOS it scrolled through the banner area
+  // and left nothing behind - persistent state was what dashboards were for.
+  // A "standard" toast also stays in the notification list, so every banner
+  // (com.palm.systemui's "Charging Battery" among them) piled up there.
   Json::Value create_params;
-  create_params["type"] = "standard";
+  create_params["type"] = "light";
   create_params["message"] = msg_title;
   create_params["launchParams"] = launch_params;
   create_params["iconUrl"] = msg_icon_url;
 
-  // unsupported attributes for now
-  //  create_params["soundClass"] = sound_class;
-  //  create_params["soundFile"] = msg_sound_file;
+  // The banner's sound. notificationmgr passes these through and the shell's
+  // banner popup plays them; dropping them here left every banner silent.
+  if (!sound_class.empty())
+    create_params["soundClass"] = sound_class;
+  if (!msg_sound_file.empty())
+    create_params["soundFile"] = msg_sound_file;
+
+  // still unsupported
   //  create_params["duration"] = sound_duration;
   //  create_params["doNotSuppress"] = do_not_suppress;
-  //  create_params["expireTimeout"] = "0";
 
   // Always increment a static int, to return a unique id.
   static int current_notif_id = 0;

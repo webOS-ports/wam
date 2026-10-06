@@ -36,6 +36,10 @@ class NotificationServiceLuna : public PalmServiceBase,
   // NotificationService
   bool Display(const NotificationData& notification) override;
   bool Close(const std::string& notification_id) override;
+  bool ShowPermissionPrompt(const std::string& prompt_id,
+                            const std::string& title,
+                            const std::string& message) override;
+  bool ClosePermissionPrompt(const std::string& prompt_id) override;
 
  private:
   NotificationServiceLuna();

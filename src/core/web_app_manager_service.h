@@ -39,6 +39,8 @@ enum ErrorCode : std::uint16_t {
   kErrCodeClearDataBrawsingUnknownData = 3002,
   kErrCodeFireNotificationEventMissingParameter = 4000,
   kErrCodeFireNotificationEventUnsupportedType = 4001,
+  kErrCodeAnswerPermissionPromptMissingParameter = 4100,
+  kErrCodeAnswerPermissionPromptUnknownPrompt = 4101,
   kErrCodeInvalidParam = 5000
 };
 
@@ -60,6 +62,11 @@ const std::string kErrOnlyAllowedForString = "Only allowed for string type";
 const std::string kErrFireNotificationEventMissingParameter =
     "Missing parameter(s)";
 const std::string kErrFireNotificationEventUnsupportedType = "Unsupported type";
+
+const std::string kErrAnswerPermissionPromptMissingParameter =
+    "promptId (string) and allow (boolean) are required";
+const std::string kErrAnswerPermissionPromptUnknownPrompt =
+    "No such prompt is waiting for an answer";
 
 class WebAppBase;
 

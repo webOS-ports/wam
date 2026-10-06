@@ -34,6 +34,7 @@ void NotificationPlatformBridge::Display(
   data.id = notification.Id();
   data.origin = notification.Origin();
   data.title = util::Utf16ToUtf8(notification.Title());
+  data.icon = notification.Icon();
 
   NotificationService::Instance()->Display(data);
 }

@@ -55,6 +55,9 @@ class WebAppManagerServiceLuna : public PalmServiceBase,
                                 bool subscribed) override;
   Json::Value fireNotificationEvent(const Json::Value& request) override;
 
+  // WebAppManagerServiceLuna
+  Json::Value answerPermissionPrompt(const Json::Value& request);
+
   // PlamServiceBase
   void DidConnect() override;
 

@@ -15,6 +15,7 @@
     "com.palm.webappmanager/webProcessCreated"
   ],
   "webapplication.push": [
+    "com.webos.service.webappmanager/answerPermissionPrompt",
     "com.webos.service.webappmanager/fireNotificationEvent"
   ]
 }

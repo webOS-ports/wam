@@ -44,6 +44,13 @@ class NotificationService {
   virtual bool Display(const NotificationData& notification) = 0;
   virtual bool Close(const std::string& notification_id) = 0;
 
+  // Asks the user the question in |title| and |message|. The
+  // answer comes back through answerPermissionPrompt with |prompt_id|.
+  virtual bool ShowPermissionPrompt(const std::string& prompt_id,
+                                    const std::string& title,
+                                    const std::string& message) = 0;
+  virtual bool ClosePermissionPrompt(const std::string& prompt_id) = 0;
+
  protected:
   // Implementations are singletons; nothing deletes through this interface.
   ~NotificationService() = default;

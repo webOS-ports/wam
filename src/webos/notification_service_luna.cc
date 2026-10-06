@@ -35,6 +35,8 @@ std::map<std::string, LSCalloutContext> toast_contexts;
 std::map<std::string, LSCalloutContext> alert_contexts;
 std::map<std::string, std::string> toast_ids;
 std::map<std::string, std::string> alert_ids;
+std::map<std::string, LSCalloutContext> prompt_contexts;
+std::map<std::string, std::string> prompt_ids;
 
 }  // namespace
 
@@ -145,6 +147,53 @@ bool NotificationServiceLuna::Close(const std::string& notification_id) {
       Close(notification_id, alert_ids, "alertId",
             "luna://com.webos.notification/closeAlert");
   return toast_closed || alert_closed;
+}
+
+bool NotificationServiceLuna::ShowPermissionPrompt(
+    const std::string& prompt_id,
+    const std::string& title,
+    const std::string& message) {
+  Json::Value params;
+  params["promptId"] = prompt_id;
+
+  Json::Value alert_buttons;
+  Json::Value deny_button;
+  deny_button["label"] = "Don't allow";
+  deny_button["onclick"] =
+      "luna://com.webos.service.webappmanager/answerPermissionPrompt";
+  deny_button["params"] = params;
+  deny_button["params"]["allow"] = false;
+  alert_buttons.append(deny_button);
+
+  Json::Value allow_button;
+  allow_button["label"] = "Allow";
+  allow_button["onclick"] =
+      "luna://com.webos.service.webappmanager/answerPermissionPrompt";
+  allow_button["params"] = params;
+  allow_button["params"]["allow"] = true;
+  alert_buttons.append(allow_button);
+
+  Json::Value alert_params;
+  alert_params["buttons"] = alert_buttons;
+  alert_params["title"] = title;
+  alert_params["message"] = message;
+  alert_params["modal"] = true;
+
+  prompt_contexts.emplace(
+      prompt_id,
+      LSCalloutContext(std::bind(Callback, prompt_id, std::ref(prompt_contexts),
+                                 std::ref(prompt_ids), std::cref("alertId"),
+                                 std::placeholders::_1)));
+  // Sent as WAM, not as the app: notificationmgr checks the button uris
+  // against the caller, and only WAM's client may answer a prompt.
+  return Call("luna://com.webos.notification/createAlert", alert_params,
+              nullptr, &prompt_contexts.at(prompt_id));
+}
+
+bool NotificationServiceLuna::ClosePermissionPrompt(
+    const std::string& prompt_id) {
+  return Close(prompt_id, prompt_ids, "alertId",
+               "luna://com.webos.notification/closeAlert");
 }
 
 bool NotificationServiceLuna::Close(const std::string& notification_id,

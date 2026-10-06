@@ -16,9 +16,11 @@
 
 #include "platform/permission_prompt.h"
 
+#include <map>
 #include <string>
 
 #include "core/application_description.h"
+#include "core/notification_service.h"
 #include "core/web_app_base.h"
 #include "core/web_app_manager.h"
 #include "util/log_manager.h"
@@ -32,6 +34,17 @@ const char* PermissionRequestTypeToString(PermissionRequest::RequestType type) {
       return nullptr;
   }
 }
+
+// Prompts waiting for the user, by prompt id.
+std::map<std::string, PermissionPrompt*>& PendingPrompts() {
+  static auto* prompts = new std::map<std::string, PermissionPrompt*>();
+  return *prompts;
+}
+
+ApplicationDescription const* FindAppDescription(const std::string& app_id) {
+  WebAppBase const* app = WebAppManager::Instance()->FindAppById(app_id);
+  return app ? app->GetAppDescription() : nullptr;
+}
 }  // namespace
 
 PermissionPrompt::PermissionPrompt(
@@ -40,47 +53,112 @@ PermissionPrompt::PermissionPrompt(
   SetDecisions();
 }
 
-PermissionPrompt::~PermissionPrompt() = default;
-
-void PermissionPrompt::Show() {
-  LOG_DEBUG("PermissionPrompt::Show");
-  // TODO: A permission prompt displays when web app asks for permission if
-  // needed.
-  delegate_->Accept();
+PermissionPrompt::~PermissionPrompt() {
+  // The request was dropped (page closed or navigated) before the user
+  // answered, so take the question off the screen.
+  if (!prompt_id_.empty()) {
+    PendingPrompts().erase(prompt_id_);
+    NotificationService::Instance()->ClosePermissionPrompt(prompt_id_);
+  }
 }
 
-void PermissionPrompt::Close() {
-  LOG_DEBUG("PermissionPrompt::Close");
-  delegate_->Closing();
+// static
+bool PermissionPrompt::Answer(const std::string& prompt_id, bool allow) {
+  auto it = PendingPrompts().find(prompt_id);
+  if (it == PendingPrompts().end()) {
+    return false;
+  }
+
+  PermissionPrompt* prompt = it->second;
+  PendingPrompts().erase(it);
+  prompt->prompt_id_.clear();
+  // The alert is gone already; this only forgets its id.
+  NotificationService::Instance()->ClosePermissionPrompt(prompt_id);
+
+  LOG_INFO(MSGID_SET_PERMISSION, 2,
+           PMLOGKS("APP_ID", prompt->delegate_->GetAppId().c_str()),
+           PMLOGKS("PERMISSION_STATUS", (allow ? "granted" : "denied")),
+           "answered by the user");
+  // Either call may delete |prompt|.
+  neva_app_runtime::PermissionPrompt::Delegate* delegate = prompt->delegate_;
+  if (allow) {
+    delegate->Accept();
+  } else {
+    delegate->Deny();
+  }
+  return true;
+}
+
+void PermissionPrompt::Show() {
+  static unsigned next_prompt = 0;
+  const std::string app_id = delegate_->GetAppId();
+  prompt_id_ = app_id + "-" + std::to_string(++next_prompt);
+
+  ApplicationDescription const* app_desc = FindAppDescription(app_id);
+  const std::string app_title =
+      app_desc && !app_desc->Title().empty() ? app_desc->Title() : app_id;
+
+  LOG_INFO(MSGID_SET_PERMISSION, 2, PMLOGKS("APP_ID", app_id.c_str()),
+           PMLOGKS("PERMISSION_STATUS", "asking"), "");
+  PendingPrompts()[prompt_id_] = this;
+  if (!NotificationService::Instance()->ShowPermissionPrompt(
+          prompt_id_, app_title,
+          app_title + " wants to show notifications.")) {
+    // Nobody can be asked, so leave the permission undecided.
+    PendingPrompts().erase(prompt_id_);
+    prompt_id_.clear();
+    delegate_->Closing();
+  }
 }
 
 void PermissionPrompt::SetDecisions() {
   LOG_DEBUG("PermissionPrompt::SetDecisions");
+  // The delegate takes one decision for all of its requests, and may delete
+  // this prompt while doing so; work out the answer before giving it.
+  bool known = false;
+  bool allow = true;
+  bool ask = false;
   for (const PermissionRequest* request : delegate_->Requests()) {
     PermissionRequest::RequestType const type = request->GetRequestType();
     switch (type) {
       case PermissionRequest::RequestType::kCameraStream:
       case PermissionRequest::RequestType::kMicStream:
-      case PermissionRequest::RequestType::kNotifications: {
-        bool const status = GetPermissionStatusFromAppDesc(type);
-        if (status) {
-          delegate_->Accept();
-        } else {
-          delegate_->Deny();
-        }
-      } break;
+        // Capture stays an appinfo.json decision: an app that does not
+        // declare it may not use it.
+        known = true;
+        allow = allow && GetPermissionStatusFromAppDesc(type);
+        break;
+      case PermissionRequest::RequestType::kNotifications:
+        // appinfo.json can grant notifications up front; otherwise the user
+        // is asked.
+        known = true;
+        ask = ask || !GetPermissionStatusFromAppDesc(type);
+        break;
       default:
         LOG_ERROR(MSGID_ERROR_ERROR, 0,
                   "There is no matching permission type.");
     }
+  }
+
+  if (!known) {
+    return;
+  }
+  if (!allow) {
+    delegate_->Deny();
+  } else if (ask) {
+    Show();
+  } else {
+    delegate_->Accept();
   }
 }
 
 bool PermissionPrompt::GetPermissionStatusFromAppDesc(
     PermissionRequest::RequestType type) {
   const std::string app_id = delegate_->GetAppId();
-  WebAppBase const* app = WebAppManager::Instance()->FindAppById(app_id);
-  ApplicationDescription const* app_desc = app->GetAppDescription();
+  ApplicationDescription const* app_desc = FindAppDescription(app_id);
+  if (!app_desc) {
+    return false;
+  }
 
   bool status = false;
   switch (type) {
@@ -99,6 +177,7 @@ bool PermissionPrompt::GetPermissionStatusFromAppDesc(
     } break;
   }
   LOG_INFO(MSGID_SET_PERMISSION, 2, PMLOGKS("APP_ID", app_id.c_str()),
-           PMLOGKS("PERMISSION_STATUS", (status ? "granted" : "denied")), "");
+           PMLOGKS("PERMISSION_STATUS", (status ? "granted" : "denied")),
+           "by appinfo.json");
   return status;
 }

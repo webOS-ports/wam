@@ -17,6 +17,8 @@
 #ifndef PLATFORM_PERMISSION_PROMPT_H_
 #define PLATFORM_PERMISSION_PROMPT_H_
 
+#include <string>
+
 #include "neva/app_runtime/public/permission_prompt.h"
 
 using PermissionRequest = neva_app_runtime::PermissionRequest;
@@ -27,12 +29,17 @@ class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
       neva_app_runtime::PermissionPrompt::Delegate* delegate);
   ~PermissionPrompt() override;
 
+  // Resolves the prompt shown as |prompt_id| with the user's answer. Returns
+  // false when no such prompt is waiting, e.g. the page went away first.
+  static bool Answer(const std::string& prompt_id, bool allow);
+
  private:
   void Show();
-  void Close();
   void SetDecisions();
   bool GetPermissionStatusFromAppDesc(PermissionRequest::RequestType type);
   neva_app_runtime::PermissionPrompt::Delegate* delegate_;
+  // Set while the question is on screen.
+  std::string prompt_id_;
 };
 
 #endif  // PLATFORM_PERMISSION_PROMPT_H_

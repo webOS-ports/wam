@@ -25,6 +25,7 @@
 #include "webos/webview_base.h"
 
 #include "log_manager.h"
+#include "permission_prompt.h"
 #include "utils.h"
 #include "web_app_manager_tracer.h"
 
@@ -60,6 +61,7 @@ LSMethod WebAppManagerServiceLuna::methods_[] = {
     LS2_METHOD_ENTRY(getWebProcessSize),
     LS2_METHOD_ENTRY(clearBrowsingData),
     LS2_METHOD_ENTRY(fireNotificationEvent),
+    LS2_METHOD_ENTRY(answerPermissionPrompt),
     LS2_SUBSCRIPTION_ENTRY(listRunningApps),
     LS2_SUBSCRIPTION_ENTRY(webProcessCreated),
     {}};
@@ -483,6 +485,26 @@ Json::Value WebAppManagerServiceLuna::fireNotificationEvent(
   }
 
   Json::Value response;
+  response["returnValue"] = true;
+  return response;
+}
+
+Json::Value WebAppManagerServiceLuna::answerPermissionPrompt(
+    const Json::Value& request) {
+  Json::Value response;
+  if (!request["promptId"].isString() || !request["allow"].isBool()) {
+    response["returnValue"] = false;
+    response["errorCode"] = kErrCodeAnswerPermissionPromptMissingParameter;
+    response["errorText"] = kErrAnswerPermissionPromptMissingParameter;
+    return response;
+  }
+  if (!PermissionPrompt::Answer(request["promptId"].asString(),
+                                request["allow"].asBool())) {
+    response["returnValue"] = false;
+    response["errorCode"] = kErrCodeAnswerPermissionPromptUnknownPrompt;
+    response["errorText"] = kErrAnswerPermissionPromptUnknownPrompt;
+    return response;
+  }
   response["returnValue"] = true;
   return response;
 }

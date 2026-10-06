@@ -102,7 +102,7 @@ void PermissionPrompt::Show() {
            PMLOGKS("PERMISSION_STATUS", "asking"), "");
   PendingPrompts()[prompt_id_] = this;
   if (!NotificationService::Instance()->ShowPermissionPrompt(
-          prompt_id_, app_title,
+          prompt_id_, "Notifications",
           app_title + " wants to show notifications.")) {
     // Nobody can be asked, so leave the permission undecided.
     PendingPrompts().erase(prompt_id_);

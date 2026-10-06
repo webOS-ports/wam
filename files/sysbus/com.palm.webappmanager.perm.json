@@ -45,5 +45,8 @@
     ],
     "com.webos.surfacemanager-cardshell": [
         "webapplication.management"
+    ],
+    "com.webos.surfacemanager": [
+        "webapplication.push"
     ]
 }

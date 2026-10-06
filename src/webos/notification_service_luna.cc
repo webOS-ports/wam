@@ -173,22 +173,26 @@ bool NotificationServiceLuna::ShowPermissionPrompt(
   Json::Value params;
   params["promptId"] = prompt_id;
 
+  // ok and cancel are notificationmgr's button types; the shell draws them
+  // green and red.
   Json::Value alert_buttons;
-  Json::Value deny_button;
-  deny_button["label"] = "Don't allow";
-  deny_button["onclick"] =
-      "luna://com.webos.service.webappmanager/answerPermissionPrompt";
-  deny_button["params"] = params;
-  deny_button["params"]["allow"] = false;
-  alert_buttons.append(deny_button);
-
   Json::Value allow_button;
   allow_button["label"] = "Allow";
+  allow_button["buttonType"] = "ok";
   allow_button["onclick"] =
       "luna://com.webos.service.webappmanager/answerPermissionPrompt";
   allow_button["params"] = params;
   allow_button["params"]["allow"] = true;
   alert_buttons.append(allow_button);
+
+  Json::Value deny_button;
+  deny_button["label"] = "Deny";
+  deny_button["buttonType"] = "cancel";
+  deny_button["onclick"] =
+      "luna://com.webos.service.webappmanager/answerPermissionPrompt";
+  deny_button["params"] = params;
+  deny_button["params"]["allow"] = false;
+  alert_buttons.append(deny_button);
 
   Json::Value alert_params;
   alert_params["buttons"] = alert_buttons;

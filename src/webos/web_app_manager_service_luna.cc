@@ -476,7 +476,11 @@ Json::Value WebAppManagerServiceLuna::fireNotificationEvent(
     reply.second = true;
   }
   auto dispatcher = neva_app_runtime::GetNotificationEventDispatcher();
-  dispatcher->Click(notification_id, std::move(origin), action_index, reply);
+  if (type == "notificationclose") {
+    dispatcher->Close(notification_id, /*by_user=*/true);
+  } else {
+    dispatcher->Click(notification_id, std::move(origin), action_index, reply);
+  }
 
   Json::Value response;
   response["returnValue"] = true;

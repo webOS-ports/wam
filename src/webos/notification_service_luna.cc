@@ -91,16 +91,22 @@ bool NotificationServiceLuna::CreateAlert(
     const NotificationData& notification) {
   Json::Value alert_buttons;
 
-  Json::Value button;
-  button["label"] = "OK";
-  alert_buttons.append(button);
-
-  Json::Value click_button;
   Json::Value params;
-  params["type"] = "notificationclick";
   params["appId"] = notification.app_id;
   params["notificationId"] = notification.id;
   params["origin"] = notification.origin;
+
+  // Dismissing the alert is the only way the page can learn it was closed.
+  Json::Value button;
+  button["label"] = "OK";
+  button["onclick"] =
+      "luna://com.webos.service.webappmanager/fireNotificationEvent";
+  button["params"] = params;
+  button["params"]["type"] = "notificationclose";
+  alert_buttons.append(button);
+
+  Json::Value click_button;
+  params["type"] = "notificationclick";
   if (!notification.buttons.empty()) {
     params["actionIndex"] = 0;
     click_button["label"] = notification.buttons[0].title;
@@ -130,10 +136,15 @@ bool NotificationServiceLuna::CreateAlert(
 }
 
 bool NotificationServiceLuna::Close(const std::string& notification_id) {
-  return Close(notification_id, toast_ids, "toastId",
-               "luna://com.webos.notification/closeToast") &&
-         Close(notification_id, alert_ids, "alertId",
-               "luna://com.webos.notification/closeAlert");
+  // Display() creates only an alert, so a missing toast must not stop the
+  // alert from being closed.
+  bool const toast_closed =
+      Close(notification_id, toast_ids, "toastId",
+            "luna://com.webos.notification/closeToast");
+  bool const alert_closed =
+      Close(notification_id, alert_ids, "alertId",
+            "luna://com.webos.notification/closeAlert");
+  return toast_closed || alert_closed;
 }
 
 bool NotificationServiceLuna::Close(const std::string& notification_id,

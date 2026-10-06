@@ -68,17 +68,27 @@ const char* NotificationServiceLuna::ServiceName() const {
 bool NotificationServiceLuna::Display(const NotificationData& notification) {
   // Close the previous notification with the same tag, if possible.
   Close(notification.id);
-  return CreateAlert(notification);
+  // The LuneOS shell shows toasts, in its banner and notification area;
+  // alerts are only drawn by the OSE notification app, which it never shows.
+  return CreateToast(notification);
 }
 
 bool NotificationServiceLuna::CreateToast(
     const NotificationData& notification) {
-  // Transparent toast is created to save the notification in the database.
   Json::Value toast_params;
-  toast_params["message"] = notification.message;
-  toast_params["opacity"] = 0.0;
-  toast_params["persistent"] = true;
+  // notificationmgr refuses a toast without a message, and a web
+  // notification needs only a title.
+  toast_params["message"] =
+      notification.message.empty() ? notification.title : notification.message;
+  if (!notification.message.empty()) {
+    toast_params["title"] = notification.title;
+  }
+  if (!notification.icon.empty()) {
+    toast_params["iconUrl"] = notification.icon;
+  }
   toast_params["sourceId"] = notification.app_id;
+  // Tapping the toast brings the app that made it to the front.
+  toast_params["onclick"]["appId"] = notification.app_id;
 
   toast_contexts.emplace(
       notification.id,

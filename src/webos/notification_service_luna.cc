@@ -122,8 +122,15 @@ bool NotificationServiceLuna::CreateAlert(
 
   Json::Value alert_params;
   alert_params["buttons"] = alert_buttons;
-  alert_params["message"] = notification.message;
-  alert_params["title"] = notification.title;
+  // notificationmgr refuses an alert without a message, and a web
+  // notification needs only a title, so a title on its own becomes the
+  // message.
+  if (notification.message.empty()) {
+    alert_params["message"] = notification.title;
+  } else {
+    alert_params["message"] = notification.message;
+    alert_params["title"] = notification.title;
+  }
   if (!notification.icon.empty()) {
     alert_params["iconUrl"] = notification.icon;
   }

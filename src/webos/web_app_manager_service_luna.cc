@@ -679,6 +679,12 @@ void WebAppManagerServiceLuna::DidConnect() {
                 "Failed to connect to application manager");
   }
 
+  params["serviceName"] = std::string("com.webos.service.systemservice");
+  if (!GET_LS2_SERVER_STATUS(SystemPreferencesConnectCallback, params)) {
+    LOG_WARNING(MSGID_SERVICE_CONNECT_FAIL, 0,
+                "Failed to connect to systemservice");
+  }
+
   params["serviceName"] = std::string("com.webos.service.config");
   if (!GET_LS2_SERVER_STATUS(ConfigServiceConnectCallback, params)) {
     LOG_WARNING(MSGID_SERVICE_CONNECT_FAIL, 0, "Failed to connect to configd");
@@ -718,6 +724,34 @@ void WebAppManagerServiceLuna::ConfigServiceConnectCallback(
   params["configNames"] = std::move(names);
   LS2_CALL(GetCompositorGeometryCallback,
            "luna://com.webos.service.config/getConfigs", std::move(params));
+}
+
+// Settings > Location "Location for Applications": whether applications may
+// have the user's position at all. Subscribed again each time systemservice
+// (re)connects; the value last heard is kept meanwhile, so a restart of the
+// service does not switch location back on.
+void WebAppManagerServiceLuna::SystemPreferencesConnectCallback(
+    const Json::Value& reply) {
+  if (!reply.isObject() || reply["connected"] != true) {
+    return;
+  }
+  Json::Value params;
+  params["subscribe"] = true;
+  Json::Value keys(Json::arrayValue);
+  keys.append("autoLocate");
+  params["keys"] = std::move(keys);
+  LS2_CALL(LocationPreferenceCallback,
+           "luna://com.webos.service.systemservice/getPreferences",
+           std::move(params));
+}
+
+void WebAppManagerServiceLuna::LocationPreferenceCallback(
+    const Json::Value& reply) {
+  // A key that was never set is left out of the reply, and later pushes carry
+  // only keys that changed; both leave the current value alone.
+  if (reply.isObject() && reply["autoLocate"].isBool()) {
+    PermissionPrompt::SetLocationEnabled(reply["autoLocate"].asBool());
+  }
 }
 
 void WebAppManagerServiceLuna::GetCompositorGeometryCallback(

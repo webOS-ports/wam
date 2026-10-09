@@ -43,6 +43,10 @@ std::map<std::string, PermissionPrompt*>& PendingPrompts() {
   return *prompts;
 }
 
+// On until systemservice says otherwise: the preference defaults to on, and a
+// key that was never set is left out of its replies.
+bool g_location_enabled = true;
+
 ApplicationDescription const* FindAppDescription(const std::string& app_id) {
   WebAppBase const* app = WebAppManager::Instance()->FindAppById(app_id);
   return app ? app->GetAppDescription() : nullptr;
@@ -136,8 +140,21 @@ void PermissionPrompt::SetDecisions() {
         known = true;
         allow = allow && GetPermissionStatusFromAppDesc(type);
         break;
-      case PermissionRequest::RequestType::kNotifications:
       case PermissionRequest::RequestType::kGeolocation:
+        if (!g_location_enabled) {
+          // Location is switched off for applications: refused for every app,
+          // appinfo.json grants included, and nobody is asked a question the
+          // switch already answers.
+          LOG_INFO(MSGID_SET_PERMISSION, 2,
+                   PMLOGKS("APP_ID", delegate_->GetAppId().c_str()),
+                   PMLOGKS("PERMISSION_STATUS", "denied"),
+                   "location is off for applications");
+          known = true;
+          allow = false;
+          break;
+        }
+        [[fallthrough]];
+      case PermissionRequest::RequestType::kNotifications:
         // appinfo.json can grant these up front; otherwise the user is asked.
         known = true;
         if (!GetPermissionStatusFromAppDesc(type)) {
@@ -200,6 +217,15 @@ bool PermissionPrompt::GrantedByAppInfo(const ApplicationDescription& app_desc,
     return app_desc.SystemApp();
   }
   return true;
+}
+
+// static
+void PermissionPrompt::SetLocationEnabled(bool enabled) {
+  if (g_location_enabled != enabled) {
+    LOG_INFO(MSGID_SET_PERMISSION, 1,
+             PMLOGKS("LOCATION_FOR_APPLICATIONS", enabled ? "on" : "off"), "");
+  }
+  g_location_enabled = enabled;
 }
 
 bool PermissionPrompt::GetPermissionStatusFromAppDesc(

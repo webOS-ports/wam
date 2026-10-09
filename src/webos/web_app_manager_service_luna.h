@@ -81,6 +81,8 @@ class WebAppManagerServiceLuna : public PalmServiceBase,
   void GetNetworkConnectionStatusCallback(const Json::Value& reply);
 
   void ConfigServiceConnectCallback(const Json::Value& reply);
+  void SystemPreferencesConnectCallback(const Json::Value& reply);
+  void LocationPreferenceCallback(const Json::Value& reply);
   void GetCompositorGeometryCallback(const Json::Value& reply);
 
   void CloseApp(const std::string& id);

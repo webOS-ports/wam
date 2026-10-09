@@ -41,6 +41,11 @@ class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
   static bool GrantedByAppInfo(const ApplicationDescription& app_desc,
                                PermissionRequest::RequestType type);
 
+  // Settings > Location "Location for Applications" (systemservice preference
+  // autoLocate). While off, every location request that reaches the prompt is
+  // refused without asking. Main thread only, like the rest of this class.
+  static void SetLocationEnabled(bool enabled);
+
  private:
   void Show(PermissionRequest::RequestType type);
   void SetDecisions();

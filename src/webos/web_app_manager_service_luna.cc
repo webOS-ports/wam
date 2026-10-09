@@ -21,6 +21,7 @@
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <json/json.h>
@@ -539,10 +540,10 @@ std::optional<PermissionRequest::RequestType> AppPermissionType(
 // '_'). It ends up in the per-app pattern Chromium stores the decision under,
 // so nothing else may get that far.
 bool IsValidAppId(const Json::Value& value) {
-  if (!value.isString()) {
+  std::string_view id;
+  if (!value.isString() || !value.getString(&id)) {
     return false;
   }
-  const std::string id = value.asString();
   if (id.empty() || id.size() > 255) {
     return false;
   }

@@ -125,6 +125,27 @@ class LSCalloutContext : public LSCallbackHandler {
  *
  * */
 
+// Every method reads its parameters as members of an object, and jsoncpp
+// asserts - taking WebAppMgr down - when a member is looked up on anything
+// else, such as the array the strict parser accepts as a whole payload ("[]").
+// Anything but an object is answered with an error here, and so is a payload
+// that does not parse, which used to get no reply at all.
+inline bool ParseRequestObject(LSHandle* handle,
+                               LSMessage* message,
+                               Json::Value& request) {
+  if (util::StringToJson(LSMessageGetPayload(message), request) &&
+      request.isObject()) {
+    return true;
+  }
+  LOG_WARNING(MSGID_LUNA_API, 0, "Request is not a JSON object.");
+  LSErrorSafe ls_error;
+  LSMessageReply(handle, message,
+                 "{\"returnValue\": false, \"errorCode\": -1, "
+                 "\"errorText\": \"Request must be a JSON object\"}",
+                 &ls_error);
+  return false;
+}
+
 template <class CLASS, Json::Value (CLASS::*FUNCTION)(const Json::Value&)>
 static bool bus_callback_json(LSHandle* handle,
                               LSMessage* message,
@@ -140,9 +161,8 @@ static bool bus_callback_json(LSHandle* handle,
   }
 
   Json::Value request;
-  if (!util::StringToJson(LSMessageGetPayload(message), request)) {
-    LOG_WARNING(MSGID_LUNA_API, 0, "Failed to parse request message.");
-    return false;
+  if (!ParseRequestObject(handle, message, request)) {
+    return true;
   }
   Json::Value reply;
 
@@ -179,9 +199,8 @@ static bool bus_subscription_callback_json(LSHandle* handle,
   }
 
   Json::Value request;
-  if (!util::StringToJson(LSMessageGetPayload(message), request)) {
-    LOG_WARNING(MSGID_LUNA_API, 0, "Failed to parse request message.");
-    return false;
+  if (!ParseRequestObject(handle, message, request)) {
+    return true;
   }
   Json::Value reply;
 

@@ -19,6 +19,8 @@
 
 #include <string>
 
+#include <glib.h>
+
 #include "neva/app_runtime/public/permission_prompt.h"
 
 class ApplicationDescription;
@@ -47,12 +49,15 @@ class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
   static void SetLocationEnabled(bool enabled);
 
  private:
+  static gboolean DecideOnIdle(gpointer self);
   void Show(PermissionRequest::RequestType type);
   void SetDecisions();
   bool GetPermissionStatusFromAppDesc(PermissionRequest::RequestType type);
   neva_app_runtime::PermissionPrompt::Delegate* delegate_;
   // Set while the question is on screen.
   std::string prompt_id_;
+  // The idle source that makes the decision, until it has run.
+  guint decide_source_ = 0;
 };
 
 #endif  // PLATFORM_PERMISSION_PROMPT_H_

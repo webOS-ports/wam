@@ -50,7 +50,8 @@
       {
         "service":"com.webos.chromium.location*",
         "outbound":[
-            "com.webos.service.location"
+            "com.webos.service.location",
+            "com.webos.service.systemservice"
         ]
       },
       {

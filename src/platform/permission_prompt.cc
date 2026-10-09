@@ -56,10 +56,27 @@ ApplicationDescription const* FindAppDescription(const std::string& app_id) {
 PermissionPrompt::PermissionPrompt(
     neva_app_runtime::PermissionPrompt::Delegate* delegate)
     : delegate_(delegate) {
-  SetDecisions();
+  // Decided once the request manager has this prompt, not from inside its
+  // construction: a request finished from in here leaves the manager holding
+  // a prompt with no request behind it, and every later request then waits
+  // behind that one.
+  decide_source_ = g_idle_add(&PermissionPrompt::DecideOnIdle, this);
+}
+
+// static
+gboolean PermissionPrompt::DecideOnIdle(gpointer self) {
+  PermissionPrompt* prompt = static_cast<PermissionPrompt*>(self);
+  prompt->decide_source_ = 0;
+  // May delete |prompt|.
+  prompt->SetDecisions();
+  return G_SOURCE_REMOVE;
 }
 
 PermissionPrompt::~PermissionPrompt() {
+  // Dropped before it was decided.
+  if (decide_source_) {
+    g_source_remove(decide_source_);
+  }
   // The request was dropped (page closed or navigated) before the user
   // answered, so take the question off the screen.
   if (!prompt_id_.empty()) {
@@ -130,6 +147,9 @@ void PermissionPrompt::SetDecisions() {
   PermissionRequest::RequestType ask_type =
       PermissionRequest::RequestType::kInvalid;
   bool mixed_ask = false;
+  // Refused because location is switched off: not the user's answer for this
+  // app, so it must not be stored as one.
+  bool switched_off = false;
   for (const PermissionRequest* request : delegate_->Requests()) {
     PermissionRequest::RequestType const type = request->GetRequestType();
     switch (type) {
@@ -150,7 +170,7 @@ void PermissionPrompt::SetDecisions() {
                    PMLOGKS("PERMISSION_STATUS", "denied"),
                    "location is off for applications");
           known = true;
-          allow = false;
+          switched_off = true;
           break;
         }
         [[fallthrough]];
@@ -188,6 +208,11 @@ void PermissionPrompt::SetDecisions() {
   }
   if (!allow) {
     delegate_->Deny();
+  } else if (switched_off) {
+    // Dismissed rather than denied: a denial is stored as the app's answer
+    // and would still block it once location is switched back on. Safe for
+    // geolocation, whose context does not embargo dismissed requests.
+    delegate_->Closing();
   } else if (ask) {
     Show(ask_type);
   } else {

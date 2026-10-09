@@ -18,5 +18,13 @@
     "com.palm.webappmanager/answerPermissionPrompt",
     "com.webos.service.webappmanager/answerPermissionPrompt",
     "com.webos.service.webappmanager/fireNotificationEvent"
+  ],
+  "webapplication.permissions": [
+    "com.palm.webappmanager/getAppPermissions",
+    "com.palm.webappmanager/resetAppPermissions",
+    "com.palm.webappmanager/setAppPermission",
+    "com.webos.service.webappmanager/getAppPermissions",
+    "com.webos.service.webappmanager/resetAppPermissions",
+    "com.webos.service.webappmanager/setAppPermission"
   ]
 }

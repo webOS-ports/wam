@@ -1,5 +1,6 @@
 {
 	"allowedNames" : ["com.palm.webappmanager", "com.webos.service.webappmanager"],
 	"webapplication.management" : ["oem", "dev"],
-	"webapplication.push" : ["oem"]
+	"webapplication.push" : ["oem"],
+	"webapplication.permissions" : ["oem"]
 }

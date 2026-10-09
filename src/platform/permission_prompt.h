@@ -19,7 +19,11 @@
 
 #include <string>
 
+#include <glib.h>
+
 #include "neva/app_runtime/public/permission_prompt.h"
+
+class ApplicationDescription;
 
 using PermissionRequest = neva_app_runtime::PermissionRequest;
 
@@ -33,13 +37,27 @@ class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
   // false when no such prompt is waiting, e.g. the page went away first.
   static bool Answer(const std::string& prompt_id, bool allow);
 
+  // Whether |app_desc|'s appinfo.json grants |type| without asking. For
+  // location only an app installed with the system may do that: a store app
+  // could otherwise grant itself the user's position.
+  static bool GrantedByAppInfo(const ApplicationDescription& app_desc,
+                               PermissionRequest::RequestType type);
+
+  // Settings > Location "Location for Applications" (systemservice preference
+  // autoLocate). While off, every location request that reaches the prompt is
+  // refused without asking. Main thread only, like the rest of this class.
+  static void SetLocationEnabled(bool enabled);
+
  private:
+  static gboolean DecideOnIdle(gpointer self);
   void Show(PermissionRequest::RequestType type);
   void SetDecisions();
   bool GetPermissionStatusFromAppDesc(PermissionRequest::RequestType type);
   neva_app_runtime::PermissionPrompt::Delegate* delegate_;
   // Set while the question is on screen.
   std::string prompt_id_;
+  // The idle source that makes the decision, until it has run.
+  guint decide_source_ = 0;
 };
 
 #endif  // PLATFORM_PERMISSION_PROMPT_H_

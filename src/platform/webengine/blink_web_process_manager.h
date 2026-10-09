@@ -35,6 +35,12 @@ class BlinkWebProcessManager : public WebProcessManager {
   void ClearBrowsingData(const int remove_browsing_data_mask) override;
   int MaskForBrowsingDataType(const char* type) override;
   void SetNotifierEnabled(const std::string& app_id, bool enabled) override;
+  std::map<std::string, std::string> GetAppPermissions(
+      const std::string& permission) override;
+  void SetAppPermission(const std::string& app_id,
+                        const std::string& permission,
+                        const std::string& setting) override;
+  void ResetAppPermissions(const std::string& permission) override;
 };
 
 #endif  // PLATFORM_WEBENGINE_BLINK_WEB_PROCESS_MANAGER_H_

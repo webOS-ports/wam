@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <list>
+#include <map>
 #include <string>
 #include <vector>
 
@@ -41,6 +42,9 @@ enum ErrorCode : std::uint16_t {
   kErrCodeFireNotificationEventUnsupportedType = 4001,
   kErrCodeAnswerPermissionPromptMissingParameter = 4100,
   kErrCodeAnswerPermissionPromptUnknownPrompt = 4101,
+  kErrCodeAppPermissionInvalidPermission = 4200,
+  kErrCodeAppPermissionInvalidSetting = 4201,
+  kErrCodeAppPermissionInvalidAppId = 4202,
   kErrCodeInvalidParam = 5000
 };
 
@@ -67,6 +71,13 @@ const std::string kErrAnswerPermissionPromptMissingParameter =
     "promptId (string) and allow (boolean) are required";
 const std::string kErrAnswerPermissionPromptUnknownPrompt =
     "No such prompt is waiting for an answer";
+
+const std::string kErrAppPermissionInvalidPermission =
+    "permission must be \"geolocation\" or \"notifications\"";
+const std::string kErrAppPermissionInvalidSetting =
+    "setting must be \"allow\", \"block\" or \"ask\"";
+const std::string kErrAppPermissionInvalidAppId =
+    "appId must be an application id (letters, digits, '.', '-', '_')";
 
 class WebAppBase;
 
@@ -124,6 +135,12 @@ class WebAppManagerService {
   void UpdateNetworkStatus(const Json::Value& object);
   void NotifyMemoryPressure(webos::WebViewBase::MemoryPressureLevel level);
   void UpdateNotificationPermission(const std::string& app_id, bool enabled);
+  std::map<std::string, std::string> GetAppPermissions(
+      const std::string& permission);
+  void SetAppPermission(const std::string& app_id,
+                        const std::string& permission,
+                        const std::string& setting);
+  void ResetAppPermissions(const std::string& permission);
   void SetAccessibilityEnabled(bool enable);
   uint32_t GetWebProcessId(const std::string& app_id,
                            const std::string& instance_id);

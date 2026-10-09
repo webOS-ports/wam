@@ -8,7 +8,8 @@
         "notification.operation",
         "notification.management",
         "settings.query",
-        "systemconfig.query"
+        "systemconfig.query",
+        "systemsettings.query"
     ],
     "com.webos.chromium.audio*": [
         "audio.operation",
@@ -19,7 +20,8 @@
         "camera.query"
     ],
     "com.webos.chromium.location*": [
-        "location.query"
+        "location.query",
+        "systemsettings.query"
     ],
     "com.webos.chromium.service_worker": [
         "application.launcher"

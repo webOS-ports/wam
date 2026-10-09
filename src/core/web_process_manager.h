@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <list>
+#include <map>
 #include <string>
 
 namespace Json {
@@ -39,6 +40,16 @@ class WebProcessManager {
   virtual void ClearBrowsingData(const int remove_browsing_data_mask) = 0;
   virtual int MaskForBrowsingDataType(const char* type) = 0;
   virtual void SetNotifierEnabled(const std::string& app_id, bool enabled) = 0;
+
+  // Per-application decisions of the Web APIs that ask before they are used.
+  // |permission| is "geolocation" or "notifications", a setting "allow",
+  // "block" or "ask"; callers check both before getting here.
+  virtual std::map<std::string, std::string> GetAppPermissions(
+      const std::string& permission) = 0;
+  virtual void SetAppPermission(const std::string& app_id,
+                                const std::string& permission,
+                                const std::string& setting) = 0;
+  virtual void ResetAppPermissions(const std::string& permission) = 0;
 
  protected:
   std::list<const WebAppBase*> RunningApps();

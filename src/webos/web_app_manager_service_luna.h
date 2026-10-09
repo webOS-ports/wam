@@ -57,6 +57,9 @@ class WebAppManagerServiceLuna : public PalmServiceBase,
 
   // WebAppManagerServiceLuna
   Json::Value answerPermissionPrompt(const Json::Value& request);
+  Json::Value getAppPermissions(const Json::Value& request);
+  Json::Value setAppPermission(const Json::Value& request);
+  Json::Value resetAppPermissions(const Json::Value& request);
 
   // PlamServiceBase
   void DidConnect() override;
@@ -78,6 +81,8 @@ class WebAppManagerServiceLuna : public PalmServiceBase,
   void GetNetworkConnectionStatusCallback(const Json::Value& reply);
 
   void ConfigServiceConnectCallback(const Json::Value& reply);
+  void SystemPreferencesConnectCallback(const Json::Value& reply);
+  void LocationPreferenceCallback(const Json::Value& reply);
   void GetCompositorGeometryCallback(const Json::Value& reply);
 
   void CloseApp(const std::string& id);

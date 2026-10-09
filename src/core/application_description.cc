@@ -194,6 +194,8 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
       json_obj.get("vendorExtension", Json::Value(Json::objectValue));
   app_desc->vendor_extension_ = util::JsonToString(vendor_extension);
   app_desc->trust_level_ = json_obj["trustLevel"].asString();
+  app_desc->system_app_ =
+      json_obj["systemApp"].isBool() && json_obj["systemApp"].asBool();
   app_desc->sub_type_ = json_obj["subType"].asString();
   app_desc->deep_linking_params_ = json_obj["deeplinkingParams"].asString();
   app_desc->handles_relaunch_ = json_obj["handlesRelaunch"].asBool();

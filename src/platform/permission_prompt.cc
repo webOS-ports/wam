@@ -43,6 +43,10 @@ std::map<std::string, PermissionPrompt*>& PendingPrompts() {
   return *prompts;
 }
 
+// On until systemservice says otherwise: the preference defaults to on, and a
+// key that was never set is left out of its replies.
+bool g_location_enabled = true;
+
 ApplicationDescription const* FindAppDescription(const std::string& app_id) {
   WebAppBase const* app = WebAppManager::Instance()->FindAppById(app_id);
   return app ? app->GetAppDescription() : nullptr;
@@ -52,10 +56,27 @@ ApplicationDescription const* FindAppDescription(const std::string& app_id) {
 PermissionPrompt::PermissionPrompt(
     neva_app_runtime::PermissionPrompt::Delegate* delegate)
     : delegate_(delegate) {
-  SetDecisions();
+  // Decided once the request manager has this prompt, not from inside its
+  // construction: a request finished from in here leaves the manager holding
+  // a prompt with no request behind it, and every later request then waits
+  // behind that one.
+  decide_source_ = g_idle_add(&PermissionPrompt::DecideOnIdle, this);
+}
+
+// static
+gboolean PermissionPrompt::DecideOnIdle(gpointer self) {
+  PermissionPrompt* prompt = static_cast<PermissionPrompt*>(self);
+  prompt->decide_source_ = 0;
+  // May delete |prompt|.
+  prompt->SetDecisions();
+  return G_SOURCE_REMOVE;
 }
 
 PermissionPrompt::~PermissionPrompt() {
+  // Dropped before it was decided.
+  if (decide_source_) {
+    g_source_remove(decide_source_);
+  }
   // The request was dropped (page closed or navigated) before the user
   // answered, so take the question off the screen.
   if (!prompt_id_.empty()) {
@@ -126,6 +147,9 @@ void PermissionPrompt::SetDecisions() {
   PermissionRequest::RequestType ask_type =
       PermissionRequest::RequestType::kInvalid;
   bool mixed_ask = false;
+  // Refused because location is switched off: not the user's answer for this
+  // app, so it must not be stored as one.
+  bool switched_off = false;
   for (const PermissionRequest* request : delegate_->Requests()) {
     PermissionRequest::RequestType const type = request->GetRequestType();
     switch (type) {
@@ -136,8 +160,21 @@ void PermissionPrompt::SetDecisions() {
         known = true;
         allow = allow && GetPermissionStatusFromAppDesc(type);
         break;
-      case PermissionRequest::RequestType::kNotifications:
       case PermissionRequest::RequestType::kGeolocation:
+        if (!g_location_enabled) {
+          // Location is switched off for applications: refused for every app,
+          // appinfo.json grants included, and nobody is asked a question the
+          // switch already answers.
+          LOG_INFO(MSGID_SET_PERMISSION, 2,
+                   PMLOGKS("APP_ID", delegate_->GetAppId().c_str()),
+                   PMLOGKS("PERMISSION_STATUS", "denied"),
+                   "location is off for applications");
+          known = true;
+          switched_off = true;
+          break;
+        }
+        [[fallthrough]];
+      case PermissionRequest::RequestType::kNotifications:
         // appinfo.json can grant these up front; otherwise the user is asked.
         known = true;
         if (!GetPermissionStatusFromAppDesc(type)) {
@@ -171,11 +208,49 @@ void PermissionPrompt::SetDecisions() {
   }
   if (!allow) {
     delegate_->Deny();
+  } else if (switched_off) {
+    // Dismissed rather than denied: a denial is stored as the app's answer
+    // and would still block it once location is switched back on. Safe for
+    // geolocation, whose context does not embargo dismissed requests.
+    delegate_->Closing();
   } else if (ask) {
     Show(ask_type);
   } else {
     delegate_->Accept();
   }
+}
+
+// static
+bool PermissionPrompt::GrantedByAppInfo(const ApplicationDescription& app_desc,
+                                        PermissionRequest::RequestType type) {
+  switch (type) {
+    case PermissionRequest::RequestType::kCameraStream:
+      return app_desc.AllowVideoCapture();
+    case PermissionRequest::RequestType::kMicStream:
+      return app_desc.AllowAudioCapture();
+    default:
+      break;
+  }
+
+  const char* str_type = PermissionRequestTypeToString(type);
+  if (str_type == nullptr || !app_desc.WebAppPermissions().contains(str_type)) {
+    return false;
+  }
+  // SystemApp() comes from where SAM found the app, which the app cannot
+  // influence; trustLevel is copied from the app's own appinfo.json.
+  if (type == PermissionRequest::RequestType::kGeolocation) {
+    return app_desc.SystemApp();
+  }
+  return true;
+}
+
+// static
+void PermissionPrompt::SetLocationEnabled(bool enabled) {
+  if (g_location_enabled != enabled) {
+    LOG_INFO(MSGID_SET_PERMISSION, 1,
+             PMLOGKS("LOCATION_FOR_APPLICATIONS", enabled ? "on" : "off"), "");
+  }
+  g_location_enabled = enabled;
 }
 
 bool PermissionPrompt::GetPermissionStatusFromAppDesc(
@@ -186,22 +261,7 @@ bool PermissionPrompt::GetPermissionStatusFromAppDesc(
     return false;
   }
 
-  bool status = false;
-  switch (type) {
-    case PermissionRequest::RequestType::kCameraStream: {
-      status = app_desc->AllowVideoCapture();
-    } break;
-    case PermissionRequest::RequestType::kMicStream: {
-      status = app_desc->AllowAudioCapture();
-    } break;
-    default: {
-      auto& permissions = app_desc->WebAppPermissions();
-      const char* str_type = PermissionRequestTypeToString(type);
-      if (str_type != nullptr) {
-        status = permissions.contains(str_type);
-      }
-    } break;
-  }
+  const bool status = GrantedByAppInfo(*app_desc, type);
   LOG_INFO(MSGID_SET_PERMISSION, 2, PMLOGKS("APP_ID", app_id.c_str()),
            PMLOGKS("PERMISSION_STATUS", (status ? "granted" : "denied")),
            "by appinfo.json");

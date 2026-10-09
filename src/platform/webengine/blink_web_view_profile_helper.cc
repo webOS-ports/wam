@@ -16,6 +16,10 @@
 
 #include <string.h>
 
+#include <map>
+#include <optional>
+#include <string>
+
 #include "webos/webview_profile.h"
 
 #include "blink_web_view_profile_helper.h"
@@ -80,4 +84,75 @@ void BlinkWebViewProfileHelper::SetNotifierEnabled(const std::string& app_id,
                                                    bool enabled) {
   webos::WebViewProfile::GetDefaultProfile()->SetNotifierEnabled(app_id,
                                                                  enabled);
+}
+
+namespace {
+
+using AppPermission = webos::WebViewProfile::AppPermission;
+using AppPermissionSetting = webos::WebViewProfile::AppPermissionSetting;
+
+std::optional<AppPermission> ToAppPermission(const std::string& name) {
+  if (name == "geolocation")
+    return AppPermission::kGeolocation;
+  if (name == "notifications")
+    return AppPermission::kNotifications;
+  return std::nullopt;
+}
+
+std::optional<AppPermissionSetting> ToAppPermissionSetting(
+    const std::string& name) {
+  if (name == "allow")
+    return AppPermissionSetting::kAllow;
+  if (name == "block")
+    return AppPermissionSetting::kBlock;
+  if (name == "ask")
+    return AppPermissionSetting::kAsk;
+  return std::nullopt;
+}
+
+const char* ToString(AppPermissionSetting setting) {
+  switch (setting) {
+    case AppPermissionSetting::kAllow:
+      return "allow";
+    case AppPermissionSetting::kBlock:
+      return "block";
+    case AppPermissionSetting::kAsk:
+      return "ask";
+  }
+  return "ask";
+}
+
+}  // namespace
+
+std::map<std::string, std::string> BlinkWebViewProfileHelper::GetAppPermissions(
+    const std::string& permission) {
+  std::map<std::string, std::string> result;
+  const std::optional<AppPermission> type = ToAppPermission(permission);
+  if (!type)
+    return result;
+  for (const auto& [app_id, setting] :
+       webos::WebViewProfile::GetDefaultProfile()->GetAppPermissions(*type)) {
+    // A stored "ask" is no decision; leave it out as never asked.
+    if (setting != AppPermissionSetting::kAsk)
+      result.emplace(app_id, ToString(setting));
+  }
+  return result;
+}
+
+void BlinkWebViewProfileHelper::SetAppPermission(const std::string& app_id,
+                                                 const std::string& permission,
+                                                 const std::string& setting) {
+  const std::optional<AppPermission> type = ToAppPermission(permission);
+  const std::optional<AppPermissionSetting> value =
+      ToAppPermissionSetting(setting);
+  if (!type || !value || app_id.empty())
+    return;
+  webos::WebViewProfile::GetDefaultProfile()->SetAppPermission(app_id, *type,
+                                                               *value);
+}
+
+void BlinkWebViewProfileHelper::ResetAppPermissions(
+    const std::string& permission) {
+  if (const std::optional<AppPermission> type = ToAppPermission(permission))
+    webos::WebViewProfile::GetDefaultProfile()->ResetAppPermissions(*type);
 }

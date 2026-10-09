@@ -28,6 +28,7 @@
           "com.webos.service.connectionmanager",
           "com.webos.settingsservice",
           "com.webos.service.config",
+          "com.webos.service.systemservice",
           "com.palm.applicationManager-webappmgr",
           "com.webos.notification",
           "com.webos.lunasend-*",
@@ -49,7 +50,8 @@
       {
         "service":"com.webos.chromium.location*",
         "outbound":[
-            "com.webos.service.location"
+            "com.webos.service.location",
+            "com.webos.service.systemservice"
         ]
       },
       {

@@ -62,6 +62,11 @@ class ApplicationDescription {
 
   const std::string& FolderPath() const { return folder_path_; }
 
+  // Installed with the system image, as SAM decides it from the directory the
+  // app was found in. Unlike trustLevel, an app cannot claim this in its own
+  // appinfo.json: SAM overwrites "systemApp" after reading the file.
+  bool SystemApp() const { return system_app_; }
+
   const std::string& DefaultWindowType() const { return default_window_type_; }
 
   void SetDefaultWindowType(std::string window_type) {
@@ -211,6 +216,7 @@ class ApplicationDescription {
   bool handle_exit_key_ = false;
   bool enable_background_run_ = false;
   bool allow_video_capture_ = false;
+  bool system_app_ = false;
   bool allow_audio_capture_ = false;
   bool supports_audio_guidance_ = false;
   bool use_native_scroll_ = false;

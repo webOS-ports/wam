@@ -1,0 +1,26 @@
+# valgrind suppressions for run-sanitizers.sh.
+#
+# libc++'s basic_filebuf allocates its buffer with new[] and releases it with
+# delete[] inside libc++.so; the delete[] there is not seen as such by
+# memcheck, which reports "Mismatched free()". Not a defect.
+{
+   libcxx-filebuf-delete-array
+   Memcheck:Free
+   fun:free
+   fun:*basic_filebuf*
+}
+# See lsan.supp: the mock factories of BaseMockInitializer are never freed.
+{
+   wam-tests-base-mock-initializer
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Zna*
+   fun:*BaseMockInitializer*
+}
+{
+   wam-tests-base-mock-initializer-new
+   Memcheck:Leak
+   match-leak-kinds: definite
+   fun:_Znw*
+   fun:*BaseMockInitializer*
+}

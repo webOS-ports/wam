@@ -1,0 +1,782 @@
+# static-analysis.sh baseline: tool, file, check, message (digits as N).
+# Regenerate with static-analysis.sh -u after triaging every new entry.
+clang-analyzer	src/platform/web_app_wayland.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-analyzer	src/platform/web_app_wayland.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-analyzer	src/platform/web_app_wayland.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-analyzer	src/platform/web_app_wayland.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-analyzer	src/platform/web_app_wayland.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-analyzer	src/tests/palm_system_blink_test.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-analyzer	src/tests/palm_system_blink_test.cc	optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/core/application_description.cc	bugprone-implicit-widening-of-multiplication-result	performing an implicit widening conversion to type 'const std::streamsize' (aka 'const long') of a multiplication performed in type 'int'
+clang-tidy	src/core/application_description.h	clang-analyzer-optin.performance.Padding	Excessive padding in 'class ApplicationDescription' (N padding bytes, where N is optimal). Optimal fields order: ui_scale_, network_stable_timeout_, id_, title
+clang-tidy	src/core/notification_service.h	misc-non-private-member-variables-in-classes	member variable 'icon_path' has public visibility
+clang-tidy	src/core/notification_service.h	misc-non-private-member-variables-in-classes	member variable 'title' has public visibility
+clang-tidy	src/core/plugin_lib_wrapper.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/core/web_app_base.cc	bugprone-branch-clone	repeated branch body in conditional chain
+clang-tidy	src/core/web_app_base.cc	bugprone-branch-clone	switch has N consecutive identical branches
+clang-tidy	src/core/web_app_base.cc	bugprone-branch-clone	switch has N consecutive identical branches
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'app_desc_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'app_id_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'force_close_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'instance_id_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'keep_alive_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'launching_app_id_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'page_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'parent_' has public visibility
+clang-tidy	src/core/web_app_base.cc	misc-non-private-member-variables-in-classes	member variable 'url_' has public visibility
+clang-tidy	src/core/web_app_base.h	misc-non-private-member-variables-in-classes	member variable 'added_to_window_mgr_' has protected visibility
+clang-tidy	src/core/web_app_base.h	misc-non-private-member-variables-in-classes	member variable 'in_progress_relaunch_launching_app_id_' has protected visibility
+clang-tidy	src/core/web_app_base.h	misc-non-private-member-variables-in-classes	member variable 'in_progress_relaunch_params_' has protected visibility
+clang-tidy	src/core/web_app_base.h	misc-non-private-member-variables-in-classes	member variable 'preload_state_' has protected visibility
+clang-tidy	src/core/web_app_base.h	misc-non-private-member-variables-in-classes	member variable 'scale_factor_' has protected visibility
+clang-tidy	src/core/web_app_base.h	misc-non-private-member-variables-in-classes	member variable 'shown_while_deactivated_' has protected visibility
+clang-tidy	src/core/web_app_base.h	misc-override-with-different-visibility	visibility of function 'CloseCallbackExecuted' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/core/web_app_base.h	misc-override-with-different-visibility	visibility of function 'ClosingAppProcessDidCrashed' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/core/web_app_base.h	misc-override-with-different-visibility	visibility of function 'DidDispatchUnload' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/core/web_app_base.h	misc-override-with-different-visibility	visibility of function 'TimeoutExecuteCloseCallback' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/core/web_app_base.h	misc-override-with-different-visibility	visibility of function 'WebPageClosePageRequested' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/core/web_app_base.h	misc-override-with-different-visibility	visibility of function 'WebPageLoadFinished' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/core/web_app_factory_manager_impl.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/core/web_app_factory_manager_impl.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppFactoryManager *'
+clang-tidy	src/core/web_app_factory_manager_impl.cc	cppcoreguidelines-owning-memory	deleting a pointer through a type that is not marked 'gsl::owner<>'; consider using a smart pointer instead
+clang-tidy	src/core/web_app_manager.cc	cppcoreguidelines-owning-memory	deleting a pointer through a type that is not marked 'gsl::owner<>'; consider using a smart pointer instead
+clang-tidy	src/core/web_app_manager.cc	cppcoreguidelines-owning-memory	initializing non-owner 'WebAppManager *' with a newly created 'gsl::owner<>'
+clang-tidy	src/core/web_app_manager.cc	misc-const-correctness	pointee of variable 'app' of type 'WebAppBase *' can be declared 'const'
+clang-tidy	src/core/web_app_manager.cc	misc-const-correctness	pointee of variable 'app' of type 'WebAppBase *' can be declared 'const'
+clang-tidy	src/core/web_app_manager.cc	misc-const-correctness	pointee of variable 'app' of type 'WebAppBase *' can be declared 'const'
+clang-tidy	src/core/web_app_manager.h	misc-non-private-member-variables-in-classes	member variable 'app_id_' has public visibility
+clang-tidy	src/core/web_app_manager.h	misc-non-private-member-variables-in-classes	member variable 'instance_id_' has public visibility
+clang-tidy	src/core/web_app_manager.h	misc-non-private-member-variables-in-classes	member variable 'pid_' has public visibility
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_app_manager_config.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppManagerConfig::WamGetEnv' during construction bypasses virtual dispatch
+clang-tidy	src/core/web_page_base.h	cert-int09-c	initial values in enum 'WebPageBase::WebPageVisibilityState' are not consistent, consider explicit initialization of all, none or only the first enumerator
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'app_desc_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'app_id_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'default_url_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'did_error_page_loaded_from_net_error_helper_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'enable_background_run_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'instance_id_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'is_closing_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'is_load_error_page_finish_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'is_load_error_page_start_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'launch_params_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'load_error_policy_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'observers_' has protected visibility
+clang-tidy	src/core/web_page_base.h	misc-non-private-member-variables-in-classes	member variable 'suspend_at_load_' has protected visibility
+clang-tidy	src/platform/palm_system_webos.h	misc-non-private-member-variables-in-classes	member variable 'app_' has protected visibility
+clang-tidy	src/platform/palm_system_webos.h	misc-non-private-member-variables-in-classes	member variable 'launch_params_' has protected visibility
+clang-tidy	src/platform/permission_prompt.cc	cppcoreguidelines-owning-memory	initializing non-owner 'std::map<std::string, PermissionPrompt *> *' (aka 'std::map<basic_string<char>, PermissionPrompt *> *') with a newly created 'gsl::owner
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'Int' (aka 'int') to 'float'
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'Int' (aka 'int') to 'float'
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'Int' (aka 'int') to 'float'
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'Int' (aka 'int') to 'float'
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'float' to 'int'
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/platform/web_app_wayland.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppWayland::SetKeyMask' during construction bypasses virtual dispatch
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppWayland::SetWindowProperty' during construction bypasses virtual dispatch
+clang-tidy	src/platform/web_app_wayland.cc	clang-analyzer-optin.cplusplus.VirtualCall	Call to virtual method 'WebAppWayland::SetWindowProperty' during construction bypasses virtual dispatch
+clang-tidy	src/platform/web_app_wayland.cc	misc-use-anonymous-namespace	function 'GetLocationHintFromString' declared 'static', move to anonymous namespace instead
+clang-tidy	src/platform/web_app_wayland.cc	misc-use-anonymous-namespace	function 'IsQuarterTurn' declared 'static', move to anonymous namespace instead
+clang-tidy	src/platform/web_app_wayland.h	cppcoreguidelines-owning-memory	initializing non-owner argument of type 'InputPointer *' with a newly created 'gsl::owner<>'
+clang-tidy	src/platform/web_app_wayland.h	misc-multiple-inheritance	inheriting multiple classes that aren't pure virtual is discouraged
+clang-tidy	src/platform/web_app_wayland.h	misc-non-private-member-variables-in-classes	member variable 'has_pending_state_' has public visibility
+clang-tidy	src/platform/web_app_wayland.h	misc-non-private-member-variables-in-classes	member variable 'in_stage_transition_' has public visibility
+clang-tidy	src/platform/web_app_wayland.h	misc-non-private-member-variables-in-classes	member variable 'pending_state_' has public visibility
+clang-tidy	src/platform/web_app_wayland.h	misc-override-with-different-visibility	visibility of function 'DidResumeDOM' is changed from private (through private inheritance of class 'WebPageBlinkObserver') to public
+clang-tidy	src/platform/web_app_wayland.h	misc-override-with-different-visibility	visibility of function 'DidSwapPageCompositorFrame' is changed from private (through private inheritance of class 'WebPageBlinkObserver') to public
+clang-tidy	src/platform/web_app_wayland.h	misc-override-with-different-visibility	visibility of function 'WebPageLoadFailed' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/platform/web_app_wayland.h	misc-override-with-different-visibility	visibility of function 'WebViewRecreated' is changed from public in class 'WebPageObserver' to protected
+clang-tidy	src/platform/web_app_wayland_window.cc	bugprone-branch-clone	switch has N consecutive identical branches
+clang-tidy	src/platform/web_app_wayland_window.cc	bugprone-narrowing-conversions	narrowing conversion from 'float' to 'int'
+clang-tidy	src/platform/web_app_wayland_window.cc	bugprone-narrowing-conversions	narrowing conversion from 'float' to 'int'
+clang-tidy	src/platform/web_app_wayland_window.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/platform/web_app_wayland_window.cc	bugprone-narrowing-conversions	narrowing conversion from 'unsigned int' to signed type 'key_type' (aka 'int') is implementation-defined
+clang-tidy	src/platform/web_app_wayland_window.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWaylandWindow *'
+clang-tidy	src/platform/web_app_wayland_window.cc	cppcoreguidelines-owning-memory	initializing non-owner 'WebAppWaylandWindow *' with a newly created 'gsl::owner<>'
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'AttachToWindowGroup' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'AttachWebContents' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'CreateWindowGroup' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'DetachWindowGroup' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'DisplayHeight' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'DisplayWidth' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'Event' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'FocusWindowGroupLayer' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'FocusWindowGroupOwner' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'GetWindowHostState' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'Hide' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'InitWindow' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'IsKeyboardVisible' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'PlatformBack' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'RecreatedWebContents' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'Resize' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetCursor' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetFirstActivateTimeoutMs' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetInputRegion' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetKeyMask' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetKeyMask' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetLocationHint' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetOpacity' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetUseVirtualKeyboard' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetWebApp' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetWindowHostState' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'SetWindowProperty' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/web_app_window_impl.h	misc-override-with-different-visibility	visibility of function 'Show' is changed from public in class 'WebAppWindow' to private
+clang-tidy	src/platform/webengine/blink_web_view.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebView *'
+clang-tidy	src/platform/webengine/palm_system_blink.cc	bugprone-branch-clone	repeated branch body in conditional chain
+clang-tidy	src/platform/webengine/palm_system_blink.cc	performance-no-automatic-move	constness of 'device_info' prevents automatic move
+clang-tidy	src/platform/webengine/palm_system_blink.cc	performance-no-automatic-move	constness of 'device_info' prevents automatic move
+clang-tidy	src/platform/webengine/palm_system_blink.cc	performance-no-automatic-move	constness of 'device_info' prevents automatic move
+clang-tidy	src/platform/webengine/web_page_blink.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/platform/webengine/web_page_blink.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/platform/webengine/web_page_blink.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/platform/webengine/web_page_blink.cc	cppcoreguidelines-owning-memory	returning a newly created resource of type 'WebView *' or 'gsl::owner<>' from a function whose return type is not 'gsl::owner<>'
+clang-tidy	src/platform/webengine/web_page_blink.cc	misc-non-private-member-variables-in-classes	member variable 'page_' has public visibility
+clang-tidy	src/platform/webengine/web_page_blink.cc	misc-non-private-member-variables-in-classes	member variable 'page_view_' has public visibility
+clang-tidy	src/platform/webengine/web_page_blink.cc	misc-non-private-member-variables-in-classes	member variable 'palm_system_' has public visibility
+clang-tidy	src/platform/webengine/web_page_blink.h	misc-multiple-inheritance	inheriting multiple classes that aren't pure virtual is discouraged
+clang-tidy	src/platform/webengine/web_page_blink.h	misc-override-with-different-visibility	visibility of function 'HandleBrowserControlCommand' is changed from public in class 'WebPageBlinkDelegate' to protected
+clang-tidy	src/platform/webengine/web_page_blink.h	misc-override-with-different-visibility	visibility of function 'HandleBrowserControlFunction' is changed from public in class 'WebPageBlinkDelegate' to protected
+clang-tidy	src/platform/webengine/web_page_blink.h	misc-override-with-different-visibility	visibility of function 'SuspendWebPagePaintingAndJSExecution' is changed from public in class 'WebPageBase' to protected
+clang-tidy	src/plugin/web_app_factory_luna.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppBase *'
+clang-tidy	src/plugin/web_app_factory_luna.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppBase *'
+clang-tidy	src/plugin/web_app_factory_luna.cc	cppcoreguidelines-owning-memory	deleting a pointer through a type that is not marked 'gsl::owner<>'; consider using a smart pointer instead
+clang-tidy	src/plugin/web_app_factory_luna.cc	cppcoreguidelines-owning-memory	returning a newly created resource of type 'WebAppFactoryInterface *' or 'gsl::owner<>' from a function whose return type is not 'gsl::owner<>'
+clang-tidy	src/plugin/web_app_factory_luna.cc	cppcoreguidelines-owning-memory	returning a newly created resource of type 'WebPageBase *' or 'gsl::owner<>' from a function whose return type is not 'gsl::owner<>'
+clang-tidy	src/testplugin/test_plugin.cc	cppcoreguidelines-owning-memory	deleting a pointer through a type that is not marked 'gsl::owner<>'; consider using a smart pointer instead
+clang-tidy	src/testplugin/test_plugin.cc	cppcoreguidelines-owning-memory	returning a newly created resource of type 'WebAppFactoryInterface *' or 'gsl::owner<>' from a function whose return type is not 'gsl::owner<>'
+clang-tidy	src/tests/application_description_test.cc	bugprone-unchecked-optional-access	unchecked access to optional value
+clang-tidy	src/tests/application_description_test.cc	misc-non-private-member-variables-in-classes	member variable 'application_description_' has public visibility
+clang-tidy	src/tests/application_description_test.cc	misc-override-with-different-visibility	visibility of function 'SetUp' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/close_all_apps_test.cc	cppcoreguidelines-owning-memory	initializing non-owner 'WebAppFactoryManagerMock *' with a newly created 'gsl::owner<>'
+clang-tidy	src/tests/close_all_apps_test.cc	cppcoreguidelines-owning-memory	initializing non-owner 'WebAppWindowFactoryMock *' with a newly created 'gsl::owner<>'
+clang-tidy	src/tests/close_all_apps_test.cc	cppcoreguidelines-owning-memory	initializing non-owner 'WebViewFactoryMock *' with a newly created 'gsl::owner<>'
+clang-tidy	src/tests/device_info_test.cc	misc-non-private-member-variables-in-classes	member variable 'device_info_' has public visibility
+clang-tidy	src/tests/error_page_test.cc	misc-non-private-member-variables-in-classes	member variable 'app_url_' has public visibility
+clang-tidy	src/tests/error_page_test.cc	misc-non-private-member-variables-in-classes	member variable 'current_url_' has public visibility
+clang-tidy	src/tests/error_page_test.cc	misc-non-private-member-variables-in-classes	member variable 'instance_id_' has public visibility
+clang-tidy	src/tests/error_page_test.cc	misc-non-private-member-variables-in-classes	member variable 'mock_initializer_' has public visibility
+clang-tidy	src/tests/error_page_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_delegate_' has public visibility
+clang-tidy	src/tests/error_page_test.cc	misc-override-with-different-visibility	visibility of function 'SetUp' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/error_page_test.cc	misc-override-with-different-visibility	visibility of function 'TearDown' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/get_web_process_size_test.cc	bugprone-narrowing-conversions	narrowing conversion from 'unsigned int' to signed type 'int' is implementation-defined
+clang-tidy	src/tests/launch_app_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/launch_app_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/launch_app_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/launch_app_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWindowFactoryMock *'
+clang-tidy	src/tests/launch_app_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWindowMock *'
+clang-tidy	src/tests/launch_app_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebViewFactoryMock *'
+clang-tidy	src/tests/launch_app_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebViewMock *'
+clang-tidy	src/tests/launch_app_test.cc	misc-non-private-member-variables-in-classes	member variable 'view_url_' has public visibility
+clang-tidy	src/tests/launch_app_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_window_' has public visibility
+clang-tidy	src/tests/launch_app_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_window_factory_' has public visibility
+clang-tidy	src/tests/launch_app_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_' has public visibility
+clang-tidy	src/tests/launch_app_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_delegate_' has public visibility
+clang-tidy	src/tests/launch_app_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_factory_' has public visibility
+clang-tidy	src/tests/launch_app_test.cc	misc-override-with-different-visibility	visibility of function 'SetUp' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/launch_app_test.cc	misc-override-with-different-visibility	visibility of function 'TearDown' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/list_running_apps_test.cc	cert-msc30-c,cert-msc50-cpp,misc-predictable-rand	rand() has limited randomness; use C++N random library instead
+clang-tidy	src/tests/list_running_apps_test.cc	cert-msc30-c,cert-msc50-cpp,misc-predictable-rand	rand() has limited randomness; use C++N random library instead
+clang-tidy	src/tests/list_running_apps_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/list_running_apps_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/mocks/web_app_base_mock.h	misc-override-with-different-visibility	visibility of function 'DoAttach' is changed from protected in class 'WebAppBase' to public
+clang-tidy	src/tests/mocks/web_app_factory_manager_mock.cc	cppcoreguidelines-owning-memory	returning a newly created resource of type 'WebAppBase *' or 'gsl::owner<>' from a function whose return type is not 'gsl::owner<>'
+clang-tidy	src/tests/palm_system_blink_test.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/tests/palm_system_blink_test.cc	clang-analyzer-optin.core.EnumCastOutOfRange	The value 'N' provided to the cast expression is not in the valid range of values for 'WebOSKeyMask'
+clang-tidy	src/tests/palm_system_blink_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWindowFactoryMock *'
+clang-tidy	src/tests/palm_system_blink_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWindowMock *'
+clang-tidy	src/tests/palm_system_blink_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebViewFactoryMock *'
+clang-tidy	src/tests/palm_system_blink_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebViewMock *'
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'view_url_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_window_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_window_factory_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_delegate_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_factory_' has public visibility
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-override-with-different-visibility	visibility of function 'SetUp' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/palm_system_blink_test.cc	misc-override-with-different-visibility	visibility of function 'TearDown' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/touch_event_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWindowFactoryMock *'
+clang-tidy	src/tests/touch_event_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebAppWindowMock *'
+clang-tidy	src/tests/touch_event_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebViewFactoryMock *'
+clang-tidy	src/tests/touch_event_test.cc	cppcoreguidelines-owning-memory	assigning newly created 'gsl::owner<>' to non-owner 'WebViewMock *'
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'view_url_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_window_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_app_window_factory_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_delegate_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_factory_' has public visibility
+clang-tidy	src/tests/touch_event_test.cc	misc-override-with-different-visibility	visibility of function 'SetUp' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/touch_event_test.cc	misc-override-with-different-visibility	visibility of function 'TearDown' is changed from protected in class 'Test' to public
+clang-tidy	src/tests/web_app_manager_config_test.cc	misc-non-private-member-variables-in-classes	member variable 'config_with_no_variables_' has public visibility
+clang-tidy	src/tests/web_app_manager_config_test.cc	misc-non-private-member-variables-in-classes	member variable 'config_with_set_variables_' has public visibility
+clang-tidy	src/tests/web_page_blink_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/web_page_blink_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/web_page_blink_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/web_page_blink_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/web_page_blink_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/web_page_blink_test.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/tests/web_page_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'description' has public visibility
+clang-tidy	src/tests/web_page_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'factory' has public visibility
+clang-tidy	src/tests/web_page_blink_test.cc	misc-non-private-member-variables-in-classes	member variable 'web_view_' has public visibility
+clang-tidy	src/tests/web_page_blink_test.cc	misc-override-with-different-visibility	visibility of function 'SetUp' is changed from protected in class 'Test' to public
+clang-tidy	src/util/log_manager.cc	misc-use-anonymous-namespace	variable 'debug_bundle_messages_enable' declared 'static', move to anonymous namespace instead
+clang-tidy	src/util/log_manager.cc	misc-use-anonymous-namespace	variable 'debug_events_enable' declared 'static', move to anonymous namespace instead
+clang-tidy	src/util/log_manager.cc	misc-use-anonymous-namespace	variable 'debug_mouse_move_enable' declared 'static', move to anonymous namespace instead
+clang-tidy	src/util/timer.cc	bugprone-narrowing-conversions	narrowing conversion from 'guint' (aka 'unsigned int') to signed type 'int' is implementation-defined
+clang-tidy	src/util/timer.cc	cppcoreguidelines-owning-memory	deleting a pointer through a type that is not marked 'gsl::owner<>'; consider using a smart pointer instead
+clang-tidy	src/util/timer.h	cppcoreguidelines-owning-memory	initializing non-owner 'SingleShotTimer<Receiver> *' with a newly created 'gsl::owner<>'
+clang-tidy	src/util/timer.h	portability-template-virtual-member-function	unspecified virtual member function instantiation; the virtual member function is not instantiated but it might be with a different compiler
+clang-tidy	src/util/utils.cc	bugprone-narrowing-conversions	narrowing conversion from 'long long' to signed type 'int' is implementation-defined
+clang-tidy	src/util/utils.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/util/web_app_manager_utils.cc	bugprone-narrowing-conversions	narrowing conversion from 'ssize_t' (aka 'long') to signed type 'int' is implementation-defined
+clang-tidy	src/util/web_app_manager_utils.cc	bugprone-narrowing-conversions	narrowing conversion from 'unsigned long' to signed type 'long' is implementation-defined
+clang-tidy	src/util/web_app_manager_utils.cc	bugprone-narrowing-conversions	narrowing conversion from 'unsigned long' to signed type 'long' is implementation-defined
+clang-tidy	src/util/web_app_manager_utils.cc	bugprone-narrowing-conversions	narrowing conversion from 'unsigned long' to signed type 'long' is implementation-defined
+clang-tidy	src/util/web_app_manager_utils.cc	bugprone-narrowing-conversions	narrowing conversion from 'unsigned long' to signed type 'long' is implementation-defined
+clang-tidy	src/util/web_app_manager_utils.cc	misc-const-correctness	pointee of variable 'dp' of type 'long *' can be declared 'const'
+clang-tidy	src/wam_main.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/wam_main.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/wam_main.cc	concurrency-mt-unsafe	function is not thread safe
+clang-tidy	src/wam_main.cc	misc-use-anonymous-namespace	function 'ChangeUserIDGroupID' declared 'static', move to anonymous namespace instead
+clang-tidy	src/wam_main.cc	misc-use-anonymous-namespace	function 'StartWebAppManager' declared 'static', move to anonymous namespace instead
+clang-tidy	src/webos/device_info_impl.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/webos/device_info_impl.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/webos/device_info_impl.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/webos/device_info_impl.cc	bugprone-narrowing-conversions	narrowing conversion from 'int' to 'float'
+clang-tidy	src/webos/device_info_impl.cc	bugprone-unchecked-string-to-number-conversion,cert-err34-c	'sscanf' used to convert a string to an integer value, but function will not report conversion errors; consider using 'strtol' instead
+clang-tidy	src/webos/device_info_impl.cc	misc-const-correctness	variable 'code' of type 'unsigned int' can be declared 'const'
+clang-tidy	src/webos/notification_service_luna.cc	cppcoreguidelines-owning-memory	initializing non-owner 'NotificationServiceLuna *' with a newly created 'gsl::owner<>'
+clang-tidy	src/webos/notification_service_luna.h	misc-override-with-different-visibility	visibility of function 'Methods' is changed from protected in class 'PalmServiceBase' to public
+clang-tidy	src/webos/notification_service_luna.h	misc-override-with-different-visibility	visibility of function 'ServiceName' is changed from protected in class 'PalmServiceBase' to public
+clang-tidy	src/webos/palm_service_base.h	misc-non-private-member-variables-in-classes	member variable 'func_' has protected visibility
+clang-tidy	src/webos/palm_service_base.h	misc-non-private-member-variables-in-classes	member variable 'service_handle_' has protected visibility
+clang-tidy	src/webos/plugin_service_luna.h	misc-multiple-inheritance	inheriting multiple classes that aren't pure virtual is discouraged
+clang-tidy	src/webos/web_app_manager_service_luna.cc	bugprone-narrowing-conversions	narrowing conversion from 'uintN_t' (aka 'unsigned int') to signed type 'int' is implementation-defined
+clang-tidy	src/webos/web_app_manager_service_luna.cc	bugprone-unchecked-string-to-number-conversion,cert-err34-c	'atoi' used to convert a string to an integer value, but function will not report conversion errors; consider using 'strtol' instead
+clang-tidy	src/webos/web_app_manager_service_luna.h	misc-multiple-inheritance	inheriting multiple classes that aren't pure virtual is discouraged
+cppcheck	src/core/application_description.cc	style/functionConst	Technically the member function 'ApplicationDescription::GetWindowClientInfo' can be const.
+cppcheck	src/core/application_description.cc	style/functionConst	Technically the member function 'ApplicationDescription::GetWindowGroupInfo' can be const.
+cppcheck	src/core/application_description.cc	style/functionConst	Technically the member function 'ApplicationDescription::GetWindowOwnerInfo' can be const.
+cppcheck	src/core/application_description.cc	style/functionStatic	The member function 'ApplicationDescription::CheckTrustLevel' can be static.
+cppcheck	src/core/plugin_service.cc	style/functionStatic	The member function 'PlugInService::FindAppById' can be static.
+cppcheck	src/core/plugin_service.cc	style/functionStatic	The member function 'PlugInService::FindAppByInstanceId' can be static.
+cppcheck	src/core/plugin_service.cc	style/functionStatic	The member function 'PlugInService::GetActiveInstanceId' can be static.
+cppcheck	src/core/plugin_service.cc	style/functionStatic	The member function 'PlugInService::RunningApps' can be static.
+cppcheck	src/core/web_app_base.cc	style/functionConst	Technically the member function 'WebAppBase::DispatchUnload' can be const.
+cppcheck	src/core/web_app_base.cc	style/functionConst	Technically the member function 'WebAppBase::ForceClose' can be const.
+cppcheck	src/core/web_app_base.cc	style/functionConst	Technically the member function 'WebAppBase::ServiceCall' can be const.
+cppcheck	src/core/web_app_base.cc	style/functionConst	Technically the member function 'WebAppBase::SetUseAccessibility' can be const.
+cppcheck	src/core/web_app_base.cc	style/functionStatic	The member function 'WebAppBase::IsCheckLaunchTimeEnabled' can be static.
+cppcheck	src/core/web_app_base.cc	style/functionStatic	The member function 'WebAppBase::ServiceCall' can be static.
+cppcheck	src/core/web_app_base.cc	style/functionStatic	The member function 'WebAppBase::SetActiveInstanceId' can be static.
+cppcheck	src/core/web_app_base.cc	style/functionStatic	The member function 'WebAppBase::SetUiSize' can be static.
+cppcheck	src/core/web_app_base.h	performance/returnByReference	Function 'AppId()' should return member 'app_id_' by const reference.
+cppcheck	src/core/web_app_base.h	performance/returnByReference	Function 'InstanceId()' should return member 'instance_id_' by const reference.
+cppcheck	src/core/web_app_base.h	performance/returnByReference	Function 'LaunchingAppId()' should return member 'launching_app_id_' by const reference.
+cppcheck	src/core/web_app_base.h	performance/returnByReference	Function 'Url()' should return member 'url_' by const reference.
+cppcheck	src/core/web_app_base.h	style/functionConst	Technically the member function 'WebAppBase::NeedReload' can be const.
+cppcheck	src/core/web_app_factory_manager_impl.cc	performance/useInitializationList	Variable 'factory_env_' is assigned in constructor body. Consider performing initialization in initialization list.
+cppcheck	src/core/web_app_factory_manager_impl.cc	style/constVariablePointer	Variable 'entry' can be declared as pointer to const
+cppcheck	src/core/web_app_manager.cc	performance/redundantCopyLocalConst	Use const reference for 'type' to avoid unnecessary data copying.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_app_manager.cc	style/constParameterPointer	Parameter 'app' can be declared as pointer to const
+cppcheck	src/core/web_app_manager.cc	style/constVariablePointer	Variable 'app' can be declared as pointer to const
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::CurrentUiHeight' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::CurrentUiWidth' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::GetDeviceInfo' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::GetSystemLanguage' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::RunningApps' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::RunningApps' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::SendEventToAllAppsAndAllFrames' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionConst	Technically the member function 'WebAppManager::SetInspectorEnable' can be const.
+cppcheck	src/core/web_app_manager.cc	style/functionStatic	The member function 'WebAppManager::AppInstalled' can be static.
+cppcheck	src/core/web_app_manager.cc	style/functionStatic	The member function 'WebAppManager::AppRemoved' can be static.
+cppcheck	src/core/web_app_manager.cc	style/functionStatic	The member function 'WebAppManager::GenerateInstanceId' can be static.
+cppcheck	src/core/web_app_manager.cc	style/functionStatic	The member function 'WebAppManager::IdentifierForSecurityOrigin' can be static.
+cppcheck	src/core/web_app_manager.cc	style/functionStatic	The member function 'WebAppManager::Quit' can be static.
+cppcheck	src/core/web_app_manager.cc	style/functionStatic	The member function 'WebAppManager::WindowTypeFromString' can be static.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::any_of algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::any_of algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::copy algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::copy_if algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::copy_if algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::find_if algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.cc	style/useStlAlgorithm	Consider using std::find_if algorithm instead of a raw loop.
+cppcheck	src/core/web_app_manager.h	performance/returnByReference	Function 'GetActiveInstanceId()' should return member 'active_instance_id_' by const reference.
+cppcheck	src/core/web_app_manager.h	style/functionConst	Technically the member function 'WebAppManager::GetSuspendDelay' can be const.
+cppcheck	src/core/web_app_manager_config.h	style/virtualCallInConstructor	Virtual function 'WamGetEnv' is called from constructor 'WebAppManagerConfig()' at line N. Dynamic binding is not used.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::GetSystemLanguage' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::GetWebProcessId' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::GetWebProcessProfiling' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::IsEnyoApp' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::List' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::MaskForBrowsingDataType' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::NotifyMemoryPressure' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnAppInstalled' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnAppRemoved' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnClearBrowsingData' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnCloseAllApps' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnKillApp' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnLaunch' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnLogControl' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::OnPauseApp' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::RunningApps' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::RunningApps' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetAccessibilityEnabled' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetAppShownWhileDeactivated' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetDeviceInfo' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetDisplayRotation' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetForceCloseApp' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetOrientation' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetSystemLanguage' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::SetUiSize' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::UpdateNetworkStatus' can be static.
+cppcheck	src/core/web_app_manager_service.cc	style/functionStatic	The member function 'WebAppManagerService::UpdateNotificationPermission' can be static.
+cppcheck	src/core/web_page_base.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/core/web_page_base.cc	style/functionConst	Technically the member function 'WebPageBase::PostWebProcessCreated' can be const.
+cppcheck	src/core/web_page_base.cc	style/functionConst	Technically the member function 'WebPageBase::ProcessCrashed' can be const.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::CurrentUiHeight' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::CurrentUiWidth' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::GetDeviceInfo' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::GetSystemLanguage' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::GetWebAppManagerConfig' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::GetWebProcessManager' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::IsAccessibilityEnabled' can be static.
+cppcheck	src/core/web_page_base.cc	style/functionStatic	The member function 'WebPageBase::PostRunningAppList' can be static.
+cppcheck	src/core/web_page_base.h	performance/returnByReference	Function 'LaunchParams()' should return member 'launch_params_' by const reference.
+cppcheck	src/core/web_page_base.h	style/functionConst	Technically the member function 'WebPageBase::GetAppDescription' can be const.
+cppcheck	src/core/web_page_base.h	style/functionConst	Technically the member function 'WebPageBase::IsClosing' can be const.
+cppcheck	src/core/web_page_observer.cc	style/constParameterPointer	Parameter 'page' can be declared as pointer to const
+cppcheck	src/core/web_process_manager.cc	style/functionStatic	The member function 'WebProcessManager::FindAppByInstanceId' can be static.
+cppcheck	src/core/web_process_manager.cc	style/functionStatic	The member function 'WebProcessManager::RunningApps' can be static.
+cppcheck	src/platform/web_app_wayland.cc	style/functionConst	Technically the member function 'WebAppWayland::NotifyStageChange' can be const.
+cppcheck	src/platform/web_app_wayland.cc	style/functionConst	Technically the member function 'WebAppWayland::SendWebOSMouseEvent' can be const.
+cppcheck	src/platform/web_app_wayland.cc	style/functionConst	Technically the member function 'WebAppWayland::StateAboutToChange' can be const.
+cppcheck	src/platform/web_app_wayland.cc	style/unreadVariable	Variable 'client_info' is assigned a value that is never used.
+cppcheck	src/platform/web_app_wayland.cc	style/useStlAlgorithm	Consider using std::any_of, std::all_of, std::none_of, or std::accumulate algorithm instead of a raw loop.
+cppcheck	src/platform/web_app_wayland.cc	style/useStlAlgorithm	Consider using std::transform algorithm instead of a raw loop.
+cppcheck	src/platform/web_app_wayland.h	performance/returnByReference	Function 'GetWindowType()' should return member 'window_type_' by const reference.
+cppcheck	src/platform/web_app_wayland.h	style/functionStatic	The member function 'WebAppWayland::CursorVisibility' can be static.
+cppcheck	src/platform/web_app_wayland.h	style/virtualCallInConstructor	Virtual function 'SetWindowProperty' is called from constructor 'WebAppWayland(const std::string&type,WebAppWaylandWindow*window,std::optional<int>width=std::nu
+cppcheck	src/platform/web_app_wayland.h	style/virtualCallInConstructor	Virtual function 'SetWindowProperty' is called from constructor 'WebAppWayland(const std::string&type,std::optional<int>width=std::nullopt,std::optional<int>hei
+cppcheck	src/platform/web_app_wayland.h	style/virtualCallInConstructor	Virtual function 'SetWindowProperty' is called from constructor 'WebAppWayland(const std::string&type,std::unique_ptr<WebAppWindowFactory>factory,std::optional<
+cppcheck	src/platform/web_app_wayland_window.cc	style/functionStatic	Either there is a missing 'override', or the member function 'WebAppWaylandWindow::PlatformBack' can be static.
+cppcheck	src/platform/web_app_wayland_window.cc	style/unreadVariable	Variable 'scale' is assigned a value that is never used.
+cppcheck	src/platform/web_app_wayland_window.cc	style/unreadVariable	Variable 'scale' is assigned a value that is never used.
+cppcheck	src/platform/web_app_wayland_window.cc	style/variableScope	The scope of the variable 'scale' can be reduced.
+cppcheck	src/platform/webengine/blink_web_view.h	style/functionConst	Either there is a missing 'override', or the member function 'BlinkWebView::Progress' can be const.
+cppcheck	src/platform/webengine/palm_system_blink.cc	style/constVariablePointer	Variable 'page' can be declared as pointer to const
+cppcheck	src/platform/webengine/palm_system_blink.h	style/functionConst	Technically the member function 'PalmSystemBlink::IsInitialized' can be const.
+cppcheck	src/platform/webengine/web_page_blink.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/platform/webengine/web_page_blink.cc	style/funcArgNamesDifferent	Function 'WebPageBlink' argument N names different: declaration 'launch_params' definition 'params'.
+cppcheck	src/platform/webengine/web_page_blink.cc	style/funcArgNamesDifferent	Function 'WebPageBlink' argument N names different: declaration 'launch_params' definition 'params'.
+cppcheck	src/platform/webengine/web_page_blink.cc	style/functionStatic	The member function 'WebPageBlink::EscapeData' can be static.
+cppcheck	src/platform/webengine/web_page_blink.h	performance/returnByReference	Function 'TrustLevel()' should return member 'trust_level_' by const reference.
+cppcheck	src/tests/device_info_test.cc	style/unusedStructMember	class member 'DeviceInfoTest::device_info_' is never used.
+cppcheck	src/tests/launch_app_test.cc	style/constVariablePointer	Variable 'actual_value' can be declared as pointer to const
+cppcheck	src/tests/mocks/web_app_base_mock.h	style/uselessOverride	The function 'IsKeyboardVisible' overrides a function in a base class but is identical to the overridden function
+cppcheck	src/tests/mocks/web_app_base_mock.h	style/uselessOverride	The function 'StartLaunchTimer' overrides a function in a base class but is identical to the overridden function
+cppcheck	src/tests/mocks/web_app_base_mock.h	style/uselessOverride	The function 'WebPageLoadFailed' overrides a function in a base class but is identical to the overridden function
+cppcheck	src/tests/web_page_blink_test.cc	style/constVariablePointer	Variable 'actual_value' can be declared as pointer to const
+cppcheck	src/util/bcp47.h	performance/returnByReference	Function 'Language()' should return member 'language_' by const reference.
+cppcheck	src/util/bcp47.h	performance/returnByReference	Function 'Region()' should return member 'region_' by const reference.
+cppcheck	src/util/bcp47.h	performance/returnByReference	Function 'Script()' should return member 'script_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'DnsN()' should return member 'dnsN_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'DnsN()' should return member 'dnsN_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'Gateway()' should return member 'gateway_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'GetInformation()' should return member 'information_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'InterfaceName()' should return member 'interface_name_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'IpAddress()' should return member 'ip_address_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'Method()' should return member 'method_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'Netmask()' should return member 'netmask_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'OnInternet()' should return member 'on_internet_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'SavedDate()' should return member 'saved_date_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'State()' should return member 'state_' by const reference.
+cppcheck	src/util/network_status.h	performance/returnByReference	Function 'Type()' should return member 'type_' by const reference.
+cppcheck	src/util/network_status.h	style/functionConst	Technically the member function 'NetworkStatus::IsInternetConnectionAvailable' can be const.
+cppcheck	src/util/network_status_manager.cc	style/funcArgNamesDifferent	Function 'CheckInformationChange' argument N names different: declaration 'information' definition 'info'.
+cppcheck	src/util/observer_list.h	style/functionConst	Technically the member function 'ObserverList < WebPageObserver >::Size' can be const.
+cppcheck	src/util/timer.h	style/functionConst	Technically the member function 'Timer::IsRepeating' can be const.
+cppcheck	src/util/timer.h	style/functionConst	Technically the member function 'Timer::IsRunning' can be const.
+cppcheck	src/util/url.h	performance/returnByReference	Function 'Fragment()' should return member 'fragment_' by const reference.
+cppcheck	src/util/url.h	performance/returnByReference	Function 'Host()' should return member 'host_' by const reference.
+cppcheck	src/util/url.h	performance/returnByReference	Function 'Path()' should return member 'path_' by const reference.
+cppcheck	src/util/url.h	performance/returnByReference	Function 'Port()' should return member 'port_' by const reference.
+cppcheck	src/util/url.h	performance/returnByReference	Function 'Query()' should return member 'query_' by const reference.
+cppcheck	src/util/url.h	performance/returnByReference	Function 'Scheme()' should return member 'scheme_' by const reference.
+cppcheck	src/util/web_app_manager_utils.cc	style/constParameterPointer	Parameter 'now' can be declared as pointer to const
+cppcheck	src/util/web_app_manager_utils.cc	style/constParameterReference	Parameter 'str' can be declared as reference to const
+cppcheck	src/wam_main.cc	portability/getgrnamCalled	Non reentrant function 'getgrnam' called. For threadsafe applications it is recommended to use the reentrant replacement function 'getgrnam_r'.
+cppcheck	src/wam_main.cc	portability/getpwnamCalled	Non reentrant function 'getpwnam' called. For threadsafe applications it is recommended to use the reentrant replacement function 'getpwnam_r'.
+cppcheck	src/webos/device_info_impl.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/device_info_impl.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/device_info_impl.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/device_info_impl.cc	style/duplicateValueTernary	Same value in both branches of ternary operator.
+cppcheck	src/webos/device_info_impl.cc	style/functionStatic	The member function 'DeviceInfoImpl::GetInfoFromLunaPrefs' can be static.
+cppcheck	src/webos/device_info_impl.cc	style/useStlAlgorithm	Consider using std::count_if algorithm instead of a raw loop.
+cppcheck	src/webos/notification_service_luna.cc	warning/duplInheritedMember	The class 'NotificationServiceLuna' defines member function with name 'Instance' also defined in its parent class 'NotificationService'.
+cppcheck	src/webos/notification_service_luna.h	warning/duplInheritedMember	The class 'NotificationServiceLuna' defines member function with name 'Instance' also defined in its parent class 'NotificationService'.
+cppcheck	src/webos/palm_service_base.cc	style/functionConst	Technically the member function 'PalmServiceBase::Call' can be const.
+cppcheck	src/webos/palm_service_base.cc	style/functionStatic	The member function 'PalmServiceBase::Call' can be static.
+cppcheck	src/webos/platform_module_factory_impl.cc	style/functionStatic	The member function 'PlatformModuleFactoryImpl::PrepareRenderingContext' can be static.
+cppcheck	src/webos/web_app_manager_service_luna.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna.cc	style/functionStatic	The member function 'WebAppManagerServiceLuna::IsValidInstanceId' can be static.
+cppcheck	src/webos/web_app_manager_service_luna.cc	style/unreadVariable	Variable 'app_id' is assigned a value that is never used.
+cppcheck	src/webos/web_app_manager_service_luna.cc	style/unreadVariable	Variable 'doc' is assigned a value that is never used.
+cppcheck	src/webos/web_app_manager_service_luna_impl.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna_impl.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+cppcheck	src/webos/web_app_manager_service_luna_impl.cc	performance/stlcstrParam	Passing the result of c_str() to a function that takes std::string as argument no. N is slow and redundant.
+flawfinder	src/core/application_description.cc	level1/read	
+flawfinder	src/core/web_app_manager_config.cc	level4/access	
+flawfinder	src/core/web_app_manager_config.cc	level4/access	
+flawfinder	src/tests/launch_app_test.cc	level3/getenv	
+flawfinder	src/tests/web_page_blink_test.cc	level3/getenv	
+flawfinder	src/tests/web_page_blink_test.cc	level3/getenv	
+flawfinder	src/util/utils.cc	level3/getenv	
+flawfinder	src/util/web_app_manager_utils.cc	level1/read	
+flawfinder	src/util/web_app_manager_utils.cc	level1/strlen	
+flawfinder	src/util/web_app_manager_utils.cc	level2/open	
+flawfinder	src/webos/device_info_impl.cc	level1/strlen	
+flawfinder	src/webos/web_app_manager_service_luna.cc	level2/atoi	
+gcc-O0	src/core/application_description.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/application_description.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/application_description.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/plugin_loader.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/plugin_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/plugin_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_factory_manager_impl.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/core/web_app_factory_manager_impl.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/core/web_app_factory_manager_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::For
+gcc-O0	src/core/web_app_manager.cc	analysis-error	analyzer ran out of memory (cap NG)
+gcc-O0	src/core/web_app_manager.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_page_base.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/core/web_process_manager.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/palm_system_webos.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/palm_system_webos.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/palm_system_webos.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/web_app_wayland.cc	analysis-error	analyzer ran out of memory (cap NG)
+gcc-O0	src/platform/web_app_wayland.h	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O0	src/platform/web_app_wayland.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/web_app_wayland_window.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/platform/web_app_wayland_window.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/platform/webengine/blink_web_process_manager.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/blink_web_view.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/platform/webengine/blink_web_view.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = PalmSystemBlink::AddBannerMessage (this_N(D), &msg, &params, &i
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/web_page_blink.cc	analysis-error	timed out after Ns
+gcc-O0	src/platform/webengine/web_page_blink.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/plugin/web_app_factory_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/plugin/web_app_factory_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/plugin/web_app_factory_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/testplugin/test_plugin.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/testplugin/test_plugin.cc	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O0	src/util/bcp47.cc	analysis-error	analyzer ran out of memory (cap NG)
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/network_status.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/url.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/url.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/utils.cc	analysis-error	analyzer ran out of memory (cap NG)
+gcc-O0	src/util/web_app_manager_utils.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/util/web_app_manager_utils.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/device_info_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/notification_service_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O0	src/webos/notification_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna_impl.cc	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O0	src/webos/web_app_manager_service_luna_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in ApplicationDescription::FromJsonString)] before (SN: N stmt: N):  if (_N =
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  MEM[(struct ApplicationDescription *)_N].disallow_scrolling_in_main_fra
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  MEM[(struct ApplicationDescription *)_N].supports_audio_guidance_ = ift
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  MEM[(struct ApplicationDescription *)_N].use_native_scroll_ = iftmp.N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  MEM[(struct ApplicationDescription *)_N].use_prerendering_ = iftmp.N_N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  MEM[(struct ApplicationDescription *)_N].use_virtual_keyboard_ = iftmp.
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  MEM[(struct ApplicationDescription *)_N].window_class_value_ = class_va
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = &MEM[(struct ApplicationDescription *)_N].trust_level_;EN: N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::isMember (&json_obj, "webAppPermissions");EN: N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::operator[] (&json_obj, "class");EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::operator[] (&json_obj, "id");EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::operator[] (&json_obj, "keyFilterTable");EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::operator[] (&json_obj, "useNativeScroll");EN: N-
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::type (network_stable_timeout_N);EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = Json::Value::type (ui_scale_N);EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  delay_ms_for_launch_optimization_N = Json::Value::operator[] (&json_ob
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N != N)EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N == N)EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  location_hint_N = Json::Value::operator[] (&json_obj, "locationHint");E
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  resolution_N = Json::Value::operator[] (&json_obj, "resolution");EN: N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  retval.N_N = Json::Value::isMember (&json_obj, "networkStableTimeout
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  retval.N_N = Json::Value::isMember (&json_obj, "splashDismissTimeout
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  retval.N_N = Json::Value::isMember (&json_obj, "uiScale");EN: N-N
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  suspend_dom_time_N = Json::Value::operator[] (&json_obj, "suspendDOMTi
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  use_unlimited_media_policy_N = Json::Value::operator[] (&json_obj, "us
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  use_video_decode_accelerator_N = Json::Value::operator[] (&json_obj, "
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  vN_extra_flags_N = Json::Value::operator[] (&json_obj, "vNExtraFlags");
+gcc-O2	src/core/application_description.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  vN_snapshot_file_N = Json::Value::operator[] (&json_obj, "vNSnapshotFil
+gcc-O2	src/core/application_description.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/application_description.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/application_description.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in ApplicationDescription::~ApplicationDescription)] before (SN: N stmt: N):  *t
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in ApplicationDescription::~ApplicationDescription)] before (SN: N stmt: N):  *t
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in ApplicationDescription::~ApplicationDescription)] before (SN: N stmt: N):  *t
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in ApplicationDescription::~ApplicationDescription)] before (SN: N stmt: N):  *th
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebPageBlink::CreateWindow)] before (SN: N stmt: N):  _N = &this_N(D)->grou
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/core/application_description.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = &this_N(D)->group_window_desc_;EN: N-N
+gcc-O2	src/core/application_description.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/device_info.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in DeviceInfoImpl::~DeviceInfoImpl), (SN: N -> SN: N in DeviceInfoImpl::~Devi
+gcc-O2	src/core/device_info.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in DeviceInfoImpl::~DeviceInfoImpl)] before (SN: N stmt: N):  *this_N(D) ={v} 
+gcc-O2	src/core/notification_service.h	-Wanalyzer-malloc-leak	leak of ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/notification_service.h	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘__begin’ [CWE-N]
+gcc-O2	src/core/palm_system_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/palm_system_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/palm_system_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/palm_system_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/palm_system_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_lib_wrapper.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_lib_wrapper.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_lib_wrapper.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_lib_wrapper.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_loader.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_loader.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/plugin_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_base.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_factory_manager_impl.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppFactoryManagerImpl::~WebAppFactoryManagerImpl)] before (SN: N stmt: N):
+gcc-O2	src/core/web_app_factory_manager_impl.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/core/web_app_factory_manager_impl.cc	analysis-error	timed out after Ns
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAllApps), (SN: N -> SN: N in WebAppManager::ForceCl
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::CloseAppInternal)] before (SN: N stmt: N):  if (__j$__node_
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::ForceCloseAppInternal), (SN: N -> SN: N in WebAppManager
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::IsRunningApp)] before (SN: N stmt: N):  if (_N != SR.N_N
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::NotifyMemoryPressure)] before (SN: N stmt: N):  if (_N != S
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::OnKillApp), (SN: N -> SN: N in WebAppManager::CloseAppIn
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::OnKillApp), (SN: N -> SN: N in WebAppManager::ForceClose
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::ProcessCrashed), (SN: N -> SN: N in WebAppManager::Close
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebAppManager::SetForceCloseApp), (SN: N -> SN: N in WebAppManager::For
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (&MEM[(const struct __list_imp *)&running_apps].__end_ != it$__ptr__N
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (SR.N_N != _N)EN: N-N, EN: N, EN: N, EN: N
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N != SR.N_N)EN: N, EN: N, EN: N, EN: N, EN
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N != SR.N_N)EN: N, EN: N, EN: N, EN: N, EN
+gcc-O2	src/core/web_app_manager.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N != SR.N_N)EN: N, EN: N, EN: N, EN: N, EN:
+gcc-O2	src/core/web_app_manager.cc	analysis-error	timed out after Ns
+gcc-O2	src/core/web_app_manager.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_config.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_app_manager_service.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebPageBase::UpdateIsLoadErrorPageFinish)] before (SN: N stmt: N):  D.N
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in WebPageBase::UpdateIsLoadErrorPageFinish)] before (SN: N stmt: N):  _N = th
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  D.N ={v} {CLOBBER(eos)};EN: N-N
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = this_N(D)->_vptr.WebPageBase;EN: N-N
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_page_base.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_page_base.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_process_manager.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_process_manager.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/core/web_process_manager.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/palm_system_webos.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/palm_system_webos.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/palm_system_webos.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/palm_system_webos.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/permission_prompt.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in PermissionPrompt::PermissionPrompt), (SN: N -> SN: N in PermissionPrompt::S
+gcc-O2	src/platform/permission_prompt.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in PermissionPrompt::SetDecisions), (SN: N -> SN: N in PermissionPrompt::Show)
+gcc-O2	src/platform/platform_factory.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/platform_factory.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/web_app_wayland.h	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O2	src/platform/web_app_wayland.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/web_app_wayland_window.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/platform/web_app_wayland_window.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/platform/webengine/blink_web_process_manager.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/blink_web_view.cc	-Wanalyzer-malloc-leak	leak of ‘operator new(N)’ [CWE-N]
+gcc-O2	src/platform/webengine/blink_web_view.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/platform/webengine/blink_web_view.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/platform/webengine/blink_web_view.cc	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in PalmSystemBlink::HandleBrowserControlMessage)] before (SN: N stmt: N):  curr
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = PalmSystemBlink::AddBannerMessage (this_N(D), &msg, &params, &i
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/palm_system_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N != SR.N_N)EN: N-N, EN: N, EN: N, EN: N
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N != SR.N_N)EN: N-N, EN: N, EN: N, EN: N
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  wam::Url::Url (&new_wam_url, new_url_N(D));EN: N-N
+gcc-O2	src/platform/webengine/web_page_blink.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/web_page_blink.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/platform/webengine/web_view_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/plugin/web_app_factory_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/plugin/web_app_factory_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/testplugin/test_plugin.cc	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O2	src/util/bcp47.cc	analysis-error	analyzer ran out of memory (cap NG)
+gcc-O2	src/util/log_manager_pmlog.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  _N = GetWAMPmLogContext ();EN: N-N
+gcc-O2	src/util/network_status.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in NetworkStatus::~NetworkStatus)] before (SN: N stmt: N):  *this_N(D) ={v} 
+gcc-O2	src/util/network_status.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in NetworkStatusManager::~NetworkStatusManager), (SN: N -> SN: N in Network
+gcc-O2	src/util/network_status.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in NetworkStatusManager::~NetworkStatusManager)] before (SN: N stmt: N):  *thi
+gcc-O2	src/util/network_status.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/util/network_status.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/util/url.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/util/url.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/util/url.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/util/url.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/util/url.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/util/url.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  *this_N(D) ={v} {CLOBBER(eob)};EN: N-N
+gcc-O2	src/util/utils.cc	analysis-error	analyzer ran out of memory (cap NG)
+gcc-O2	src/util/web_app_manager_utils.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  if (_N == N)EN: N, EN: N-N, EN: N-N, EN: N-N,
+gcc-O2	src/util/web_app_manager_utils.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/util/web_app_manager_utils.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/device_info_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/notification_service_luna.cc	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘operator new(N)’ where non-null expected [CWE-N]
+gcc-O2	src/webos/notification_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/palm_service_base.h	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in PalmSystemBlink::HandleBrowserControlMessage), (SN: N -> SN: N in PalmSys
+gcc-O2	src/webos/palm_service_base.h	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/platform_module_factory_impl.cc	-Wanalyzer-malloc-leak	leak of ‘operator new(N)’ [CWE-N]
+gcc-O2	src/webos/platform_module_factory_impl.cc	-Wanalyzer-malloc-leak	leak of ‘operator new(N)’ [CWE-N]
+gcc-O2	src/webos/platform_module_factory_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/platform_module_factory_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/platform_module_factory_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/platform_module_factory_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna_impl.cc	-Wanalyzer-possible-null-dereference	dereference of possibly-NULL ‘operator new(N)’ [CWE-N]
+gcc-O2	src/webos/web_app_manager_service_luna_impl.cc	-Wanalyzer-use-of-uninitialized-value	use of uninitialized value ‘<unknown>’ [CWE-N]

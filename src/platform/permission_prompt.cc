@@ -125,6 +125,7 @@ void PermissionPrompt::SetDecisions() {
   bool ask = false;
   PermissionRequest::RequestType ask_type =
       PermissionRequest::RequestType::kInvalid;
+  bool mixed_ask = false;
   for (const PermissionRequest* request : delegate_->Requests()) {
     PermissionRequest::RequestType const type = request->GetRequestType();
     switch (type) {
@@ -140,17 +141,32 @@ void PermissionPrompt::SetDecisions() {
         // appinfo.json can grant these up front; otherwise the user is asked.
         known = true;
         if (!GetPermissionStatusFromAppDesc(type)) {
+          // One question covers one kind of access: the answer is applied to
+          // every request, so it must not grant something it did not name.
+          if (ask && ask_type != type)
+            mixed_ask = true;
           ask = true;
           ask_type = type;
         }
         break;
       default:
+        // Refused rather than ignored: left alone, a request nobody answers
+        // keeps the page waiting for good, and in a group with an allowed one
+        // it would be granted along with it.
         LOG_ERROR(MSGID_ERROR_ERROR, 0,
                   "There is no matching permission type.");
+        known = true;
+        allow = false;
     }
   }
 
   if (!known) {
+    return;
+  }
+  if (mixed_ask) {
+    LOG_ERROR(MSGID_ERROR_ERROR, 0,
+              "One prompt cannot ask for different kinds of access.");
+    delegate_->Closing();
     return;
   }
   if (!allow) {

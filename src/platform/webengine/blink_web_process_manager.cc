@@ -84,3 +84,19 @@ void BlinkWebProcessManager::SetNotifierEnabled(const std::string& app_id,
                                                 bool enabled) {
   BlinkWebViewProfileHelper::SetNotifierEnabled(app_id, enabled);
 }
+
+std::map<std::string, std::string> BlinkWebProcessManager::GetAppPermissions(
+    const std::string& permission) {
+  return BlinkWebViewProfileHelper::GetAppPermissions(permission);
+}
+
+void BlinkWebProcessManager::SetAppPermission(const std::string& app_id,
+                                              const std::string& permission,
+                                              const std::string& setting) {
+  BlinkWebViewProfileHelper::SetAppPermission(app_id, permission, setting);
+}
+
+void BlinkWebProcessManager::ResetAppPermissions(
+    const std::string& permission) {
+  BlinkWebViewProfileHelper::ResetAppPermissions(permission);
+}

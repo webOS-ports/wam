@@ -17,6 +17,9 @@
 #include "web_app_manager_service_luna.h"
 
 #include <cstdlib>
+#include <map>
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -24,9 +27,11 @@
 #include "webos/public/runtime.h"
 #include "webos/webview_base.h"
 
+#include "application_description.h"
 #include "log_manager.h"
 #include "permission_prompt.h"
 #include "utils.h"
+#include "web_app_base.h"
 #include "web_app_manager_tracer.h"
 
 // just to save some typing, the template filled out with the name of this class
@@ -62,6 +67,9 @@ LSMethod WebAppManagerServiceLuna::methods_[] = {
     LS2_METHOD_ENTRY(clearBrowsingData),
     LS2_METHOD_ENTRY(fireNotificationEvent),
     LS2_METHOD_ENTRY(answerPermissionPrompt),
+    LS2_METHOD_ENTRY(getAppPermissions),
+    LS2_METHOD_ENTRY(setAppPermission),
+    LS2_METHOD_ENTRY(resetAppPermissions),
     LS2_SUBSCRIPTION_ENTRY(listRunningApps),
     LS2_SUBSCRIPTION_ENTRY(webProcessCreated),
     {}};
@@ -505,6 +513,146 @@ Json::Value WebAppManagerServiceLuna::answerPermissionPrompt(
     response["errorText"] = kErrAnswerPermissionPromptUnknownPrompt;
     return response;
   }
+  response["returnValue"] = true;
+  return response;
+}
+
+namespace {
+
+// The permissions Settings may look at and change, as the bus names them.
+std::optional<PermissionRequest::RequestType> AppPermissionType(
+    const Json::Value& value) {
+  if (!value.isString()) {
+    return std::nullopt;
+  }
+  const std::string name = value.asString();
+  if (name == "geolocation") {
+    return PermissionRequest::RequestType::kGeolocation;
+  }
+  if (name == "notifications") {
+    return PermissionRequest::RequestType::kNotifications;
+  }
+  return std::nullopt;
+}
+
+// An application id as SAM knows them (reverse-DNS: letters, digits, '.', '-',
+// '_'). It ends up in the per-app pattern Chromium stores the decision under,
+// so nothing else may get that far.
+bool IsValidAppId(const Json::Value& value) {
+  if (!value.isString()) {
+    return false;
+  }
+  const std::string id = value.asString();
+  if (id.empty() || id.size() > 255) {
+    return false;
+  }
+  for (const char c : id) {
+    const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+                    (c >= '0' && c <= '9') || c == '.' || c == '-' ||
+                    c == '_';
+    if (!ok) {
+      return false;
+    }
+  }
+  return true;
+}
+
+Json::Value AppPermissionError(int code, const std::string& text) {
+  Json::Value response;
+  response["returnValue"] = false;
+  response["errorCode"] = code;
+  response["errorText"] = text;
+  return response;
+}
+
+}  // namespace
+
+// What each application was told for |permission|: the decisions stored when
+// the user answered the prompt, plus the running system apps whose
+// appinfo.json grants it without asking, which Settings cannot change.
+Json::Value WebAppManagerServiceLuna::getAppPermissions(
+    const Json::Value& request) {
+  const std::optional<PermissionRequest::RequestType> type =
+      AppPermissionType(request["permission"]);
+  if (!type) {
+    return AppPermissionError(kErrCodeAppPermissionInvalidPermission,
+                              kErrAppPermissionInvalidPermission);
+  }
+  const std::string permission = request["permission"].asString();
+
+  const std::map<std::string, std::string> stored =
+      WebAppManagerService::GetAppPermissions(permission);
+
+  Json::Value apps(Json::arrayValue);
+  for (const auto& [app_id, setting] : stored) {
+    Json::Value app;
+    app["appId"] = app_id;
+    app["setting"] = setting;
+    app["system"] = false;
+    apps.append(std::move(app));
+  }
+
+  // Only running apps: WAM holds no description of the others. A stored
+  // decision wins over appinfo.json, since the prompt is never reached then.
+  std::set<std::string> listed;
+  for (const WebAppBase* app : WebAppManagerService::RunningApps()) {
+    const ApplicationDescription* desc = app ? app->GetAppDescription() : nullptr;
+    if (!desc || !desc->SystemApp() || stored.contains(desc->Id()) ||
+        listed.contains(desc->Id()) ||
+        !PermissionPrompt::GrantedByAppInfo(*desc, *type)) {
+      continue;
+    }
+    listed.insert(desc->Id());
+    Json::Value entry;
+    entry["appId"] = desc->Id();
+    entry["setting"] = "allow";
+    entry["system"] = true;
+    apps.append(std::move(entry));
+  }
+
+  Json::Value response;
+  response["returnValue"] = true;
+  response["permission"] = permission;
+  response["apps"] = std::move(apps);
+  return response;
+}
+
+Json::Value WebAppManagerServiceLuna::setAppPermission(
+    const Json::Value& request) {
+  if (!AppPermissionType(request["permission"])) {
+    return AppPermissionError(kErrCodeAppPermissionInvalidPermission,
+                              kErrAppPermissionInvalidPermission);
+  }
+  const Json::Value& setting = request["setting"];
+  if (!setting.isString() ||
+      (setting.asString() != "allow" && setting.asString() != "block" &&
+       setting.asString() != "ask")) {
+    return AppPermissionError(kErrCodeAppPermissionInvalidSetting,
+                              kErrAppPermissionInvalidSetting);
+  }
+  const Json::Value& app_id = request["appId"];
+  if (!IsValidAppId(app_id)) {
+    return AppPermissionError(kErrCodeAppPermissionInvalidAppId,
+                              kErrAppPermissionInvalidAppId);
+  }
+
+  WebAppManagerService::SetAppPermission(app_id.asString(),
+                                         request["permission"].asString(),
+                                         setting.asString());
+  Json::Value response;
+  response["returnValue"] = true;
+  return response;
+}
+
+// Settings > Location "Clear My Location Data", and its notifications twin.
+Json::Value WebAppManagerServiceLuna::resetAppPermissions(
+    const Json::Value& request) {
+  if (!AppPermissionType(request["permission"])) {
+    return AppPermissionError(kErrCodeAppPermissionInvalidPermission,
+                              kErrAppPermissionInvalidPermission);
+  }
+  WebAppManagerService::ResetAppPermissions(request["permission"].asString());
+  Json::Value response;
   response["returnValue"] = true;
   return response;
 }

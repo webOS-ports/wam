@@ -199,6 +199,12 @@ class WebAppManager {
 
   // Set notification permissions recieved from system.
   void SetNotifierEnabled(const std::string& app_id, bool enabled);
+  std::map<std::string, std::string> GetAppPermissions(
+      const std::string& permission);
+  void SetAppPermission(const std::string& app_id,
+                        const std::string& permission,
+                        const std::string& setting);
+  void ResetAppPermissions(const std::string& permission);
 
  private:
   WebAppFactoryManager* GetWebAppFactory();

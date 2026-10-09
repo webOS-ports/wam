@@ -1114,3 +1114,23 @@ void WebAppManager::SetNotifierEnabled(const std::string& app_id,
            PMLOGKFV("enabled", "%d", enabled), "");
   web_process_manager_->SetNotifierEnabled(app_id, enabled);
 }
+
+std::map<std::string, std::string> WebAppManager::GetAppPermissions(
+    const std::string& permission) {
+  return web_process_manager_->GetAppPermissions(permission);
+}
+
+void WebAppManager::SetAppPermission(const std::string& app_id,
+                                     const std::string& permission,
+                                     const std::string& setting) {
+  LOG_INFO(MSGID_SET_PERMISSION, 3, PMLOGKS("type", permission.c_str()),
+           PMLOGKS("app_id", app_id.c_str()),
+           PMLOGKS("setting", setting.c_str()), "changed in Settings");
+  web_process_manager_->SetAppPermission(app_id, permission, setting);
+}
+
+void WebAppManager::ResetAppPermissions(const std::string& permission) {
+  LOG_INFO(MSGID_SET_PERMISSION, 2, PMLOGKS("type", permission.c_str()),
+           PMLOGKS("setting", "ask"), "reset for every app");
+  web_process_manager_->ResetAppPermissions(permission);
+}

@@ -178,6 +178,30 @@ void PermissionPrompt::SetDecisions() {
   }
 }
 
+// static
+bool PermissionPrompt::GrantedByAppInfo(const ApplicationDescription& app_desc,
+                                        PermissionRequest::RequestType type) {
+  switch (type) {
+    case PermissionRequest::RequestType::kCameraStream:
+      return app_desc.AllowVideoCapture();
+    case PermissionRequest::RequestType::kMicStream:
+      return app_desc.AllowAudioCapture();
+    default:
+      break;
+  }
+
+  const char* str_type = PermissionRequestTypeToString(type);
+  if (str_type == nullptr || !app_desc.WebAppPermissions().contains(str_type)) {
+    return false;
+  }
+  // SystemApp() comes from where SAM found the app, which the app cannot
+  // influence; trustLevel is copied from the app's own appinfo.json.
+  if (type == PermissionRequest::RequestType::kGeolocation) {
+    return app_desc.SystemApp();
+  }
+  return true;
+}
+
 bool PermissionPrompt::GetPermissionStatusFromAppDesc(
     PermissionRequest::RequestType type) {
   const std::string app_id = delegate_->GetAppId();
@@ -186,22 +210,7 @@ bool PermissionPrompt::GetPermissionStatusFromAppDesc(
     return false;
   }
 
-  bool status = false;
-  switch (type) {
-    case PermissionRequest::RequestType::kCameraStream: {
-      status = app_desc->AllowVideoCapture();
-    } break;
-    case PermissionRequest::RequestType::kMicStream: {
-      status = app_desc->AllowAudioCapture();
-    } break;
-    default: {
-      auto& permissions = app_desc->WebAppPermissions();
-      const char* str_type = PermissionRequestTypeToString(type);
-      if (str_type != nullptr) {
-        status = permissions.contains(str_type);
-      }
-    } break;
-  }
+  const bool status = GrantedByAppInfo(*app_desc, type);
   LOG_INFO(MSGID_SET_PERMISSION, 2, PMLOGKS("APP_ID", app_id.c_str()),
            PMLOGKS("PERMISSION_STATUS", (status ? "granted" : "denied")),
            "by appinfo.json");

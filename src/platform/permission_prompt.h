@@ -21,6 +21,8 @@
 
 #include "neva/app_runtime/public/permission_prompt.h"
 
+class ApplicationDescription;
+
 using PermissionRequest = neva_app_runtime::PermissionRequest;
 
 class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
@@ -32,6 +34,12 @@ class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
   // Resolves the prompt shown as |prompt_id| with the user's answer. Returns
   // false when no such prompt is waiting, e.g. the page went away first.
   static bool Answer(const std::string& prompt_id, bool allow);
+
+  // Whether |app_desc|'s appinfo.json grants |type| without asking. For
+  // location only an app installed with the system may do that: a store app
+  // could otherwise grant itself the user's position.
+  static bool GrantedByAppInfo(const ApplicationDescription& app_desc,
+                               PermissionRequest::RequestType type);
 
  private:
   void Show(PermissionRequest::RequestType type);

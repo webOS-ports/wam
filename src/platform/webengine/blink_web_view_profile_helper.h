@@ -17,6 +17,7 @@
 #ifndef PLATFORM_WEBENGINE_BLINK_WEB_VIEW_PROFILE_HELPER_H_
 #define PLATFORM_WEBENGINE_BLINK_WEB_VIEW_PROFILE_HELPER_H_
 
+#include <map>
 #include <string>
 
 namespace webos {
@@ -47,6 +48,15 @@ class BlinkWebViewProfileHelper {
   static void ClearDefaultBrowsingData(const int remove_browsing_data_mask);
   static int MaskForBrowsingDataType(const char* type);
   static void SetNotifierEnabled(const std::string& app_id, bool enabled);
+
+  // The strings are WAM's bus vocabulary ("geolocation", "allow", ...);
+  // anything else is ignored, the bus layer having refused it already.
+  static std::map<std::string, std::string> GetAppPermissions(
+      const std::string& permission);
+  static void SetAppPermission(const std::string& app_id,
+                               const std::string& permission,
+                               const std::string& setting);
+  static void ResetAppPermissions(const std::string& permission);
 };
 
 #endif  // PLATFORM_WEBENGINE_BLINK_WEB_VIEW_PROFILE_HELPER_H_

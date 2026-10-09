@@ -150,6 +150,21 @@ void WebAppManagerService::UpdateNotificationPermission(
   WebAppManager::Instance()->SetNotifierEnabled(app_id, enabled);
 }
 
+std::map<std::string, std::string> WebAppManagerService::GetAppPermissions(
+    const std::string& permission) {
+  return WebAppManager::Instance()->GetAppPermissions(permission);
+}
+
+void WebAppManagerService::SetAppPermission(const std::string& app_id,
+                                            const std::string& permission,
+                                            const std::string& setting) {
+  WebAppManager::Instance()->SetAppPermission(app_id, permission, setting);
+}
+
+void WebAppManagerService::ResetAppPermissions(const std::string& permission) {
+  WebAppManager::Instance()->ResetAppPermissions(permission);
+}
+
 bool WebAppManagerService::IsEnyoApp(const std::string& app_id) {
   return WebAppManager::Instance()->IsEnyoApp(app_id);
 }

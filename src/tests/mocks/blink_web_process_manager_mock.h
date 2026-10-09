@@ -31,6 +31,15 @@ class BlinkWebProcessManagerMock : public BlinkWebProcessManager {
   MOCK_METHOD(uint32_t, GetWebProcessPIDMock, (), (const));
   MOCK_METHOD(std::string, GetWebProcessMemSize, (uint32_t), (const, override));
   MOCK_METHOD(void, ClearBrowsingData, (const int), (override));
+  MOCK_METHOD((std::map<std::string, std::string>),
+              GetAppPermissions,
+              (const std::string&),
+              (override));
+  MOCK_METHOD(void,
+              SetAppPermission,
+              (const std::string&, const std::string&, const std::string&),
+              (override));
+  MOCK_METHOD(void, ResetAppPermissions, (const std::string&), (override));
 
   uint32_t GetWebProcessPID(const WebAppBase* app) const override;
 };

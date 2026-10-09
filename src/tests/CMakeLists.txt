@@ -21,6 +21,7 @@ pkg_search_module(GMOCK REQUIRED gmock)
 pkg_search_module(GTEST REQUIRED gtest)
 
 set(SOURCES
+    app_permissions_test.cc
     application_description_test.cc
     bcp47_test.cc
     clear_browsing_data_test.cc

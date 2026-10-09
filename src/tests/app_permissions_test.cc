@@ -244,6 +244,13 @@ TEST(AppPermissionsLunaTest, GetRejectsUnknownPermission) {
 }
 
 TEST(AppPermissionsLunaTest, SetValidatesEveryParameter) {
+  // With the process manager mocked, a request that slips through fails the
+  // test instead of reaching the web engine
+  BaseMockInitializer<NiceWebViewMock, NiceWebAppWindowMock,
+                      PlatformModuleFactoryImplMock> const mock_initializer;
+  auto* process_manager = ProcessManagerMock();
+  EXPECT_CALL(*process_manager, SetAppPermission).Times(0);
+
   auto set = [](const Json::Value& request) {
     return WebAppManagerServiceLuna::Instance()
         ->setAppPermission(request)["errorCode"]
@@ -273,6 +280,7 @@ TEST(AppPermissionsLunaTest, SetValidatesEveryParameter) {
     EXPECT_EQ(set(request), kErrCodeAppPermissionInvalidAppId)
         << "appId " << bad_id.toStyledString();
   }
+  EXPECT_TRUE(testing::Mock::VerifyAndClearExpectations(process_manager));
 }
 
 TEST(AppPermissionsLunaTest, ResetRejectsUnknownPermission) {

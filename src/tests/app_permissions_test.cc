@@ -73,8 +73,8 @@ class FakeRequest : public PermissionRequest {
 // appinfo.json grants anything.
 class FakeDelegate : public neva_app_runtime::PermissionPrompt::Delegate {
  public:
-  explicit FakeDelegate(std::vector<RequestType> types) {
-    for (RequestType type : types) {
+  explicit FakeDelegate(const std::vector<RequestType>& types) {
+    for (const RequestType type : types) {
       owned_.push_back(std::make_unique<FakeRequest>(type));
       requests_.push_back(owned_.back().get());
     }
@@ -203,7 +203,7 @@ TEST(PermissionPromptTest, UnknownTypeIsNotGrantedAlongWithOthers) {
 }
 
 TEST(PermissionPromptTest, LocationSwitchedOffIsDismissedNotDenied) {
-  LocationSwitch restore;
+  const LocationSwitch restore;
   PermissionPrompt::SetLocationEnabled(false);
   FakeDelegate delegate({RequestType::kGeolocation});
   auto prompt = std::make_unique<PermissionPrompt>(&delegate);

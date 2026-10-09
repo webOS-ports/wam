@@ -19,6 +19,7 @@
 
 #include <map>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
 
@@ -43,9 +44,13 @@ using RequestType = PermissionRequest::RequestType;
 
 std::unique_ptr<ApplicationDescription> AppDesc(bool system_app,
                                                 const std::string& extra) {
-  const std::string json =
-      std::string("{\"id\":\"com.example.app\",\"systemApp\":") +
-      (system_app ? "true" : "false") + extra + "}";
+  // A stream rather than string concatenation: GCC 15 at -O2 warns about
+  // a bogus allocation size inside libc++'s inlined string growth
+  // (-Walloc-size-larger-than, armv7 and x86-64)
+  std::ostringstream stream;
+  stream << "{\"id\":\"com.example.app\",\"systemApp\":"
+         << (system_app ? "true" : "false") << extra << '}';
+  const std::string json = stream.str();
   return ApplicationDescription::FromJsonString(json.c_str());
 }
 

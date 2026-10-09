@@ -18,6 +18,9 @@
         "camera.operation",
         "camera.query"
     ],
+    "com.webos.chromium.location*": [
+        "location.query"
+    ],
     "com.webos.chromium.service_worker": [
         "application.launcher"
     ],

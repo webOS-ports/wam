@@ -34,7 +34,7 @@ class PermissionPrompt : public neva_app_runtime::PermissionPrompt {
   static bool Answer(const std::string& prompt_id, bool allow);
 
  private:
-  void Show();
+  void Show(PermissionRequest::RequestType type);
   void SetDecisions();
   bool GetPermissionStatusFromAppDesc(PermissionRequest::RequestType type);
   neva_app_runtime::PermissionPrompt::Delegate* delegate_;

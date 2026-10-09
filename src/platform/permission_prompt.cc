@@ -30,6 +30,8 @@ const char* PermissionRequestTypeToString(PermissionRequest::RequestType type) {
   switch (type) {
     case PermissionRequest::RequestType::kNotifications:
       return "notifications";
+    case PermissionRequest::RequestType::kGeolocation:
+      return "geolocation";
     default:
       return nullptr;
   }
@@ -89,7 +91,7 @@ bool PermissionPrompt::Answer(const std::string& prompt_id, bool allow) {
   return true;
 }
 
-void PermissionPrompt::Show() {
+void PermissionPrompt::Show(PermissionRequest::RequestType type) {
   static unsigned next_prompt = 0;
   const std::string app_id = delegate_->GetAppId();
   prompt_id_ = app_id + "-" + std::to_string(++next_prompt);
@@ -101,9 +103,12 @@ void PermissionPrompt::Show() {
   LOG_INFO(MSGID_SET_PERMISSION, 2, PMLOGKS("APP_ID", app_id.c_str()),
            PMLOGKS("PERMISSION_STATUS", "asking"), "");
   PendingPrompts()[prompt_id_] = this;
+  // Worded as the QtWebEngine era's permission dialog was.
+  const bool location = type == PermissionRequest::RequestType::kGeolocation;
   if (!NotificationService::Instance()->ShowPermissionPrompt(
-          prompt_id_, "Notifications",
-          app_title + " wants to show notifications.")) {
+          prompt_id_, location ? "Location Services" : "Notifications",
+          app_title + (location ? " wants to access your location."
+                                : " wants to show notifications."))) {
     // Nobody can be asked, so leave the permission undecided.
     PendingPrompts().erase(prompt_id_);
     prompt_id_.clear();
@@ -118,6 +123,8 @@ void PermissionPrompt::SetDecisions() {
   bool known = false;
   bool allow = true;
   bool ask = false;
+  PermissionRequest::RequestType ask_type =
+      PermissionRequest::RequestType::kInvalid;
   for (const PermissionRequest* request : delegate_->Requests()) {
     PermissionRequest::RequestType const type = request->GetRequestType();
     switch (type) {
@@ -129,10 +136,13 @@ void PermissionPrompt::SetDecisions() {
         allow = allow && GetPermissionStatusFromAppDesc(type);
         break;
       case PermissionRequest::RequestType::kNotifications:
-        // appinfo.json can grant notifications up front; otherwise the user
-        // is asked.
+      case PermissionRequest::RequestType::kGeolocation:
+        // appinfo.json can grant these up front; otherwise the user is asked.
         known = true;
-        ask = ask || !GetPermissionStatusFromAppDesc(type);
+        if (!GetPermissionStatusFromAppDesc(type)) {
+          ask = true;
+          ask_type = type;
+        }
         break;
       default:
         LOG_ERROR(MSGID_ERROR_ERROR, 0,
@@ -146,7 +156,7 @@ void PermissionPrompt::SetDecisions() {
   if (!allow) {
     delegate_->Deny();
   } else if (ask) {
-    Show();
+    Show(ask_type);
   } else {
     delegate_->Accept();
   }

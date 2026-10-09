@@ -6,6 +6,7 @@
         "com.palm.webappmanager",
         "com.webos.chromium.audio*",
         "com.webos.chromium.camera*",
+        "com.webos.chromium.location*",
         "com.webos.chromium.service_worker",
         "com.webos.notification.client*",
         "com.webos.service.webappmanager",
@@ -43,6 +44,12 @@
         "service":"com.webos.chromium.camera*",
         "outbound":[
             "com.webos.service.camera2"
+        ]
+      },
+      {
+        "service":"com.webos.chromium.location*",
+        "outbound":[
+            "com.webos.service.location"
         ]
       },
       {

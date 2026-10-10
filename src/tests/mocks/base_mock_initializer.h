@@ -17,6 +17,9 @@
 #ifndef TESTS_MOCKS_BASE_MOCK_INITIALIZER_H_
 #define TESTS_MOCKS_BASE_MOCK_INITIALIZER_H_
 
+#include <memory>
+#include <utility>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -36,11 +39,15 @@ class BaseMockInitializer {
   BaseMockInitializer() {
     WebAppManager::Instance()->SetPlatformModules(std::make_unique<P>());
 
+    auto web_view_factory = std::make_unique<WebViewFactoryMock>();
+    auto web_app_window_factory = std::make_unique<WebAppWindowFactoryMock>();
+    web_view_factory->SetWebView(web_view_);
+    web_app_window_factory->SetWebAppWindow(web_app_window_);
+
     auto web_app_factory_manager = std::make_unique<WebAppFactoryManagerMock>();
-    web_app_factory_manager->SetWebViewFactory(web_view_factory_);
-    web_app_factory_manager->SetWebAppWindowFactory(web_app_window_factory_);
-    web_view_factory_->SetWebView(web_view_);
-    web_app_window_factory_->SetWebAppWindow(web_app_window_);
+    web_app_factory_manager->SetWebViewFactory(std::move(web_view_factory));
+    web_app_factory_manager->SetWebAppWindowFactory(
+        std::move(web_app_window_factory));
     WebAppManager::Instance()->SetWebAppFactory(
         std::move(web_app_factory_manager));
   }
@@ -54,9 +61,6 @@ class BaseMockInitializer {
   U* GetWebAppWindowMock() { return web_app_window_; }
 
  private:
-  WebViewFactoryMock* web_view_factory_ = new WebViewFactoryMock();
-  WebAppWindowFactoryMock* web_app_window_factory_ =
-      new WebAppWindowFactoryMock();
   T* web_view_ = new T();
   U* web_app_window_ = new U();
 };

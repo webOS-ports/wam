@@ -211,13 +211,12 @@ void AttachContext(WebAppFactoryManagerMock* web_app_factory,
     return;
   }
 
-  WebAppWindowFactoryMock* web_app_window_factory =
-      new WebAppWindowFactoryMock();
-  WebViewFactoryMock* web_view_factory = new WebViewFactoryMock();
+  auto web_app_window_factory = std::make_unique<WebAppWindowFactoryMock>();
+  auto web_view_factory = std::make_unique<WebViewFactoryMock>();
   web_app_window_factory->SetWebAppWindow(context->GetWindow());
   web_view_factory->SetWebView(context->GetView());
-  web_app_factory->SetWebViewFactory(web_view_factory);
-  web_app_factory->SetWebAppWindowFactory(web_app_window_factory);
+  web_app_factory->SetWebViewFactory(std::move(web_view_factory));
+  web_app_factory->SetWebAppWindowFactory(std::move(web_app_window_factory));
 }
 
 Json::Value LaunchApp(const char* json_body) {

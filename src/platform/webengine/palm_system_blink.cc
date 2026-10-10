@@ -63,7 +63,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     return LocaleRegion();
   } else if (command == "isMinimal") {
     return toStr(IsMinimal());
-  } else if (command == "identifier") {
+  } else if (command == "identifier" || command == "getIdentifier") {
     return Identifier();
   } else if (command == "screenOrientation") {
     return ScreenOrientation();
@@ -87,8 +87,6 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     return toStr(IsActivated());
   } else if (command == "isKeyboardVisible") {
     return toStr(IsKeyboardVisible());
-  } else if (command == "getIdentifier") {
-    return Identifier();
   } else if (command == "launchParams") {
     LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
              PMLOGKS("INSTANCE_ID", app_->InstanceId().c_str()),
@@ -359,7 +357,7 @@ void PalmSystemBlink::ClearBannerMessages() {
 // Divided per application rather than in DeviceInfoImpl because the scale is per
 // application: a modern application at zoom 1 must keep the panel's own numbers.
 std::string PalmSystemBlink::ScaledDeviceInfo() const {
-  const std::string device_info = GetDeviceInfo("TvDeviceInfo");
+  std::string device_info = GetDeviceInfo("TvDeviceInfo");
 
   auto* page = static_cast<WebPageBlink*>(app_->Page());
   if (!page)

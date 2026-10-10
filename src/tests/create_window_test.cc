@@ -50,7 +50,9 @@ constexpr char kAppDesc[] =
 
 class NewViewFactory : public WebViewFactory {
  public:
-  WebView* CreateWebView() override { return new NiceWebViewMock(); }
+  std::unique_ptr<WebView> CreateWebView() override {
+    return std::make_unique<NiceWebViewMock>();
+  }
 };
 
 // A view mock that counts how many exist, to see that one is freed.
@@ -68,8 +70,8 @@ int CountedViewMock::instances = 0;
 
 class CountedViewFactory : public WebViewFactory {
  public:
-  WebView* CreateWebView() override {
-    return new ::testing::NiceMock<CountedViewMock>();
+  std::unique_ptr<WebView> CreateWebView() override {
+    return std::make_unique<::testing::NiceMock<CountedViewMock>>();
   }
 };
 
@@ -109,7 +111,9 @@ class WindowAppFactoryManager : public WebAppFactoryManager {
     if (!make_apps_) {
       return nullptr;
     }
-    *app_ = new WindowAppMock();
+    // WebAppFactoryManager hands apps over as raw pointers; the test deletes
+    // the app it gets back (CloseWindow()).
+    *app_ = new WindowAppMock();  // NOLINT(cppcoreguidelines-owning-memory)
     return *app_;
   }
   WebAppBase* CreateWebApp(const std::string& win_type,

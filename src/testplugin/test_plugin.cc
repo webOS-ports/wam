@@ -21,12 +21,14 @@
 
 const char* kPluginApplicationType = "testplugin";
 
+// Ownership crosses the dlopen() boundary as raw pointers, as the plugin
+// interface (plugin_interface.h) defines it.
 WebAppFactoryInterface* CreateInstance() {
-  return new TestPlugin();
+  return new TestPlugin();  // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void DeleteInstance(WebAppFactoryInterface* interface) {
-  delete interface;
+  delete interface;  // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 WebAppBase* TestPlugin::CreateWebApp(const std::string& /*win_type*/,

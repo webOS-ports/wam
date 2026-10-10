@@ -15,6 +15,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "web_app_wayland_window.h"
+
+#include <limits>
+
 #include "application_description.h"
 #include "log_manager.h"
 #include "utils.h"
@@ -118,7 +121,6 @@ bool WebAppWaylandWindow::HandleWebOSEvent(WebOSEvent* event) {
       }
       break;
     case WebOSEvent::KeyPress:
-      break;
     case WebOSEvent::KeyRelease:
       break;
     case WebOSEvent::MouseButtonPress:
@@ -172,13 +174,10 @@ bool WebAppWaylandWindow::HandleWebOSEvent(WebOSEvent* event) {
       web_app_->Unfocus();
       break;
     case WebOSEvent::InputPanelVisible: {
-      float const height =
-          static_cast<WebOSVirtualKeyboardEvent*>(event)->GetHeight();
-      if (static_cast<WebOSVirtualKeyboardEvent*>(event)->GetVisible()) {
-        web_app_->KeyboardVisibilityChanged(true, height);
-      } else {
-        web_app_->KeyboardVisibilityChanged(false, height);
-      }
+      auto* const keyboard_event =
+          static_cast<WebOSVirtualKeyboardEvent*>(event);
+      web_app_->KeyboardVisibilityChanged(keyboard_event->GetVisible(),
+                                          keyboard_event->GetHeight());
     } break;
     default:
       break;
@@ -201,13 +200,18 @@ bool WebAppWaylandWindow::OnCursorVisibileChangeEvent(WebOSEvent* /*e*/) {
 
 unsigned int WebAppWaylandWindow::CheckKeyFilterTable(unsigned keycode,
                                                       unsigned* modifier) {
-  auto table = web_app_->GetAppDescription()->KeyFilterTable();
+  const auto& table = web_app_->GetAppDescription()->KeyFilterTable();
 
   if (table.empty()) {
     return 0;
   }
 
-  auto found = table.find(keycode);
+  // The table keys are ints from appinfo.json; a key code beyond int's range
+  // cannot be in it.
+  if (keycode > static_cast<unsigned>(std::numeric_limits<int>::max())) {
+    return 0;
+  }
+  auto found = table.find(static_cast<int>(keycode));
   if (found == table.end()) {
     return 0;
   }

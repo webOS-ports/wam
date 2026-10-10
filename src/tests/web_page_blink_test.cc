@@ -35,6 +35,7 @@
 
 namespace {
 
+using ::testing::ByMove;
 using ::testing::HasSubstr;
 using ::testing::Return;
 
@@ -92,19 +93,17 @@ const std::string params = R"({"displayAffinity": 0, "instanceId": ""})";
 
 class WebViewFactoryMock : public WebViewFactory {
  public:
-  WebViewFactoryMock();
+  WebViewFactoryMock() = default;
   ~WebViewFactoryMock() override = default;
 
-  // Owns a raw WebViewMock*; copying it would hand out the same pointer twice.
-  WebViewFactoryMock(const WebViewFactoryMock&) = delete;
-  WebViewFactoryMock& operator=(const WebViewFactoryMock&) = delete;
+  MOCK_METHOD(std::unique_ptr<WebView>, CreateWebView, (), (override));
 
-  MOCK_METHOD(WebView*, CreateWebView, (), (override));
-
-  WebViewMock* web_view_;
+  // Handed to the page by CreateWebView(); the test keeps web_view_ to set
+  // expectations on.
+  std::unique_ptr<WebViewMock> owned_view_ =
+      std::make_unique<NiceWebViewMock>();
+  WebViewMock* web_view_ = owned_view_.get();
 };
-
-WebViewFactoryMock::WebViewFactoryMock() : web_view_(new NiceWebViewMock()) {}
 
 // Developer mode on, with a Tellurium nub of the test's choosing: the real
 // configuration reads both from the device's file system.
@@ -167,8 +166,7 @@ void WebPageBlinkTestSuite::SetUp() {
   ASSERT_TRUE(description);
   factory = std::make_unique<WebViewFactoryMock>();
   EXPECT_CALL(*factory, CreateWebView())
-      .Times(1)
-      .WillRepeatedly(Return(factory->web_view_));
+      .WillOnce(Return(ByMove(std::move(factory->owned_view_))));
 }
 
 TEST_F(WebPageBlinkTestSuite, CheckWebViewInitializeCall) {
@@ -208,9 +206,12 @@ TEST_F(WebPageBlinkTestSuite, AddCustomPluginDir) {
 TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   constexpr char path[] = "/usr/palm/applications/com.webos.app.test.webrtc/";
   constexpr char var_name[] = "PRIVILEGED_PLUGIN_PATH";
-  auto actual_value = getenv(var_name);
+  // WebPageBlink reads PRIVILEGED_PLUGIN_PATH from the environment; the test
+  // runs on a single thread.
+  auto* const actual_value = getenv(var_name);  // NOLINT(concurrency-mt-unsafe)
   std::string test_value(path);
   if (!actual_value) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   } else {
@@ -224,7 +225,7 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   web_page.Init();
 
   if (!actual_value) {
-    int const result = unsetenv(var_name);
+    int const result = unsetenv(var_name);  // NOLINT(concurrency-mt-unsafe)
     ASSERT_FALSE(result);
   }
 }

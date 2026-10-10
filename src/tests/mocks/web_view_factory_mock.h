@@ -34,7 +34,7 @@ class WebViewFactoryMock : public WebViewFactory {
 
   // Hands out what SetWebView() was given, each once and in order: the caller
   // takes it over. Two pages sharing one mock would both delete it.
-  WebView* CreateWebView() override;
+  std::unique_ptr<WebView> CreateWebView() override;
   void SetWebView(std::unique_ptr<WebView> web_view);
 
  private:

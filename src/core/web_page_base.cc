@@ -286,7 +286,7 @@ void WebPageBase::HandleLoadFinished() {
            "WebPageBase::handleLoadFinished; suspend_at_load_ : %s",
            suspend_at_load_ ? "true; suspend in this time" : "false");
 
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, WebPageLoadFinished());
+  ForEachObserver(observers_, &WebPageObserver::WebPageLoadFinished);
 
   // if there was an attempt made to suspend while this page was loading, then
   // we flag suspend_at_load_ = true, and suspend it after it is loaded. This is

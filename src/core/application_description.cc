@@ -40,7 +40,7 @@ namespace {
 // the loader preamble and the framework stylesheet, and both come before any
 // application code. Applications that inline their artwork run to several
 // megabytes, so the file is not read whole.
-constexpr std::streamsize kFrameworkSniffBytes = 512 * 1024;
+constexpr std::streamsize kFrameworkSniffBytes = std::streamsize{512} * 1024;
 
 // Fingerprints of the frameworks this distribution carries for compatibility.
 //
@@ -133,7 +133,7 @@ const ApplicationDescription::WindowOwnerInfo
 ApplicationDescription::GetWindowOwnerInfo() {
   ApplicationDescription::WindowOwnerInfo info;
   if (!group_window_desc_.empty()) {
-    Json::Value json = util::StringToJson(group_window_desc_);
+    Json::Value const json = util::StringToJson(group_window_desc_);
 
     const auto& owner_info = util::JsonMember(json, "ownerInfo");
     if (owner_info.isObject()) {
@@ -160,7 +160,7 @@ const ApplicationDescription::WindowClientInfo
 ApplicationDescription::GetWindowClientInfo() {
   ApplicationDescription::WindowClientInfo info;
   if (!group_window_desc_.empty()) {
-    Json::Value json = util::StringToJson(group_window_desc_);
+    Json::Value const json = util::StringToJson(group_window_desc_);
 
     const auto& client_info = util::JsonMember(json, "clientInfo");
     if (client_info.isObject()) {

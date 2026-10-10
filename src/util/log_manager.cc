@@ -16,9 +16,11 @@
 
 #include "log_manager.h"
 
-static bool debug_events_enable = false;
-static bool debug_bundle_messages_enable = false;
-static bool debug_mouse_move_enable = false;
+namespace {
+bool debug_events_enable = false;
+bool debug_bundle_messages_enable = false;
+bool debug_mouse_move_enable = false;
+}  // namespace
 
 void LogManager::SetLogControl(const std::string& keys,
                                const std::string& value) {

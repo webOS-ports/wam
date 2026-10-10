@@ -126,7 +126,9 @@ std::string UriToLocal(const std::string& uri) {
 }
 
 std::string GetEnvVar(const char* env) {
-  return GetString(getenv(env));
+  // getenv() races only with setenv(); WAM's one setenv() is the HOME of the
+  // user it drops to, at startup (wam_main.cc).
+  return GetString(getenv(env));  // NOLINT(concurrency-mt-unsafe)
 }
 
 // STRING
@@ -148,7 +150,7 @@ bool StrToInt(const std::string& str, int& num) {
     return false;
   }
 
-  num = value;
+  num = static_cast<int>(value);
   return true;
 }
 

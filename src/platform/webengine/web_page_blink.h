@@ -177,7 +177,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetVisible(bool visible) override;
   void SuspendWebPagePaintingAndJSExecution() override;
 
-  virtual WebView* CreatePageView();
+  virtual std::unique_ptr<WebView> CreatePageView();
   virtual void SetupStaticUserScripts();
   virtual bool ShouldStopJSOnSuspend() const { return true; }
 

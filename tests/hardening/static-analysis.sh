@@ -69,8 +69,17 @@ SA_MIN_FREE_GB=${SA_MIN_FREE_GB:-30}
 ANALYZER_CHECKERS=core,unix,deadcode,security,nullability,optin.portability,optin.core,alpha.unix,alpha.security,alpha.core
 # The IR gate's list; the exclusions are style or false alarms for this code:
 # swappable parameters and unused parameters (signatures are Chromium's and
-# LS2's), include-cleaner, reserved identifiers in macros, Annex K advice.
-TIDY_CHECKS='clang-analyzer-*,bugprone-*,cert-*,concurrency-*,misc-*,performance-*,portability-*,readability-misleading-indentation,readability-suspicious-call-argument,cppcoreguidelines-owning-memory,bugprone-use-after-move,-bugprone-easily-swappable-parameters,-misc-include-cleaner,-misc-unused-parameters,-cert-err33-c,-bugprone-assignment-in-if-condition,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-bugprone-reserved-identifier,-cert-dcl37-c,-cert-dcl51-cpp'
+# LS2's), include-cleaner, reserved identifiers in macros, Annex K advice;
+# data members that are not private (the app and page base classes keep
+# their state protected for their subclasses, and gtest fixtures and plain
+# records are public by design) and overrides with a visibility of their own
+# (implementations of an interface keep its methods private on purpose, the
+# Chromium style this code follows: they are called through the interface).
+# misc-const-correctness checks values only: its pointee analysis (clang-tidy
+# 21) asks for a pointer-to-const where the pointer is returned or stored as
+# a pointer to mutable, which would not compile.
+TIDY_OPTIONS='{CheckOptions: {misc-const-correctness.WarnPointersAsPointers: false}}'
+TIDY_CHECKS='clang-analyzer-*,bugprone-*,cert-*,concurrency-*,misc-*,performance-*,portability-*,readability-misleading-indentation,readability-suspicious-call-argument,cppcoreguidelines-owning-memory,bugprone-use-after-move,-bugprone-easily-swappable-parameters,-misc-include-cleaner,-misc-unused-parameters,-cert-err33-c,-bugprone-assignment-in-if-condition,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-bugprone-reserved-identifier,-cert-dcl37-c,-cert-dcl51-cpp,-misc-non-private-member-variables-in-classes,-misc-override-with-different-visibility'
 
 die() { echo "static-analysis.sh: $*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -145,7 +154,7 @@ if [ "${1:-}" = "--tu" ]; then
 		timeout "$SA_TIMEOUT" "$CLANG" "$@" --analyze -Xanalyzer -analyzer-output=text \
 			-Xanalyzer -analyzer-checker=$ANALYZER_CHECKERS -o /dev/null "$src" >"$log" 2>&1 ;;
 	clang-tidy)
-		timeout "$SA_TIMEOUT" "$CLANG_TIDY" --quiet -p "$OUT" --checks="$TIDY_CHECKS" \
+		timeout "$SA_TIMEOUT" "$CLANG_TIDY" --quiet -p "$OUT" --checks="$TIDY_CHECKS" --config="$TIDY_OPTIONS" \
 			--header-filter="^$ROOT/src/" --extra-arg=-Wno-unknown-warning-option \
 			"$src" >"$log" 2>&1 ;;
 	cppcheck)
@@ -348,7 +357,7 @@ OUT=${OUT:-$ROOT/build-static-analysis}
 mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
 [ "${SA_RESUME:-0}" = 1 ] || rm -rf "$OUT/raw"
 mkdir -p "$OUT/raw"; rm -f "$OUT/errors.tsv"
-export SA_RESUME=${SA_RESUME:-0} SA_ANALYZER_MEM SA_MIN_FREE_GB OUT ROOT GXX CLANG_TIDY CPPCHECK SA_TIMEOUT ANALYZER_CHECKERS TIDY_CHECKS
+export SA_RESUME=${SA_RESUME:-0} SA_ANALYZER_MEM SA_MIN_FREE_GB OUT ROOT GXX CLANG_TIDY CPPCHECK SA_TIMEOUT ANALYZER_CHECKERS TIDY_CHECKS TIDY_OPTIONS
 
 # A Yocto build dir calls the compiler by name from recipe-sysroot-native
 WORKDIR=$(dirname "$BUILD")

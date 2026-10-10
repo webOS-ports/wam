@@ -34,7 +34,7 @@ class WebAppWindowFactoryMock : public WebAppWindowFactory {
 
   // Hands out what SetWebAppWindow() was given, each once and in order: the caller
   // takes it over. Two pages sharing one mock would both delete it.
-  WebAppWindow* CreateWindow() override;
+  std::unique_ptr<WebAppWindow> CreateWindow() override;
   void SetWebAppWindow(std::unique_ptr<WebAppWindow> web_app_window);
 
  private:

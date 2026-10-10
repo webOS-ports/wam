@@ -31,9 +31,9 @@ WebAppWindowFactoryMock::~WebAppWindowFactoryMock() {
   --instances_;
 }
 
-WebAppWindow* WebAppWindowFactoryMock::CreateWindow() {
+std::unique_ptr<WebAppWindow> WebAppWindowFactoryMock::CreateWindow() {
   if (!web_app_windows_.empty()) {
-    WebAppWindow* next = web_app_windows_.front().release();
+    std::unique_ptr<WebAppWindow> next = std::move(web_app_windows_.front());
     web_app_windows_.pop_front();
     return next;
   }

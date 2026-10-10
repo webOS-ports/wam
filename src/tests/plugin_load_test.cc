@@ -39,11 +39,10 @@ namespace {
 constexpr char kPluginName[] = "libwebappmgr-default-plugin.so";
 
 struct PluginDir {
-  PluginDir() { valid = !dir.Path().empty() && dir.WriteFile(kPluginName, ""); }
   std::string Plugin() const { return dir.Path() + "/" + kPluginName; }
 
   TempDir dir;
-  bool valid = false;
+  bool valid = !dir.Path().empty() && dir.WriteFile(kPluginName, "");
 };
 
 }  // namespace

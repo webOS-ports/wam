@@ -39,7 +39,7 @@ static int kLaunchFinishAssureTimeoutMs = 5000;
 
 const std::unordered_map<std::string, webos::WebOSKeyMask>& GetKeyMaskTable() {
   static const std::unordered_map<std::string, webos::WebOSKeyMask> map_table{
-      {"KeyMaskNone", static_cast<webos::WebOSKeyMask>(0)},
+      {"KeyMaskNone", webos::WebOSKeyMask{}},
       {"KeyMaskHome", webos::WebOSKeyMask::KEY_MASK_HOME},
       {"KeyMaskBack", webos::WebOSKeyMask::KEY_MASK_BACK},
       {"KeyMaskExit", webos::WebOSKeyMask::KEY_MASK_EXIT},
@@ -64,8 +64,7 @@ const std::unordered_map<std::string, webos::WebOSKeyMask>& GetKeyMaskTable() {
 webos::WebOSKeyMask GetKeyMask(const std::string& key) {
   static const auto& map_table = GetKeyMaskTable();
   auto iter = map_table.find(key);
-  return iter != map_table.end() ? iter->second
-                                 : static_cast<webos::WebOSKeyMask>(0);
+  return iter != map_table.end() ? iter->second : webos::WebOSKeyMask{};
 }
 
 }  // namespace
@@ -108,7 +107,9 @@ WebAppWayland::WebAppWayland(const std::string& type,
   Init(width, height);
 }
 
-static webos::WebAppWindowBase::LocationHint GetLocationHintFromString(
+namespace {
+
+webos::WebAppWindowBase::LocationHint GetLocationHintFromString(
     const std::string& value) {
   std::map<std::string, webos::WebAppWindowBase::LocationHint> hints = {
       {"north", webos::WebAppWindowBase::LocationHint::kNorth},
@@ -129,9 +130,11 @@ static webos::WebAppWindowBase::LocationHint GetLocationHintFromString(
   return hint;
 }
 
-static bool IsQuarterTurn(int degrees) {
+bool IsQuarterTurn(int degrees) {
   return degrees == 90 || degrees == 270;
 }
+
+}  // namespace
 
 int WebAppWayland::LogicalDisplayWidth() {
   return IsQuarterTurn(WebAppManager::Instance()->DisplayRotation())
@@ -148,8 +151,7 @@ int WebAppWayland::LogicalDisplayHeight() {
 void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
   if (!app_window_) {
     if (window_factory_) {
-      app_window_ =
-          std::unique_ptr<WebAppWindow>(window_factory_->CreateWindow());
+      app_window_ = window_factory_->CreateWindow();
     } else {
       app_window_ =
           std::make_unique<WebAppWindowImpl>(WebAppWaylandWindow::Take());
@@ -174,12 +176,15 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
 
   app_window_->SetWebApp(this);
 
-  // set compositor window type
-  SetWindowProperty("_WEBOS_WINDOW_TYPE", window_type_);
+  // set compositor window type. Init() runs from the constructors, where a
+  // virtual call would not reach an override anyway; the qualified call says
+  // so.
+  WebAppWayland::SetWindowProperty("_WEBOS_WINDOW_TYPE", window_type_);
   LOG_DEBUG("App created window [%s]", window_type_.c_str());
 
   if (display_id_ != kUndefinedDisplayId) {
-    SetWindowProperty("displayAffinity", std::to_string(display_id_));
+    WebAppWayland::SetWindowProperty("displayAffinity",
+                                     std::to_string(display_id_));
     LOG_DEBUG("App window for display[%d]", display_id_);
   }
 
@@ -497,12 +502,15 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
   if (value.isArray()) {
     // The page hands this over (webOSSystem.window.setInputRegion), so any
     // shape can arrive: what is not an object of numbers counts as 0.
+    const auto scaled = [this](const Json::Value& region, const char* key) {
+      return static_cast<int>(
+          static_cast<float>(util::JsonAsInt(util::JsonMember(region, key))) *
+          scale_factor_);
+    };
     for (const auto& region : value) {
-      input_region_.emplace_back(
-          util::JsonAsInt(util::JsonMember(region, "x")) * scale_factor_,
-          util::JsonAsInt(util::JsonMember(region, "y")) * scale_factor_,
-          util::JsonAsInt(util::JsonMember(region, "width")) * scale_factor_,
-          util::JsonAsInt(util::JsonMember(region, "height")) * scale_factor_);
+      input_region_.emplace_back(scaled(region, "x"), scaled(region, "y"),
+                                 scaled(region, "width"),
+                                 scaled(region, "height"));
     }
   }
 
@@ -511,15 +519,15 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
 
 void WebAppWayland::SetWindowProperty(const std::string& name,
                                       const std::string& value) {
-  webos::WebOSKeyMask mask = static_cast<webos::WebOSKeyMask>(0);
+  webos::WebOSKeyMask mask = webos::WebOSKeyMask{};
   if (name == "_WEBOS_ACCESS_POLICY_KEYS_BACK") {
     mask = webos::WebOSKeyMask::KEY_MASK_BACK;
   } else if (name == "_WEBOS_ACCESS_POLICY_KEYS_EXIT") {
     mask = webos::WebOSKeyMask::KEY_MASK_EXIT;
   }
   // if mask is not set, not need to call setKeyMask
-  if (mask != static_cast<webos::WebOSKeyMask>(0)) {
-    SetKeyMask(mask, value == "true");
+  if (mask != webos::WebOSKeyMask{}) {
+    WebAppWayland::SetKeyMask(mask, value == "true");
   }
   app_window_->SetWindowProperty(name, value);
 }
@@ -542,6 +550,10 @@ void WebAppWayland::SetKeyMask(const Json::Value& value) {
     }
   }
 
+  // The engine takes a set of WebOSKeyMask flags as the enum type itself.
+  // Any OR of its flags is in the enum's range (it has no fixed underlying
+  // type, so its values span all bits of its largest enumerator).
+  // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
   app_window_->SetKeyMask(static_cast<webos::WebOSKeyMask>(key_mask));
 }
 

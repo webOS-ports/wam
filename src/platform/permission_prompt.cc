@@ -37,8 +37,10 @@ const char* PermissionRequestTypeToString(PermissionRequest::RequestType type) {
   }
 }
 
-// Prompts waiting for the user, by prompt id.
+// Prompts waiting for the user, by prompt id. Never destroyed, so a prompt
+// the engine destroys late in exit can still take itself out.
 std::map<std::string, PermissionPrompt*>& PendingPrompts() {
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): deliberately never freed
   static auto* prompts = new std::map<std::string, PermissionPrompt*>();
   return *prompts;
 }

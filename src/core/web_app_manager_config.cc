@@ -16,66 +16,73 @@
 
 #include "web_app_manager_config.h"
 
-#include <unistd.h>
+#include <filesystem>
+#include <system_error>
 
 #include "utils.h"
 
+// The constructor reads the process environment directly: WamGetEnv() is
+// virtual, and a subclass that overrides it is not constructed yet (it calls
+// ResetConfiguration() itself once it is).
 WebAppManagerConfig::WebAppManagerConfig() {
-  InitConfiguration();
+  InitConfiguration([](const char* name) { return util::GetEnvVar(name); });
 }
 
 std::string WebAppManagerConfig::WamGetEnv(const char* name) {
   return util::GetEnvVar(name);
 }
 
-void WebAppManagerConfig::InitConfiguration() {
-  web_app_factory_plugin_types_ = WamGetEnv("WEBAPPFACTORY");
+void WebAppManagerConfig::InitConfiguration(
+    const std::function<std::string(const char*)>& get_env) {
+  web_app_factory_plugin_types_ = get_env("WEBAPPFACTORY");
 
-  web_app_factory_plugin_path_ = WamGetEnv("WEBAPPFACTORY_PLUGIN_PATH");
+  web_app_factory_plugin_path_ = get_env("WEBAPPFACTORY_PLUGIN_PATH");
   if (web_app_factory_plugin_path_.empty()) {
     web_app_factory_plugin_path_ = "/usr/lib/webappmanager/plugins";
   }
 
-  std::string const suspend_delay = WamGetEnv("WAM_SUSPEND_DELAY_IN_MS");
+  std::string const suspend_delay = get_env("WAM_SUSPEND_DELAY_IN_MS");
   int const suspend_delay_int = util::StrToIntWithDefault(suspend_delay, 0);
   suspend_delay_time_ = std::max(suspend_delay_int, 1);
 
   std::string const max_custom_suspend_delay =
-      WamGetEnv("MAX_CUSTOM_SUSPEND_DELAY_IN_MS");
+      get_env("MAX_CUSTOM_SUSPEND_DELAY_IN_MS");
   int const max_custom_suspend_delay_int =
       util::StrToIntWithDefault(max_custom_suspend_delay, 0);
   max_custom_suspend_delay_time_ = std::max(max_custom_suspend_delay_int, 0);
 
-  error_page_url_ = WamGetEnv("WAM_ERROR_PAGE");
+  error_page_url_ = get_env("WAM_ERROR_PAGE");
 
   dynamic_pluggable_load_enabled_ =
-      WamGetEnv("LOAD_DYNAMIC_PLUGGABLE").compare("1") == 0;
+      get_env("LOAD_DYNAMIC_PLUGGABLE").compare("1") == 0;
 
   post_web_process_created_disabled_ =
-      WamGetEnv("POST_WEBPROCESS_CREATED_DISABLED").compare("1") == 0;
+      get_env("POST_WEBPROCESS_CREATED_DISABLED").compare("1") == 0;
 
-  check_launch_time_enabled_ = WamGetEnv("LAUNCH_TIME_CHECK").compare("1") == 0;
+  check_launch_time_enabled_ = get_env("LAUNCH_TIME_CHECK").compare("1") == 0;
 
   use_system_app_optimization_ =
-      WamGetEnv("USE_SYSTEM_APP_OPTIMIZATION").compare("1") == 0;
+      get_env("USE_SYSTEM_APP_OPTIMIZATION").compare("1") == 0;
 
   launch_optimization_enabled_ =
-      WamGetEnv("ENABLE_LAUNCH_OPTIMIZATION").compare("1") == 0;
+      get_env("ENABLE_LAUNCH_OPTIMIZATION").compare("1") == 0;
 
-  user_script_path_ = WamGetEnv("USER_SCRIPT_PATH");
+  user_script_path_ = get_env("USER_SCRIPT_PATH");
   if (user_script_path_.empty()) {
     user_script_path_ = "webOSUserScripts/userScript.js";
   }
 
-  name_ = WamGetEnv("WAM_NAME");
+  name_ = get_env("WAM_NAME");
 }
 
 void WebAppManagerConfig::PostInitConfiguration() {
-  if (access("/var/luna/preferences/debug_system_apps", F_OK) == 0) {
+  std::error_code error;
+  if (std::filesystem::exists("/var/luna/preferences/debug_system_apps",
+                              error)) {
     inspector_enabled_ = true;
   }
 
-  if (access("/var/luna/preferences/devmode_enabled", F_OK) == 0) {
+  if (std::filesystem::exists("/var/luna/preferences/devmode_enabled", error)) {
     dev_mode_enabled_ = true;
     tellurium_nub_path_ = WamGetEnv("TELLURIUM_NUB_PATH");
   }
@@ -100,5 +107,5 @@ void WebAppManagerConfig::ResetConfiguration() {
   user_script_path_.clear();
   name_.clear();
 
-  InitConfiguration();
+  InitConfiguration([this](const char* name) { return WamGetEnv(name); });
 }

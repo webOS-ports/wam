@@ -16,10 +16,9 @@
 
 #include "web_app_factory_manager_impl.h"
 
-#include <dirent.h>
-#include <sys/types.h>
-
+#include <filesystem>
 #include <string>
+#include <system_error>
 #include <vector>
 
 #include "log_manager.h"
@@ -47,17 +46,12 @@ std::unordered_set<std::string> SplitPluginTypes(const std::string& types) {
 std::vector<std::string> GetFileList(const std::string& path) {
   std::string const fixed_path = path.back() == '/' ? path : path + '/';
   std::vector<std::string> files;
-  DIR* dir = opendir(fixed_path.c_str());
-  if (dir != nullptr) {
-    struct dirent* entry = nullptr;
-    while ((entry = readdir(dir)) != nullptr) {
-      std::string const file_name = entry->d_name;
-      if (file_name == "." || file_name == "..") {
-        continue;
-      }
-      files.emplace_back(fixed_path + file_name);
-    }
-    closedir(dir);
+  // The error_code overloads: no exception, and an unreadable directory
+  // simply lists nothing, as opendir() failing did.
+  std::error_code error;
+  for (std::filesystem::directory_iterator entry(fixed_path, error), end;
+       !error && entry != end; entry.increment(error)) {
+    files.emplace_back(fixed_path + entry->path().filename().string());
   }
   return files;
 }
@@ -68,7 +62,10 @@ WebAppFactoryManager* WebAppFactoryManagerImpl::instance_ = nullptr;
 
 WebAppFactoryManager* WebAppFactoryManagerImpl::Instance() {
   if (!instance_) {
-    instance_ = new WebAppFactoryManagerImpl();
+    // Never freed: apps made by the plugins it loaded live as long as WAM,
+    // and destroying it at exit would unload their code under them.
+    instance_ =
+        new WebAppFactoryManagerImpl();  // NOLINT(cppcoreguidelines-owning-memory)
   }
   return instance_;
 }
@@ -79,12 +76,8 @@ WebAppFactoryManagerImpl::TestInstance(
     const std::string& factory_env,
     bool load_plugin_on_demand,
     std::unique_ptr<PluginLibWrapper> lib_wrapper) {
-  RemovableManagerPtr unique_instance(
-      new WebAppFactoryManagerImpl(plugin_path, factory_env,
-                                   load_plugin_on_demand,
-                                   std::move(lib_wrapper)),
-      [](WebAppFactoryManagerImpl* p) { delete p; });
-  return unique_instance;
+  return RemovableManagerPtr(new WebAppFactoryManagerImpl(
+      plugin_path, factory_env, load_plugin_on_demand, std::move(lib_wrapper)));
 }
 
 WebAppFactoryManagerImpl::WebAppFactoryManagerImpl()
@@ -141,16 +134,16 @@ WebAppFactoryInterface* WebAppFactoryManagerImpl::LoadPluggable(
     return nullptr;
   }
 
-  WebAppFactoryInterface* interface = nullptr;
   for (const auto& file : GetFileList(web_app_factory_plugin_path_)) {
     if (!plugin_loader_->Load(file)) {
       LOG_WARNING(MSGID_PLUGIN_LOAD_FAIL, 1,
                   PMLOGKS("ERROR", plugin_loader_->GetError().c_str()), "");
       continue;
     }
-    std::string key = plugin_loader_->GetAppType(file);
+    std::string const key = plugin_loader_->GetAppType(file);
     if (key.find(app_type) != std::string::npos || !load_pluggable_on_demand_) {
-      interface = plugin_loader_->GetWebAppFactoryInstance(file);
+      WebAppFactoryInterface* const interface =
+          plugin_loader_->GetWebAppFactoryInstance(file);
       if (interface) {
         interfaces_.emplace(key, interface);
         if (!app_type.empty()) {

@@ -82,14 +82,15 @@ ObserverList<ObserverType>::End() {
   return observers_.end();
 }
 
-#define FOR_EACH_OBSERVER(ObserverType, observer_list, func)                \
-  {                                                                         \
-    auto buffered_list = observer_list;                                     \
-    if (buffered_list.Size()) {                                             \
-      for (std::vector<ObserverType*>::iterator it = buffered_list.Begin(); \
-           it != buffered_list.End(); ++it)                                 \
-        (*it)->func;                                                        \
-    }                                                                       \
+// Calls |method| with |args| on every observer of |observers|. It goes over
+// a copy of the list, so an observer may remove itself while it is called.
+template <class ObserverType, class Method, class... Args>
+void ForEachObserver(ObserverList<ObserverType> observers,
+                     Method method,
+                     const Args&... args) {
+  for (auto it = observers.Begin(); it != observers.End(); ++it) {
+    ((*it)->*method)(args...);
   }
+}
 
 #endif  // UTIL_OBSERVER_LIST_H_

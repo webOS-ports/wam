@@ -45,8 +45,7 @@ class WebPageBase {
     kWebPageVisibilityStateVisible,
     kWebPageVisibilityStateHidden,
     kWebPageVisibilityStateLaunching,
-    kWebPageVisibilityStatePrerender,
-    kWebPageVisibilityStateLast = kWebPageVisibilityStatePrerender
+    kWebPageVisibilityStatePrerender
   };
 
   WebPageBase(const wam::Url& url,

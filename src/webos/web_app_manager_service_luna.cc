@@ -1017,8 +1017,8 @@ Json::Value WebAppManagerServiceLuna::webProcessCreated(
     std::string const instance_id = request["instanceId"].isString()
                                   ? request["instanceId"].asString()
                                   : "";
-    int const pid = WebAppManagerService::GetWebProcessId(app_id.c_str(),
-                                                    instance_id.c_str());
+    uint32_t const pid = WebAppManagerService::GetWebProcessId(
+        app_id.c_str(), instance_id.c_str());
     reply["id"] = app_id;
     reply["instanceId"] = instance_id;
 

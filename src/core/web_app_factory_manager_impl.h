@@ -17,7 +17,6 @@
 #ifndef CORE_WEB_APP_FACTORY_MANAGER_IMPL_H_
 #define CORE_WEB_APP_FACTORY_MANAGER_IMPL_H_
 
-#include <functional>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -32,10 +31,9 @@ class PluginLibWrapper;
 class WebAppFactoryManagerImpl : public WebAppFactoryManager {
  public:
   static WebAppFactoryManager* Instance();
+  ~WebAppFactoryManagerImpl() override;
   // For testing purpose.
-  using RemovableManagerPtr =
-      std::unique_ptr<WebAppFactoryManagerImpl,
-                      std::function<void(WebAppFactoryManagerImpl*)>>;
+  using RemovableManagerPtr = std::unique_ptr<WebAppFactoryManagerImpl>;
   static RemovableManagerPtr TestInstance(
       const std::string& plugin_path,
       const std::string& factory_env,
@@ -64,7 +62,6 @@ class WebAppFactoryManagerImpl : public WebAppFactoryManager {
                            const std::string& factory_env,
                            bool load_plugin_on_demand,
                            std::unique_ptr<PluginLibWrapper> lib_wrapper);
-  ~WebAppFactoryManagerImpl() override;
 
   static WebAppFactoryManager* instance_;
   std::unordered_map<std::string, WebAppFactoryInterface*> interfaces_;

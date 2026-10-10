@@ -352,8 +352,7 @@ TEST_F(PalmSystemBlinkTestSuite,
   params.reserve(1);
   params.emplace_back(R"(["Incorrect value"])");
 
-  EXPECT_CALL(*web_app_window_,
-              SetKeyMask(static_cast<webos::WebOSKeyMask>(0)));
+  EXPECT_CALL(*web_app_window_, SetKeyMask(webos::WebOSKeyMask{}));
   web_view_delegate_->HandleBrowserControlFunction("setKeyMask", params,
                                                    &return_value);
 }
@@ -369,7 +368,10 @@ TEST_F(PalmSystemBlinkTestSuite,
   keymask |= webos::WebOSKeyMask::KEY_MASK_EXIT;
   keymask |= webos::WebOSKeyMask::KEY_MASK_BACK;
 
+  // A set of flags in the enum type, as the engine takes it (see
+  // WebAppWayland::SetKeyMask()).
   EXPECT_CALL(*web_app_window_,
+              // NOLINTNEXTLINE(clang-analyzer-optin.core.EnumCastOutOfRange)
               SetKeyMask(static_cast<webos::WebOSKeyMask>(keymask)));
   web_view_delegate_->HandleBrowserControlFunction("setKeyMask", params,
                                                    &return_value);

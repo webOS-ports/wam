@@ -118,7 +118,7 @@ class CapabilityBitmap {
 
   int LetterCount() const {
     int found = 0;
-    for (unsigned code : kLetterKeys) {
+    for (const unsigned code : kLetterKeys) {
       if (Advertises(code))
         ++found;
     }
@@ -279,10 +279,15 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   device_info_json["modelName"] = model_name_;
   device_info_json["platformVersion"] = platform_version_;
   {
-    int major = 0, minor = 0, dot = 0;
-    const int fields_count =
-        std::sscanf(platform_version_.c_str(), "%d.%d.%d", &major, &minor, &dot);
-    if (fields_count != 3) {
+    // "major.minor.dot". sscanf("%d") made a field out of int's range
+    // undefined behaviour; StrToInt() refuses it.
+    int major = -1;
+    int minor = -1;
+    int dot = -1;
+    const std::vector<std::string> fields =
+        util::SplitString(platform_version_, '.');
+    if (fields.size() < 3 || !util::StrToInt(fields[0], major) ||
+        !util::StrToInt(fields[1], minor) || !util::StrToInt(fields[2], dot)) {
       major = minor = dot = -1;
     }
 
@@ -380,13 +385,14 @@ void DeviceInfoImpl::SetHardwareKeyboard(bool present,
 
 void DeviceInfoImpl::SetDisplayWidth(int value) {
   DeviceInfo::SetDisplayWidth(value);
-  screen_width_ = static_cast<int>(value / screen_density_);
+  screen_width_ = static_cast<int>(static_cast<float>(value) / screen_density_);
   UpdateTvDeviceInfo();
 }
 
 void DeviceInfoImpl::SetDisplayHeight(int value) {
   DeviceInfo::SetDisplayHeight(value);
-  screen_height_ = static_cast<int>(value / screen_density_);
+  screen_height_ =
+      static_cast<int>(static_cast<float>(value) / screen_density_);
   UpdateTvDeviceInfo();
 }
 
@@ -423,8 +429,10 @@ void DeviceInfoImpl::InitDisplayInfo() {
     GetDisplayHeight(hardware_screen_height);
   }
 
-  screen_width_ = static_cast<int>(hardware_screen_width / screen_density_);
-  screen_height_ = static_cast<int>(hardware_screen_height / screen_density_);
+  screen_width_ = static_cast<int>(static_cast<float>(hardware_screen_width) /
+                                   screen_density_);
+  screen_height_ = static_cast<int>(static_cast<float>(hardware_screen_height) /
+                                    screen_density_);
 }
 
 void DeviceInfoImpl::InitPlatformInfo() {

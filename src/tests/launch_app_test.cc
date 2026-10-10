@@ -349,8 +349,11 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithoutParams) {
 TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   constexpr char path[] = "file:///usr/share/localization/wam/loaderror.html";
   constexpr char var_name[] = "WAM_ERROR_PAGE";
-  const auto actual_value = getenv(var_name);
+  // The configuration reads WAM_ERROR_PAGE from the environment; the test runs
+  // on a single thread.
+  const auto actual_value = getenv(var_name);  // NOLINT(concurrency-mt-unsafe)
   if (!actual_value) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   }
@@ -402,7 +405,8 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   ASSERT_TRUE(result.isMember("appId"));
 
   if (!actual_value) {
-    int const unset_result = unsetenv(var_name);
+    int const unset_result =
+        unsetenv(var_name);  // NOLINT(concurrency-mt-unsafe)
     ASSERT_FALSE(unset_result);
   }
 }

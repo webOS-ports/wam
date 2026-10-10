@@ -248,14 +248,16 @@ TEST(CloseAllApps, CloseAllApps) {
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
 
+  auto owned_web_app_factory_manager =
+      std::make_unique<WebAppFactoryManagerMock>();
   WebAppFactoryManagerMock* web_app_factory_manager =
-      new WebAppFactoryManagerMock();
+      owned_web_app_factory_manager.get();
 
   AppTestContext first_app;
   AppTestContext second_app;
 
   WebAppManager::Instance()->SetWebAppFactory(
-      std::unique_ptr<WebAppFactoryManagerMock>(web_app_factory_manager));
+      std::move(owned_web_app_factory_manager));
 
   {
     AttachContext(web_app_factory_manager, &first_app);

@@ -335,7 +335,7 @@ void WebAppBase::SetAppProperties(const std::string& properties) {
 }
 
 void WebAppBase::SetPreloadState(const std::string& properties) {
-  Json::Value obj = util::StringToJson(properties);
+  Json::Value const obj = util::StringToJson(properties);
 
   std::string const preload =
       util::JsonAsString(util::JsonMember(obj, "preload"));
@@ -344,11 +344,10 @@ void WebAppBase::SetPreloadState(const std::string& properties) {
     preload_state_ = kFullPreload;
   } else if (preload == "semi-full") {
     preload_state_ = kSemiFullPreload;
-  } else if (preload == "partial") {
-    preload_state_ = kPartialPreload;
   } else if (preload == "minimal") {
     preload_state_ = kMinimalPreload;
-  } else if (util::JsonAsBool(util::JsonMember(obj, "launchedHidden"))) {
+  } else if (preload == "partial" ||
+             util::JsonAsBool(util::JsonMember(obj, "launchedHidden"))) {
     preload_state_ = kPartialPreload;
   }
 
@@ -376,12 +375,10 @@ void WebAppBase::SetPreloadState(const std::string& properties) {
       break;
     case kMinimalPreload:
       // TODO : implement minimal preloaded when rule is set.
-      break;
     default:
       break;
   }
-  app_private_->page_->SetIsPreload(preload_state_ != kNonePreload ? true
-                                                                   : false);
+  app_private_->page_->SetIsPreload(preload_state_ != kNonePreload);
 }
 
 void WebAppBase::ClearPreloadState() {
@@ -406,7 +403,6 @@ void WebAppBase::ClearPreloadState() {
       break;
     case kMinimalPreload:
       // TODO : implement minimal preloaded when rule is set.
-      break;
     default:
       break;
   }

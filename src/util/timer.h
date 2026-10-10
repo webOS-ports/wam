@@ -40,7 +40,7 @@ class Timer {
   // about to destroy the source.
   static int OnTimeout(void* data);
 
-  int source_id_ = 0;
+  unsigned int source_id_ = 0;
   bool is_running_ = false;
   bool is_repeating_;
 };
@@ -52,6 +52,9 @@ class BaseTimer : public Timer {
 
   BaseTimer() : Timer(kIsRepeating) {}
 
+  // Well-formed for every receiver, so it does not matter whether a compiler
+  // instantiates it where it is not used; GCC and clang both build it.
+  // NOLINTNEXTLINE(portability-template-virtual-member-function)
   void HandleCallback() override {
     Running(kIsRepeating);
     (receiver_->*method_)();

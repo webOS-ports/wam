@@ -21,8 +21,11 @@
 #include <unistd.h>
 
 #include <algorithm>
+#include <charconv>
+#include <iterator>
 #include <sstream>
 #include <string>
+#include <system_error>
 
 #include <json/value.h>
 #include "webos/application_installation_handler.h"
@@ -48,8 +51,9 @@
 static const int kContinuousReloadingLimit = 3;
 
 WebAppManager* WebAppManager::Instance() {
-  // not a leak -- static variable initializations are only ever done once
-  static WebAppManager* instance = new WebAppManager();
+  // Never destroyed: apps and pages still reach it while the process exits.
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+  static WebAppManager* const instance = new WebAppManager();
   return instance;
 }
 
@@ -464,7 +468,9 @@ void WebAppManager::CloseAppInternal(WebAppBase* app,
   }
 
   if (ignore_clean_resource) {
-    delete app;
+    // app_list_ holds the apps without owning them: an app is deleted here or
+    // deletes itself once its page has unloaded (WebAppBase::CloseWebApp()).
+    delete app;  // NOLINT(cppcoreguidelines-owning-memory)
   } else {
     if (page->IsRegisteredCloseCallback()) {
       LOG_INFO(MSGID_CLOSE_APP_INTERNAL, 3,
@@ -487,11 +493,11 @@ void WebAppManager::CloseAppInternal(WebAppBase* app,
 bool WebAppManager::CloseAllApps(uint32_t pid) {
   AppList running_apps;
 
-  for (WebAppBase* app : app_list_) {
-    if (!pid || web_process_manager_->GetWebProcessPID(app) == pid) {
-      running_apps.insert(running_apps.end(), app);
-    }
-  }
+  std::copy_if(app_list_.begin(), app_list_.end(),
+               std::back_inserter(running_apps), [&](const WebAppBase* app) {
+                 return !pid ||
+                        web_process_manager_->GetWebProcessPID(app) == pid;
+               });
 
   AppList::iterator it = running_apps.begin();
   while (it != running_apps.end()) {
@@ -531,23 +537,19 @@ void WebAppManager::WebPageRemoved(WebPageBase* page) {
 }
 
 WebAppBase* WebAppManager::FindAppById(const std::string& app_id) {
-  for (WebAppBase* app : app_list_) {
-    if (app->Page() && app->AppId() == app_id) {
-      return app;
-    }
-  }
-
-  return nullptr;
+  const auto found = std::find_if(
+      app_list_.begin(), app_list_.end(), [&](const WebAppBase* app) {
+        return app->Page() && app->AppId() == app_id;
+      });
+  return found != app_list_.end() ? *found : nullptr;
 }
 
 WebAppBase* WebAppManager::FindAppByInstanceId(const std::string& instance_id) {
-  for (WebAppBase* app : app_list_) {
-    if (app->Page() && (app->InstanceId() == instance_id)) {
-      return app;
-    }
-  }
-
-  return nullptr;
+  const auto found = std::find_if(
+      app_list_.begin(), app_list_.end(), [&](const WebAppBase* app) {
+        return app->Page() && app->InstanceId() == instance_id;
+      });
+  return found != app_list_.end() ? *found : nullptr;
 }
 
 void WebAppManager::AppDeleted(WebAppBase* app) {
@@ -844,12 +846,15 @@ uint32_t WebAppManager::GetWebProcessId(const std::string& app_id,
 }
 
 bool WebAppManager::IsWindowOpenInstanceId(const std::string& instance_id) {
-  // strtoll() cannot throw, unlike stoi() which aborts WebAppMgr on a UUID
+  // from_chars() cannot throw, unlike stoi() which aborts WebAppMgr on a UUID
   // beginning with a hex letter. Requiring the whole string to be consumed
   // also rejects a UUID that merely starts with digits ("1000abcd-...").
-  char* end = nullptr;
-  const long long numeric_id = std::strtoll(instance_id.c_str(), &end, 10);
-  return !instance_id.empty() && end && *end == '\0' && numeric_id >= 1000;
+  long long numeric_id = 0;
+  const char* const end = instance_id.data() + instance_id.size();
+  const auto [last, error] =
+      std::from_chars(instance_id.data(), end, numeric_id);
+  return !instance_id.empty() && error == std::errc() && last == end &&
+         numeric_id >= 1000;
 }
 
 std::string WebAppManager::GenerateInstanceId() {
@@ -950,7 +955,7 @@ bool WebAppManager::SetOrientation(const std::string& orientation) {
   // frameworks error out when the callback is missing rather than unused, and
   // because anything else listening for it now gets it.
   const std::string args = "\"" + orientation_ + "\"";
-  for (WebAppBase* app : app_list_) {
+  for (const WebAppBase* app : app_list_) {
     if (!app->Page()) {
       continue;
     }

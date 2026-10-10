@@ -31,9 +31,9 @@ WebViewFactoryMock::~WebViewFactoryMock() {
   --instances_;
 }
 
-WebView* WebViewFactoryMock::CreateWebView() {
+std::unique_ptr<WebView> WebViewFactoryMock::CreateWebView() {
   if (!web_views_.empty()) {
-    WebView* next = web_views_.front().release();
+    std::unique_ptr<WebView> next = std::move(web_views_.front());
     web_views_.pop_front();
     return next;
   }

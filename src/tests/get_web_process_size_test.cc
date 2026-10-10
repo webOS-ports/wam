@@ -138,7 +138,7 @@ TEST(GetWebProcessSizeTest, checkCaseProcessExists) {
   const auto& processes = response_process_size["WebProcesses"];
   ASSERT_TRUE(processes.size() > 0);
   int process_position = -1;
-  for (unsigned int i = 0; i < processes.size(); i++) {
+  for (int i = 0; i < static_cast<int>(processes.size()); i++) {
     ASSERT_TRUE(processes[i].isObject());
     const auto& process = processes[i];
     ASSERT_TRUE(process.isMember("pid"));

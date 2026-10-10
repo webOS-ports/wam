@@ -30,12 +30,15 @@
 
 const char* kPluginApplicationType = "default";
 
+// The plugin interface (plugin_interface.h) passes ownership across the
+// dlopen() boundary as raw pointers: WAM hands the factory back to
+// DeleteInstance(), and takes over the apps and pages it creates.
 WebAppFactoryInterface* CreateInstance() {
-  return new WebAppFactoryLuna();
+  return new WebAppFactoryLuna();  // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 void DeleteInstance(WebAppFactoryInterface* interface) {
-  delete interface;
+  delete interface;  // NOLINT(cppcoreguidelines-owning-memory)
 }
 
 WebAppBase* WebAppFactoryLuna::CreateWebApp(
@@ -46,10 +49,11 @@ WebAppBase* WebAppFactoryLuna::CreateWebApp(
   if (win_type == kWtCard || win_type == kWtPopup || win_type == kWtMinimal ||
       win_type == kWtFloating || win_type == kWtSystemUi ||
       win_type == kWtDock) {
-    app = new WebAppWaylandWebOS(win_type, desc);
+    app = new WebAppWaylandWebOS(  // NOLINT(cppcoreguidelines-owning-memory)
+        win_type, desc);
   } else if (win_type == kWtOverlay || win_type == kWtNone) {
-    app = new WebAppWayland(win_type, std::nullopt, std::nullopt,
-                            desc.GetDisplayAffinity());
+    app = new WebAppWayland(  // NOLINT(cppcoreguidelines-owning-memory)
+        win_type, std::nullopt, std::nullopt, desc.GetDisplayAffinity());
   } else {
     LOG_WARNING(MSGID_BAD_WINDOW_TYPE, 1,
                 PMLOGKS("WINDOW_TYPE", win_type.c_str()), "");
@@ -68,5 +72,6 @@ WebPageBase* WebAppFactoryLuna::CreateWebPage(
     const wam::Url& url,
     const ApplicationDescription& desc,
     const std::string& launch_params) {
-  return new WebPageBlink(url, desc, launch_params);
+  return new WebPageBlink(  // NOLINT(cppcoreguidelines-owning-memory)
+      url, desc, launch_params);
 }

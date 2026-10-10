@@ -43,7 +43,9 @@ class CountingViewFactory : public WebViewFactory {
   ~CountingViewFactory() override { --instances; }
   CountingViewFactory(const CountingViewFactory&) = delete;
   CountingViewFactory& operator=(const CountingViewFactory&) = delete;
-  WebView* CreateWebView() override { return new NiceWebViewMock(); }
+  std::unique_ptr<WebView> CreateWebView() override {
+    return std::make_unique<NiceWebViewMock>();
+  }
 
   static int instances;
 };

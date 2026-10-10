@@ -45,6 +45,9 @@ NotificationService* NotificationService::Instance() {
 
 // static
 NotificationServiceLuna* NotificationServiceLuna::Instance() {
+  // Never destroyed: pages may still close their notifications while the
+  // process exits.
+  // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
   static NotificationServiceLuna* instance = new NotificationServiceLuna();
   return instance;
 }

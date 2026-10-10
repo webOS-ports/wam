@@ -219,7 +219,7 @@ void WebAppManager::OnRelaunchApp(const std::string& instance_id,
     app->SetClosePageRequested(false);
   }
 
-  if (!json["preload"].isString() && !json["launchedHidden"].asBool()) {
+  if (!json["preload"].isString() && !util::JsonAsBool(json["launchedHidden"])) {
     app->Relaunch(args.c_str(), launching_app_id.c_str());
   } else {
     LOG_INFO(MSGID_WAM_DEBUG, 3, PMLOGKS("APP_ID", app->AppId().c_str()),
@@ -727,8 +727,8 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
   // still look for to pick their dock face. Give such a window a type of its
   // own so the shell can host it apart from the ordinary card stack, instead
   // of it also turning up as a card behind the exhibition display.
-  if (json["dockMode"].asBool() &&
-      json["windowType"].asString() == "dockModeWindow") {
+  if (util::JsonAsBool(json["dockMode"]) &&
+      util::JsonAsString(json["windowType"]) == "dockModeWindow") {
     win_type = kWtDock;
   }
 
@@ -737,7 +737,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
     desc->SetDisplayAffinity(affinity.asInt());
   }
 
-  std::string instance_id = json["instanceId"].asString();
+  std::string instance_id = util::JsonAsString(json["instanceId"]);
 
   // Replace entryPoint if launching from service worker
   if (json.isMember("sw_clients_openwindow")) {

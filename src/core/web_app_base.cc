@@ -316,16 +316,19 @@ void WebAppBase::SetAppProperties(const std::string& properties) {
   Json::Value json = util::StringToJson(properties);
   bool keep_alive = false;
 
-  if (json["keepAlive"].isBool() && json["keepAlive"].asBool()) {
+  if (util::JsonMember(json, "keepAlive").isBool() &&
+      json["keepAlive"].asBool()) {
     keep_alive = true;
   }
   SetKeepAlive(keep_alive);
 
-  if (json["launchedHidden"].isBool() && json["launchedHidden"].asBool()) {
+  if (util::JsonMember(json, "launchedHidden").isBool() &&
+      json["launchedHidden"].asBool()) {
     SetHiddenWindow(true);
   }
 
-  if (json["noWindow"].isBool() && json["noWindow"].asBool()) {
+  if (util::JsonMember(json, "noWindow").isBool() &&
+      json["noWindow"].asBool()) {
     no_window_ = true;
     SetHiddenWindow(true);
   }
@@ -334,7 +337,8 @@ void WebAppBase::SetAppProperties(const std::string& properties) {
 void WebAppBase::SetPreloadState(const std::string& properties) {
   Json::Value obj = util::StringToJson(properties);
 
-  std::string const preload = obj["preload"].asString();
+  std::string const preload =
+      util::JsonAsString(util::JsonMember(obj, "preload"));
 
   if (preload == "full") {
     preload_state_ = kFullPreload;
@@ -344,7 +348,7 @@ void WebAppBase::SetPreloadState(const std::string& properties) {
     preload_state_ = kPartialPreload;
   } else if (preload == "minimal") {
     preload_state_ = kMinimalPreload;
-  } else if (obj["launchedHidden"].asBool()) {
+  } else if (util::JsonAsBool(util::JsonMember(obj, "launchedHidden"))) {
     preload_state_ = kPartialPreload;
   }
 

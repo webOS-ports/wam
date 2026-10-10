@@ -135,7 +135,7 @@ ApplicationDescription::GetWindowOwnerInfo() {
   if (!group_window_desc_.empty()) {
     Json::Value json = util::StringToJson(group_window_desc_);
 
-    const auto& owner_info = json["ownerInfo"];
+    const auto& owner_info = util::JsonMember(json, "ownerInfo");
     if (owner_info.isObject()) {
       if (owner_info["allowAnonymous"].isBool()) {
         info.allow_anonymous = owner_info["allowAnonymous"].asBool();
@@ -144,8 +144,8 @@ ApplicationDescription::GetWindowOwnerInfo() {
       auto layers = owner_info["layers"];
       if (layers.isArray()) {
         for (const auto& layer : layers) {
-          const auto& name = layer["name"];
-          const auto& z = layer["z"];
+          const auto& name = util::JsonMember(layer, "name");
+          const auto& z = util::JsonMember(layer, "z");
           if (name.isString() && z.isInt()) {
             info.layers.emplace(name.asString(), z.asInt());
           }
@@ -162,7 +162,7 @@ ApplicationDescription::GetWindowClientInfo() {
   if (!group_window_desc_.empty()) {
     Json::Value json = util::StringToJson(group_window_desc_);
 
-    const auto& client_info = json["clientInfo"];
+    const auto& client_info = util::JsonMember(json, "clientInfo");
     if (client_info.isObject()) {
       const auto& layer = client_info["layer"];
       if (layer.isString()) {
@@ -189,21 +189,21 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
 
   auto app_desc = std::make_unique<ApplicationDescription>();
 
-  app_desc->transparency_ = json_obj["transparent"].asBool();
-  app_desc->trust_level_ = json_obj["trustLevel"].asString();
+  app_desc->transparency_ = util::JsonAsBool(json_obj["transparent"]);
+  app_desc->trust_level_ = util::JsonAsString(json_obj["trustLevel"]);
   app_desc->system_app_ =
       json_obj["systemApp"].isBool() && json_obj["systemApp"].asBool();
-  app_desc->sub_type_ = json_obj["subType"].asString();
-  app_desc->deep_linking_params_ = json_obj["deeplinkingParams"].asString();
-  app_desc->handles_relaunch_ = json_obj["handlesRelaunch"].asBool();
-  app_desc->default_window_type_ = json_obj["defaultWindowType"].asString();
-  app_desc->inspectable_ = json_obj["inspectable"].asBool();
-  app_desc->enyo_bundle_version_ = json_obj["enyoBundleVersion"].asString();
-  app_desc->enyo_version_ = json_obj["enyoVersion"].asString();
-  app_desc->version_ = json_obj["version"].asString();
-  app_desc->custom_plugin_ = json_obj["customPlugin"].asBool();
+  app_desc->sub_type_ = util::JsonAsString(json_obj["subType"]);
+  app_desc->deep_linking_params_ = util::JsonAsString(json_obj["deeplinkingParams"]);
+  app_desc->handles_relaunch_ = util::JsonAsBool(json_obj["handlesRelaunch"]);
+  app_desc->default_window_type_ = util::JsonAsString(json_obj["defaultWindowType"]);
+  app_desc->inspectable_ = util::JsonAsBool(json_obj["inspectable"]);
+  app_desc->enyo_bundle_version_ = util::JsonAsString(json_obj["enyoBundleVersion"]);
+  app_desc->enyo_version_ = util::JsonAsString(json_obj["enyoVersion"]);
+  app_desc->version_ = util::JsonAsString(json_obj["version"]);
+  app_desc->custom_plugin_ = util::JsonAsBool(json_obj["customPlugin"]);
   app_desc->back_history_api_disabled_ =
-      json_obj["disableBackHistoryAPI"].asBool();
+      util::JsonAsBool(json_obj["disableBackHistoryAPI"]);
   auto group_window_desc =
       json_obj.get("windowGroup", Json::Value(Json::objectValue));
   app_desc->group_window_desc_ = util::JsonToString(group_window_desc);
@@ -211,22 +211,22 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   auto supported_versions = json_obj["supportedEnyoBundleVersions"];
   if (supported_versions.isArray()) {
     for (const Json::Value& version : supported_versions) {
-      app_desc->supported_enyo_bundle_versions_.insert(version.asString());
+      app_desc->supported_enyo_bundle_versions_.insert(util::JsonAsString(version));
     }
   }
 
-  app_desc->id_ = json_obj["id"].asString();
-  app_desc->entry_point_ = json_obj["main"].asString();
-  app_desc->icon_ = json_obj["icon"].asString();
-  app_desc->folder_path_ = json_obj["folderPath"].asString();
+  app_desc->id_ = util::JsonAsString(json_obj["id"]);
+  app_desc->entry_point_ = util::JsonAsString(json_obj["main"]);
+  app_desc->icon_ = util::JsonAsString(json_obj["icon"]);
+  app_desc->folder_path_ = util::JsonAsString(json_obj["folderPath"]);
   app_desc->requested_window_orientation_ =
-      json_obj["requestedWindowOrientation"].asString();
-  app_desc->title_ = json_obj["title"].asString();
-  app_desc->do_not_track_ = json_obj["doNotTrack"].asBool();
-  app_desc->handle_exit_key_ = json_obj["handleExitKey"].asBool();
-  app_desc->enable_background_run_ = json_obj["enableBackgroundRun"].asBool();
-  app_desc->allow_video_capture_ = json_obj["allowVideoCapture"].asBool();
-  app_desc->allow_audio_capture_ = json_obj["allowAudioCapture"].asBool();
+      util::JsonAsString(json_obj["requestedWindowOrientation"]);
+  app_desc->title_ = util::JsonAsString(json_obj["title"]);
+  app_desc->do_not_track_ = util::JsonAsBool(json_obj["doNotTrack"]);
+  app_desc->handle_exit_key_ = util::JsonAsBool(json_obj["handleExitKey"]);
+  app_desc->enable_background_run_ = util::JsonAsBool(json_obj["enableBackgroundRun"]);
+  app_desc->allow_video_capture_ = util::JsonAsBool(json_obj["allowVideoCapture"]);
+  app_desc->allow_audio_capture_ = util::JsonAsBool(json_obj["allowAudioCapture"]);
 
   const auto& enable_keyboard = json_obj["enableKeyboard"];
   app_desc->use_virtual_keyboard_ =
@@ -271,7 +271,7 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   // Handle resolution
   const auto& resolution = json_obj["resolution"];
   if (resolution.isString()) {
-    std::string const override_resolution = json_obj["resolution"].asString();
+    std::string const override_resolution = resolution.asString();
     auto res_list = util::SplitString(override_resolution, 'x');
     if (res_list.size() == 2) {
       int width_override = 0;
@@ -312,9 +312,9 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
       if (!k.isObject()) {
         continue;
       }
-      int const from = k["from"].asInt();
-      int const to = k["to"].asInt();
-      int const modifier = k["modifier"].asInt();
+      int const from = util::JsonAsInt(k["from"]);
+      int const to = util::JsonAsInt(k["to"]);
+      int const modifier = util::JsonAsInt(k["modifier"]);
       app_desc->key_filter_table_[from] = std::make_pair(to, modifier);
     }
   }

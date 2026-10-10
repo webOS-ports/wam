@@ -321,10 +321,50 @@ std::u16string Utf8ToUtf16(const std::string& utf8) {
 }
 
 // JSON
+namespace {
+
+// jsoncpp's strict mode stops at a nesting depth of 1000 by throwing; stay
+// well clear of it.
+constexpr int kMaxJsonDepth = 500;
+
+// Whether the arrays and objects of |str| nest deeper than |limit|. Brackets
+// inside strings do not count. Malformed input is left to the parser.
+bool NestsDeeperThan(const std::string& str, int limit) {
+  int depth = 0;
+  bool in_string = false;
+  bool escaped = false;
+  for (char const c : str) {
+    if (in_string) {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '"') {
+        in_string = false;
+      }
+    } else if (c == '"') {
+      in_string = true;
+    } else if (c == '[' || c == '{') {
+      if (++depth > limit) {
+        return true;
+      }
+    } else if (c == ']' || c == '}') {
+      --depth;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 bool StringToJson(const std::string& str, Json::Value& value) {
+  if (NestsDeeperThan(str, kMaxJsonDepth)) {
+    return false;
+  }
+
   Json::CharReaderBuilder builder;
   Json::CharReaderBuilder::strictMode(&builder.settings_);
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  std::unique_ptr<Json::CharReader> const reader(builder.newCharReader());
 
   return reader->parse(str.c_str(), str.c_str() + str.size(), &value, nullptr);
 }
@@ -341,6 +381,28 @@ std::string JsonToString(const Json::Value& value) {
   builder["enableYAMLCompatibility"] = true;
 
   return Json::writeString(builder, value);
+}
+
+bool JsonAsBool(const Json::Value& value, bool fallback) {
+  return value.isConvertibleTo(Json::booleanValue) ? value.asBool() : fallback;
+}
+
+int JsonAsInt(const Json::Value& value, int fallback) {
+  return value.isConvertibleTo(Json::intValue) ? value.asInt() : fallback;
+}
+
+double JsonAsDouble(const Json::Value& value, double fallback) {
+  return value.isConvertibleTo(Json::realValue) ? value.asDouble() : fallback;
+}
+
+std::string JsonAsString(const Json::Value& value,
+                         const std::string& fallback) {
+  return value.isConvertibleTo(Json::stringValue) ? value.asString()
+                                                  : fallback;
+}
+
+const Json::Value& JsonMember(const Json::Value& object, const char* key) {
+  return object.isObject() ? object[key] : Json::Value::nullSingleton();
 }
 
 }  // namespace util

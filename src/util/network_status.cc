@@ -27,9 +27,9 @@ void NetworkStatus::FromJsonObject(const Json::Value& object) {
   if (!object.isObject()) {
     return;
   }
-  return_value_ = object["returnValue"].asBool();
+  return_value_ = util::JsonAsBool(object["returnValue"]);
   is_internet_connection_available_ =
-      object["isInternetConnectionAvailable"].asBool();
+      util::JsonAsBool(object["isInternetConnectionAvailable"]);
   if (return_value_) {
     if (object["wired"].isObject()) {
       type_ = "wired";
@@ -56,15 +56,15 @@ void NetworkStatus::Information::FromJsonObject(const Json::Value& info) {
   if (!info.isObject()) {
     return;
   }
-  netmask_ = info["netmask"].asString();
-  dns1_ = info["dns1"].asString();
+  netmask_ = util::JsonAsString(info["netmask"]);
+  dns1_ = util::JsonAsString(info["dns1"]);
   if (info["dns2"].isString()) {
     dns2_ = info["dns2"].asString();
   }
-  ip_address_ = info["ipAddress"].asString();
-  method_ = info["method"].asString();
-  state_ = info["state"].asString();
-  gateway_ = info["gateway"].asString();
-  interface_name_ = info["interfaceName"].asString();
-  on_internet_ = info["onInternet"].asString();
+  ip_address_ = util::JsonAsString(info["ipAddress"]);
+  method_ = util::JsonAsString(info["method"]);
+  state_ = util::JsonAsString(info["state"]);
+  gateway_ = util::JsonAsString(info["gateway"]);
+  interface_name_ = util::JsonAsString(info["interfaceName"]);
+  on_internet_ = util::JsonAsString(info["onInternet"]);
 }

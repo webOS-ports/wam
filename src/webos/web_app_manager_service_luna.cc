@@ -224,8 +224,8 @@ Json::Value WebAppManagerServiceLuna::pauseApp(const Json::Value& request) {
 
   if (WebAppManagerService::OnPauseApp(id)) {
     reply["returnValue"] = true;
-    reply["appId"] = request["appId"].asString();
-    reply["instanceId"] = request["instanceId"].asString();
+    reply["appId"] = util::JsonAsString(request["appId"]);
+    reply["instanceId"] = id;
   } else {
     reply["returnValue"] = false;
     reply["errorCode"] = kErrCodeNoRunningApp;
@@ -881,7 +881,7 @@ void WebAppManagerServiceLuna::GetCloseAppIdCallback(const Json::Value& reply) {
     return;
   }
 
-  std::string const app_id = reply["id"].asString();
+  std::string const app_id = util::JsonAsString(reply["id"]);
   std::string const instance_id = reply["instanceId"].asString();
 
   if (!app_id.empty() && !instance_id.empty()) {

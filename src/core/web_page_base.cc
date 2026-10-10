@@ -47,7 +47,7 @@ WebPageBase::WebPageBase(const wam::Url& url,
       launch_params_(params) {
   Json::Value json = util::StringToJson(params);
   if (json.isObject()) {
-    instance_id_ = json["instanceId"].asString();
+    instance_id_ = util::JsonAsString(json["instanceId"]);
   } else {
     LOG_WARNING(MSGID_TYPE_ERROR, 0,
                 "[%s] failed get instanceId from params '%s'", app_id_.c_str(),
@@ -140,16 +140,15 @@ bool WebPageBase::Relaunch(const std::string& launch_params,
   // 3-3. Send webOSRelaunch event
 
   // 1. Handling service worker clients.openWindow case
-  Json::Value json_obj = util::StringToJson(launch_params);
-  if (json_obj.isMember("sw_clients_openwindow")) {
-    const auto& sw_clients_openwindow = json_obj["sw_clients_openwindow"];
-    if (sw_clients_openwindow.isString()) {
-      std::string const target_url = sw_clients_openwindow.asString();
-      LOG_DEBUG("[%s] service worker clients.openWindow(%s) relaunch",
-                app_id_.c_str(), target_url.c_str());
-      LoadUrl(target_url);
-      return true;
-    }
+  Json::Value const json_obj = util::StringToJson(launch_params);
+  const auto& sw_clients_openwindow =
+      util::JsonMember(json_obj, "sw_clients_openwindow");
+  if (sw_clients_openwindow.isString()) {
+    std::string const target_url = sw_clients_openwindow.asString();
+    LOG_DEBUG("[%s] service worker clients.openWindow(%s) relaunch",
+              app_id_.c_str(), target_url.c_str());
+    LoadUrl(target_url);
+    return true;
   }
 
   if (DoHostedWebAppRelaunch(launch_params)) {
@@ -214,9 +213,10 @@ bool WebPageBase::DoDeeplinking(const std::string& launch_params) {
   }
 
   std::string const handled_by =
-      obj["handledBy"].isNull() ? "default" : obj["handledBy"].asString();
+      obj["handledBy"].isNull() ? "default"
+                                : util::JsonAsString(obj["handledBy"]);
   if (handled_by == "platform") {
-    std::string const target_url = obj["contentTarget"].asString();
+    std::string const target_url = util::JsonAsString(obj["contentTarget"]);
     LOG_INFO(MSGID_DEEPLINKING, 4, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", GetWebProcessPID()),

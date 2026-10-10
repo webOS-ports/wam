@@ -128,13 +128,6 @@ Json::Value WindowAttributesFromFeatures(
   return window_attributes;
 }
 
-// An attribute value as a string, or empty for one that has none: asString()
-// asserts on an array or object.
-std::string AttributeString(const Json::Value& value) {
-  return value.isConvertibleTo(Json::stringValue) ? value.asString()
-                                                  : std::string();
-}
-
 }  // namespace
 
 class WebPageBlinkPrivate {
@@ -1435,7 +1428,7 @@ WebView* WebPageBlink::CreateWindow(
 
   const Json::Value window_attributes =
       WindowAttributesFromFeatures(additional_features);
-  const std::string window = AttributeString(window_attributes["window"]);
+  const std::string window = util::JsonAsString(window_attributes["window"]);
 
   if (window == "dashboard") {
     new_app_desc->SetDefaultWindowType("floating");
@@ -1490,7 +1483,7 @@ WebView* WebPageBlink::CreateWindow(
   for (auto attr = window_attributes.begin(); attr != window_attributes.end();
        ++attr) {
     std::string const attr_key = attr.name();
-    std::string const attr_value = AttributeString(*attr);
+    std::string const attr_value = util::JsonAsString(*attr);
 
     if (!attr_key.empty() && !attr_value.empty()) {
       new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);

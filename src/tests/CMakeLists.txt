@@ -45,6 +45,7 @@ set(SOURCES
     set_inspector_enable_test.cc
     string_utils_test.cc
     touch_event_test.cc
+    untrusted_json_test.cc
     url_test.cc
     utils_test.cc
     web_app_manager_config_test.cc

@@ -495,11 +495,14 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
   input_region_.clear();
 
   if (value.isArray()) {
+    // The page hands this over (webOSSystem.window.setInputRegion), so any
+    // shape can arrive: what is not an object of numbers counts as 0.
     for (const auto& region : value) {
-      input_region_.emplace_back(region["x"].asInt() * scale_factor_,
-                                 region["y"].asInt() * scale_factor_,
-                                 region["width"].asInt() * scale_factor_,
-                                 region["height"].asInt() * scale_factor_);
+      input_region_.emplace_back(
+          util::JsonAsInt(util::JsonMember(region, "x")) * scale_factor_,
+          util::JsonAsInt(util::JsonMember(region, "y")) * scale_factor_,
+          util::JsonAsInt(util::JsonMember(region, "width")) * scale_factor_,
+          util::JsonAsInt(util::JsonMember(region, "height")) * scale_factor_);
     }
   }
 
@@ -535,7 +538,7 @@ void WebAppWayland::SetKeyMask(const Json::Value& value) {
   unsigned int key_mask = 0;
   if (value.isArray()) {
     for (const auto& child : value) {
-      key_mask |= GetKeyMask(child.asString());
+      key_mask |= GetKeyMask(util::JsonAsString(child));
     }
   }
 

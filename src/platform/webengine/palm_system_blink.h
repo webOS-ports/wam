@@ -17,6 +17,8 @@
 #ifndef PLATFORM_WEBENGINE_PALM_SYSTEM_BLINK_H_
 #define PLATFORM_WEBENGINE_PALM_SYSTEM_BLINK_H_
 
+#include <map>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -29,6 +31,7 @@ class Value;
 class PalmSystemBlink : public PalmSystemWebOS {
  public:
   explicit PalmSystemBlink(WebAppBase* app);
+  ~PalmSystemBlink() override;
 
   std::string HandleBrowserControlMessage(
       const std::string& command,
@@ -66,6 +69,9 @@ class PalmSystemBlink : public PalmSystemWebOS {
  private:
   bool initialized_ = false;
   std::map<int, std::string> banner_ids_;
+  // Banners whose createToast reply has not arrived; that reply writes to
+  // banner_ids_, so the calls are cancelled when this object goes.
+  std::set<int> pending_banners_;
 };
 
 #endif  // PLATFORM_WEBENGINE_PALM_SYSTEM_BLINK_H_

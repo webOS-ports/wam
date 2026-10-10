@@ -53,9 +53,32 @@ std::string Utf16ToUtf8(const std::u16string& utf16);
 std::u16string Utf8ToUtf16(const std::string& utf8);
 
 // JSON
+//
+// jsoncpp throws when it is handed something it cannot do: a value of the
+// wrong type for asBool()/asInt()/asDouble()/asString(), a member looked up
+// on something that is not an object, or a document nested deeper than its
+// parser's stack limit. WebAppMgr is built without exceptions and catches
+// none, so each of those ended the process, and every running app with it.
+// What comes from a page, an app's appinfo.json or launch parameters, or
+// another service has to go through these instead.
+
+// Parses |str| as strict JSON. False for anything else, including a
+// document nested too deep to parse safely.
 bool StringToJson(const std::string& str, Json::Value& value);
 Json::Value StringToJson(const std::string& str);
 std::string JsonToString(const Json::Value& value);
+
+// |value| converted as jsoncpp's asBool()/asInt()/asDouble()/asString()
+// convert it, or |fallback| when it cannot be converted (and would throw).
+bool JsonAsBool(const Json::Value& value, bool fallback = false);
+int JsonAsInt(const Json::Value& value, int fallback = 0);
+double JsonAsDouble(const Json::Value& value, double fallback = 0.0);
+std::string JsonAsString(const Json::Value& value,
+                         const std::string& fallback = {});
+
+// The member |key| of |object|; null when there is none or |object| is not
+// an object.
+const Json::Value& JsonMember(const Json::Value& object, const char* key);
 
 }  // namespace util
 

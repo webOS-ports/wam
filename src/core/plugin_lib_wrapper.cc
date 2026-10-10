@@ -49,8 +49,8 @@ std::string PluginLibWrapper::GetAppType(void* handle) {
 }
 
 std::string PluginLibWrapper::GetLastError() {
-  // NOLINTNEXTLINE(concurrency-mt-unsafe): glibc keeps dlerror() state per
-  // thread
+  // glibc keeps the dlerror() state per thread.
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
   char const* error = dlerror();
   return error == nullptr ? std::string() : std::string(error);
 }

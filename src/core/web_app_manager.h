@@ -61,8 +61,8 @@ class WebAppManager {
 
   static WebAppManager* Instance();
 
-  bool GetSystemLanguage(std::string& value);
-  bool GetDeviceInfo(const std::string& name, std::string& value);
+  bool GetSystemLanguage(std::string& value) const;
+  bool GetDeviceInfo(const std::string& name, std::string& value) const;
   void BroadcastWebAppMessage(WebAppMessageType type,
                               const std::string& message);
 
@@ -76,8 +76,8 @@ class WebAppManager {
   void SetWebAppFactory(std::unique_ptr<WebAppFactoryManager> factory);
   bool Run();
 
-  std::list<const WebAppBase*> RunningApps();
-  std::list<const WebAppBase*> RunningApps(uint32_t pid);
+  std::list<const WebAppBase*> RunningApps() const;
+  std::list<const WebAppBase*> RunningApps(uint32_t pid) const;
   // A page created by window.open() gets a purely numeric instance id counting
   // up from 1000 (GenerateInstanceId); everything else gets a UUID from SAM.
   // Such a page is not separately launchable - it belongs to its parent app.
@@ -92,15 +92,15 @@ class WebAppManager {
                      int& err_code,
                      std::string& err_msg);
 
-  std::vector<ApplicationInfo> List(bool include_system_apps = false);
+  std::vector<ApplicationInfo> List(bool include_system_apps = false) const;
 
   Json::Value GetWebProcessProfiling();
-  int CurrentUiWidth();
-  int CurrentUiHeight();
+  int CurrentUiWidth() const;
+  int CurrentUiHeight() const;
   void SetUiSize(int width, int height);
 
   void SetActiveInstanceId(const std::string& id) { active_instance_id_ = id; }
-  const std::string GetActiveInstanceId() const { return active_instance_id_; }
+  const std::string& GetActiveInstanceId() const { return active_instance_id_; }
 
   bool OnKillApp(const std::string& app_id,
                  const std::string& instance_id,
@@ -112,7 +112,7 @@ class WebAppManager {
   bool SetAppShownWhileDeactivated(const std::string& instance_id,
                                    const std::string& app_id,
                                    bool shown);
-  bool SetInspectorEnable(const std::string& app_id);
+  bool SetInspectorEnable(const std::string& app_id) const;
 
   void SetSystemLanguage(const std::string& language);
   void SetDeviceInfo(const std::string& name, const std::string& value);
@@ -123,13 +123,13 @@ class WebAppManager {
                            const std::string& layout);
   WebAppManagerConfig* Config() { return web_app_manager_config_.get(); }
 
-  const std::string WindowTypeFromString(const std::string& str);
+  static std::string WindowTypeFromString(const std::string& str);
 
   bool CloseAllApps(uint32_t pid = 0);
   void SetForceCloseApp(const std::string& app_id,
                         const std::string& instance_id);
 
-  int GetSuspendDelay() { return suspend_delay_; }
+  int GetSuspendDelay() const { return suspend_delay_; }
   int GetMaxCustomSuspendDelay() const { return max_custom_suspend_delay_; }
   bool ProcessCrashed(const std::string& app_id,
                       const std::string& instance_id);
@@ -138,7 +138,7 @@ class WebAppManager {
   void ForceCloseAppInternal(WebAppBase* app);
 
   void WebPageAdded(WebPageBase* page);
-  void WebPageRemoved(WebPageBase* page);
+  void WebPageRemoved(const WebPageBase* page);
 
   // Creates the app for a page a running app opened. The app takes the page;
   // if no app can be made (null is returned), the page is freed.
@@ -148,9 +148,9 @@ class WebAppManager {
                               const std::string& launching_app_id,
                               std::unique_ptr<WebPageBase> new_page);
 
-  void AppDeleted(WebAppBase* app);
+  void AppDeleted(const WebAppBase* app);
   void PostRunningAppList();
-  std::string GenerateInstanceId();
+  static std::string GenerateInstanceId();
 
   bool IsAccessibilityEnabled() const { return is_accessibility_enabled_; }
   void SetAccessibilityEnabled(bool enabled);
@@ -159,12 +159,13 @@ class WebAppManager {
                              uint32_t pid);
   uint32_t GetWebProcessId(const std::string& app_id,
                            const std::string& instance_id);
-  void SendEventToAllAppsAndAllFrames(const std::string& jsscript);
+  void SendEventToAllAppsAndAllFrames(const std::string& jsscript) const;
   void ServiceCall(const std::string& url,
                    const std::string& payload,
                    const std::string& app_id);
   void UpdateNetworkStatus(const Json::Value& object);
-  void NotifyMemoryPressure(webos::WebViewBase::MemoryPressureLevel level);
+  void NotifyMemoryPressure(
+      webos::WebViewBase::MemoryPressureLevel level) const;
 
   bool IsEnyoApp(const std::string& app_id);
 
@@ -189,10 +190,10 @@ class WebAppManager {
   void ClearBrowsingData(const int remove_browsing_data_mask);
   int MaskForBrowsingDataType(const char* type);
 
-  void AppInstalled(const std::string& app_id);
-  void AppRemoved(const std::string& app_id);
+  static void AppInstalled(const std::string& app_id);
+  static void AppRemoved(const std::string& app_id);
 
-  std::string IdentifierForSecurityOrigin(const std::string& identifier);
+  static std::string IdentifierForSecurityOrigin(const std::string& identifier);
 
   // Set notification permissions recieved from system.
   void SetNotifierEnabled(const std::string& app_id, bool enabled);

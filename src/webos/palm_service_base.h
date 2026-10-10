@@ -322,7 +322,7 @@ class PalmServiceBase {
             const char* what,
             Json::Value parameters,
             const char* application_id,
-            LSCalloutContext* context);
+            LSCalloutContext* context) const;
   std::string service_name_;
 };
 

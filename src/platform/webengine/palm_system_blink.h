@@ -44,7 +44,7 @@ class PalmSystemBlink : public PalmSystemWebOS {
   virtual void SetLocale(const std::string& params);
   virtual double DevicePixelRatio();
   void ResetInitialized() { initialized_ = false; }
-  bool IsInitialized() { return initialized_; }
+  bool IsInitialized() const { return initialized_; }
 
  protected:
   // PalmSystemWebOS

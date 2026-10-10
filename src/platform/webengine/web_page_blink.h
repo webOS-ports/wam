@@ -141,13 +141,13 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetTrustLevel(const std::string& trust_level) {
     trust_level_ = trust_level;
   }
-  std::string TrustLevel() const { return trust_level_; }
+  const std::string& TrustLevel() const { return trust_level_; }
   std::string DefaultTrustLevel() const;
-  std::string EscapeData(const std::string& value);
+  static std::string EscapeData(const std::string& value);
   int RenderProcessPid() const;
   static void SetFileAccessBlocked(bool blocked);
   void UpdateBoardType();
-  double DevicePixelRatio();
+  double DevicePixelRatio() const;
   void SetAdditionalContentsScale(float scale_x, float scale_y);
   void UpdateHardwareResolution();
 
@@ -181,7 +181,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   virtual void SetupStaticUserScripts();
   virtual bool ShouldStopJSOnSuspend() const { return true; }
 
-  bool Inspectable();
+  static bool Inspectable();
 
   // WebPageDelegate
   void HandleBrowserControlCommand(

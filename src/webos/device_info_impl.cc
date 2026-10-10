@@ -19,9 +19,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <string>
 #include <fstream>
+#include <iterator>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include <glib.h>
@@ -95,6 +96,8 @@ class CapabilityBitmap {
     if (parsed.empty())
       return;
 
+    // The same on a 64-bit target, 64 or 32 on armv7.
+    // cppcheck-suppress duplicateValueTernary
     word_bits_ = widest > 8 ? 64 : static_cast<int>(sizeof(unsigned long) * 8);
 
     // Least significant word last in the text, first in the vector, so a code
@@ -117,12 +120,9 @@ class CapabilityBitmap {
   }
 
   int LetterCount() const {
-    int found = 0;
-    for (const unsigned code : kLetterKeys) {
-      if (Advertises(code))
-        ++found;
-    }
-    return found;
+    return static_cast<int>(
+        std::count_if(std::begin(kLetterKeys), std::end(kLetterKeys),
+                      [this](unsigned code) { return Advertises(code); }));
   }
 
  private:
@@ -130,11 +130,10 @@ class CapabilityBitmap {
   int word_bits_ = 0;
 };
 
-std::string ValueAfter(const std::string& line, const char* prefix) {
-  const std::size_t length = std::strlen(prefix);
-  if (line.compare(0, length, prefix) != 0)
+std::string ValueAfter(const std::string& line, std::string_view prefix) {
+  if (line.compare(0, prefix.size(), prefix) != 0)
     return std::string();
-  return line.substr(length);
+  return line.substr(prefix.size());
 }
 
 struct KeyboardFacts {
@@ -267,9 +266,9 @@ void DeviceInfoImpl::Initialize() {
   std::string const smartservicecountry(
       locale_json["smartServiceCountryCode3"].asString());
 
-  SetSystemLanguage(language.c_str());
-  SetDeviceInfo("LocalCountry", localcountry.c_str());
-  SetDeviceInfo("SmartServiceCountry", smartservicecountry.c_str());
+  SetSystemLanguage(language);
+  SetDeviceInfo("LocalCountry", localcountry);
+  SetDeviceInfo("SmartServiceCountry", smartservicecountry);
   }
 
 }
@@ -345,7 +344,7 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
 //! Nothing declaring a layout is the normal case, not an error - most devices
 //! have no physical keyboard, and a USB or Bluetooth one carries its layout in
 //! the compositor's xkb keymap rather than anywhere this can see.
-std::string DeviceInfoImpl::ReadKeyboardType() const {
+std::string DeviceInfoImpl::ReadKeyboardType() {
   std::string value;
 
   if (GetInfoFromLunaPrefs("com.palm.properties.KEYoBRD", value))
@@ -396,8 +395,7 @@ void DeviceInfoImpl::SetDisplayHeight(int value) {
   UpdateTvDeviceInfo();
 }
 
-bool DeviceInfoImpl::GetInfoFromLunaPrefs(const char* key,
-                                          std::string& value) const {
+bool DeviceInfoImpl::GetInfoFromLunaPrefs(const char* key, std::string& value) {
   char* str = nullptr;
   if (LP_ERR_NONE == LPSystemCopyStringValue(key, &str) && str) {
     value = str;

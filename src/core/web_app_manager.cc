@@ -67,7 +67,7 @@ WebAppManager::~WebAppManager() {
 }
 
 void WebAppManager::NotifyMemoryPressure(
-    webos::WebViewBase::MemoryPressureLevel level) {
+    webos::WebViewBase::MemoryPressureLevel level) const {
   std::list<const WebAppBase*> const app_list = RunningApps();
   for (const WebAppBase* app : app_list) {
     // Skip memory pressure handling on preloaded apps if chromium pressure is
@@ -139,7 +139,7 @@ void WebAppManager::SetHardwareKeyboard(bool present,
   }
 }
 
-int WebAppManager::CurrentUiWidth() {
+int WebAppManager::CurrentUiWidth() const {
   int width = 0;
   if (device_info_) {
     device_info_->GetDisplayWidth(width);
@@ -147,7 +147,7 @@ int WebAppManager::CurrentUiWidth() {
   return width;
 }
 
-int WebAppManager::CurrentUiHeight() {
+int WebAppManager::CurrentUiHeight() const {
   int height = 0;
   if (device_info_) {
     device_info_->GetDisplayHeight(height);
@@ -155,14 +155,15 @@ int WebAppManager::CurrentUiHeight() {
   return height;
 }
 
-bool WebAppManager::GetSystemLanguage(std::string& value) {
+bool WebAppManager::GetSystemLanguage(std::string& value) const {
   if (!device_info_) {
     return false;
   }
   return device_info_->GetSystemLanguage(value);
 }
 
-bool WebAppManager::GetDeviceInfo(const std::string& name, std::string& value) {
+bool WebAppManager::GetDeviceInfo(const std::string& name,
+                                  std::string& value) const {
   if (!device_info_) {
     return false;
   }
@@ -224,7 +225,7 @@ void WebAppManager::OnRelaunchApp(const std::string& instance_id,
   }
 
   if (!json["preload"].isString() && !util::JsonAsBool(json["launchedHidden"])) {
-    app->Relaunch(args.c_str(), launching_app_id.c_str());
+    app->Relaunch(args, launching_app_id);
   } else {
     LOG_INFO(MSGID_WAM_DEBUG, 3, PMLOGKS("APP_ID", app->AppId().c_str()),
              PMLOGKS("INSTANCE_ID", instance_id.c_str()),
@@ -233,15 +234,16 @@ void WebAppManager::OnRelaunchApp(const std::string& instance_id,
   }
 }
 
-bool WebAppManager::SetInspectorEnable(const std::string& app_id) {
-  for (const WebAppBase* app : app_list_) {
-    if (app_id == app->Page()->AppId()) {
-      LOG_DEBUG("[%s] setInspectorEnable", app_id.c_str());
-      app->Page()->SetInspectorEnable();
-      return true;
-    }
+bool WebAppManager::SetInspectorEnable(const std::string& app_id) const {
+  const auto found = std::find_if(
+      app_list_.begin(), app_list_.end(),
+      [&](const WebAppBase* app) { return app_id == app->Page()->AppId(); });
+  if (found == app_list_.end()) {
+    return false;
   }
-  return false;
+  LOG_DEBUG("[%s] setInspectorEnable", app_id.c_str());
+  (*found)->Page()->SetInspectorEnable();
+  return true;
 }
 
 bool WebAppManager::OnKillApp(const std::string& app_id,
@@ -277,25 +279,16 @@ bool WebAppManager::OnPauseApp(const std::string& instance_id) {
   return false;
 }
 
-std::list<const WebAppBase*> WebAppManager::RunningApps() {
-  std::list<const WebAppBase*> apps;
-
-  for (const WebAppBase* app : app_list_) {
-    apps.push_back(app);
-  }
-
-  return apps;
+std::list<const WebAppBase*> WebAppManager::RunningApps() const {
+  return {app_list_.begin(), app_list_.end()};
 }
 
-std::list<const WebAppBase*> WebAppManager::RunningApps(uint32_t pid) {
+std::list<const WebAppBase*> WebAppManager::RunningApps(uint32_t pid) const {
   std::list<const WebAppBase*> apps;
-
-  for (const WebAppBase* app : app_list_) {
-    if (app->Page()->GetWebProcessPID() == pid) {
-      apps.push_back(app);
-    }
-  }
-
+  std::copy_if(app_list_.begin(), app_list_.end(), std::back_inserter(apps),
+               [pid](const WebAppBase* app) {
+                 return app->Page()->GetWebProcessPID() == pid;
+               });
   return apps;
 }
 
@@ -311,8 +304,8 @@ WebAppBase* WebAppManager::OnLaunchUrl(
   PMTRACE_FUNCTION;
 
   WebAppFactoryManager* factory = GetWebAppFactory();
-  WebAppBase* app = factory->CreateWebApp(win_type.c_str(), *app_desc,
-                                          app_desc->SubType().c_str());
+  WebAppBase* app =
+      factory->CreateWebApp(win_type, *app_desc, app_desc->SubType());
 
   if (!app) {
     err_code = kErrCodeLaunchappUnsupportedType;
@@ -320,9 +313,8 @@ WebAppBase* WebAppManager::OnLaunchUrl(
     return nullptr;
   }
 
-  WebPageBase* page =
-      factory->CreateWebPage(win_type.c_str(), wam::Url(url.c_str()), *app_desc,
-                             app_desc->SubType().c_str(), args.c_str());
+  WebPageBase* page = factory->CreateWebPage(win_type, wam::Url(url), *app_desc,
+                                             app_desc->SubType(), args);
 
   // set use launching time optimization true while app loading.
   page->SetUseLaunchOptimization(true);
@@ -381,8 +373,8 @@ WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
   std::string const app_desc_version = app_desc->Version();
 
   WebAppFactoryManager* factory = GetWebAppFactory();
-  WebAppBase* app = factory->CreateWebApp(win_type.c_str(), *app_desc,
-                                          app_desc->SubType().c_str());
+  WebAppBase* app =
+      factory->CreateWebApp(win_type, *app_desc, app_desc->SubType());
 
   if (app) {
     // The app owns the page from here on (Attach() below).
@@ -450,7 +442,7 @@ void WebAppManager::CloseAppInternal(WebAppBase* app,
     return;
   }
 
-  std::string const type = app->GetAppDescription()->DefaultWindowType();
+  const std::string& type = app->GetAppDescription()->DefaultWindowType();
   AppDeleted(app);
   WebPageRemoved(app->Page());
   PostRunningAppList();
@@ -524,7 +516,7 @@ void WebAppManager::WebPageAdded(WebPageBase* page) {
   }
 }
 
-void WebAppManager::WebPageRemoved(WebPageBase* page) {
+void WebAppManager::WebPageRemoved(const WebPageBase* page) {
   auto range = app_page_map_.equal_range(page->AppId());
   auto it = range.first;
   while (it != range.second) {
@@ -552,12 +544,13 @@ WebAppBase* WebAppManager::FindAppByInstanceId(const std::string& instance_id) {
   return found != app_list_.end() ? *found : nullptr;
 }
 
-void WebAppManager::AppDeleted(WebAppBase* app) {
+void WebAppManager::AppDeleted(const WebAppBase* app) {
   if (!app) {
     return;
   }
 
-  app_list_.remove(app);
+  app_list_.remove_if(
+      [app](const WebAppBase* listed) { return listed == app; });
 }
 
 void WebAppManager::SetSystemLanguage(const std::string& language) {
@@ -636,7 +629,7 @@ bool WebAppManager::ProcessCrashed(const std::string& app_id,
   return true;
 }
 
-const std::string WebAppManager::WindowTypeFromString(const std::string& str) {
+std::string WebAppManager::WindowTypeFromString(const std::string& str) {
   if (str == "overlay") {
     return kWtOverlay;
   }
@@ -753,8 +746,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
 
   // Check if app is already running
   if (IsRunningApp(instance_id)) {
-    OnRelaunchApp(instance_id, desc->Id().c_str(), params.c_str(),
-                  launching_app_id.c_str());
+    OnRelaunchApp(instance_id, desc->Id(), params, launching_app_id);
   } else {
     // Run as a normal app
     if (!OnLaunchUrl(url, win_type, std::move(desc), instance_id, params,
@@ -767,17 +759,13 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
 }
 
 bool WebAppManager::IsRunningApp(const std::string& id) {
-  std::list<const WebAppBase*> const running = RunningApps();
-
-  for (const WebAppBase* app : running) {
-    if (app->InstanceId() == id) {
-      return true;
-    }
-  }
-  return false;
+  return std::any_of(
+      app_list_.begin(), app_list_.end(),
+      [&id](const WebAppBase* app) { return app->InstanceId() == id; });
 }
 
-std::vector<ApplicationInfo> WebAppManager::List(bool include_system_apps) {
+std::vector<ApplicationInfo> WebAppManager::List(
+    bool include_system_apps) const {
   std::vector<ApplicationInfo> list;
 
   std::list<const WebAppBase*> const running = RunningApps();
@@ -882,7 +870,7 @@ void WebAppManager::SetAccessibilityEnabled(bool enabled) {
 }
 
 void WebAppManager::SendEventToAllAppsAndAllFrames(
-    const std::string& jsscript) {
+    const std::string& jsscript) const {
   for (const WebAppBase* app : app_list_) {
     if (app->Page()) {
       LOG_DEBUG("[%s] send event with %s", app->AppId().c_str(),

@@ -29,12 +29,12 @@ class Url {
   explicit Url(const std::string& uri);
   ~Url() = default;
 
-  std::string Scheme() const { return scheme_; }
-  std::string Host() const { return host_; }
-  std::string Port() const { return port_; }
-  std::string Path() const { return path_; }
-  std::string Query() const { return query_; }
-  std::string Fragment() const { return fragment_; }
+  const std::string& Scheme() const { return scheme_; }
+  const std::string& Host() const { return host_; }
+  const std::string& Port() const { return port_; }
+  const std::string& Path() const { return path_; }
+  const std::string& Query() const { return query_; }
+  const std::string& Fragment() const { return fragment_; }
 
   void SetQuery(const UrlQuery& query);
   std::string ToString() const;

@@ -64,8 +64,8 @@ WebAppFactoryManager* WebAppFactoryManagerImpl::Instance() {
   if (!instance_) {
     // Never freed: apps made by the plugins it loaded live as long as WAM,
     // and destroying it at exit would unload their code under them.
-    instance_ =
-        new WebAppFactoryManagerImpl();  // NOLINT(cppcoreguidelines-owning-memory)
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)
+    instance_ = new WebAppFactoryManagerImpl();
   }
   return instance_;
 }
@@ -107,9 +107,9 @@ WebAppFactoryManagerImpl::WebAppFactoryManagerImpl(
     bool load_plugin_on_demand,
     std::unique_ptr<PluginLibWrapper> lib_wrapper)
     : web_app_factory_plugin_path_(plugin_path),
+      factory_env_(SplitPluginTypes(factory_env)),
       load_pluggable_on_demand_(load_plugin_on_demand),
       plugin_loader_(std::make_unique<PluginLoader>(std::move(lib_wrapper))) {
-  factory_env_ = SplitPluginTypes(factory_env);
   factory_env_.emplace("default");
   if (!load_pluggable_on_demand_) {
     LoadPluggable();

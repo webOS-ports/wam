@@ -16,6 +16,9 @@
 
 #include "web_app_wayland.h"
 
+#include <algorithm>
+#include <iterator>
+#include <numeric>
 #include <sstream>
 #include <unordered_map>
 
@@ -323,6 +326,8 @@ bool WebAppWayland::IsNormal() {
   return app_window_->GetWindowHostState() == webos::NATIVE_WINDOW_DEFAULT;
 }
 
+// Changes the page or window the object owns: not const in any useful sense.
+// cppcheck-suppress functionConst
 void WebAppWayland::NotifyStageChange(const char* callback) {
   Page()->CallLegacyMojoCallback(callback);
 }
@@ -437,13 +442,13 @@ void WebAppWayland::ConfigureWindow(const std::string& type) {
   SetKeyMask(webos::WebOSKeyMask::KEY_MASK_EXIT,
              GetAppDescription()->HandleExitKey());
 
-  ApplicationDescription* app_desc = GetAppDescription();
+  const ApplicationDescription* app_desc = GetAppDescription();
   if (!app_desc->GroupWindowDesc().empty()) {
     SetupWindowGroup(app_desc);
   }
 }
 
-void WebAppWayland::SetupWindowGroup(ApplicationDescription* desc) {
+void WebAppWayland::SetupWindowGroup(const ApplicationDescription* desc) {
   if (!desc) {
     return;
   }
@@ -507,11 +512,12 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
           static_cast<float>(util::JsonAsInt(util::JsonMember(region, key))) *
           scale_factor_);
     };
-    for (const auto& region : value) {
-      input_region_.emplace_back(scaled(region, "x"), scaled(region, "y"),
-                                 scaled(region, "width"),
-                                 scaled(region, "height"));
-    }
+    std::transform(
+        value.begin(), value.end(), std::back_inserter(input_region_),
+        [&scaled](const Json::Value& region) {
+          return gfx::Rect(scaled(region, "x"), scaled(region, "y"),
+                           scaled(region, "width"), scaled(region, "height"));
+        });
   }
 
   app_window_->SetInputRegion(input_region_);
@@ -545,9 +551,11 @@ void WebAppWayland::SetCursor(const std::string& cursor_arg,
 void WebAppWayland::SetKeyMask(const Json::Value& value) {
   unsigned int key_mask = 0;
   if (value.isArray()) {
-    for (const auto& child : value) {
-      key_mask |= GetKeyMask(util::JsonAsString(child));
-    }
+    key_mask =
+        std::accumulate(value.begin(), value.end(), 0u,
+                        [](unsigned int mask, const Json::Value& child) {
+                          return mask | GetKeyMask(util::JsonAsString(child));
+                        });
   }
 
   // The engine takes a set of WebOSKeyMask flags as the enum type itself.
@@ -568,7 +576,7 @@ void WebAppWayland::FocusOwner() {
 
 void WebAppWayland::FocusLayer() {
   app_window_->FocusWindowGroupLayer();
-  ApplicationDescription* desc = GetAppDescription();
+  const ApplicationDescription* desc = GetAppDescription();
   if (desc) {
     ApplicationDescription::WindowClientInfo const client_info =
         desc->GetWindowClientInfo();
@@ -603,7 +611,7 @@ void WebAppWayland::Unfocus() {
 
 void WebAppWayland::DoAttach() {
   // Do App and window things
-  ApplicationDescription* app_desc = GetAppDescription();
+  const ApplicationDescription* app_desc = GetAppDescription();
   if (!app_desc->GroupWindowDesc().empty()) {
     SetupWindowGroup(app_desc);
   }
@@ -734,6 +742,8 @@ void WebAppWayland::DoClose() {
   CloseAppInternal();
 }
 
+// Changes the page or window the object owns: not const in any useful sense.
+// cppcheck-suppress functionConst
 void WebAppWayland::StateAboutToChange(webos::NativeWindowState will_be) {
   if (will_be == webos::NATIVE_WINDOW_MINIMIZED) {
     LOG_INFO(MSGID_WAM_DEBUG, 3, PMLOGKS("APP_ID", AppId().c_str()),
@@ -933,6 +943,8 @@ void InputManager::OnCursorVisibilityChanged(bool visible) {
   WebAppBase::OnCursorVisibilityChanged(ss.str());
 }
 
+// Changes the page or window the object owns: not const in any useful sense.
+// cppcheck-suppress functionConst
 void WebAppWayland::SendWebOSMouseEvent(const std::string& event_name) {
   if (event_name == "Enter" || event_name == "Leave") {
     // send webOSMouse event to app

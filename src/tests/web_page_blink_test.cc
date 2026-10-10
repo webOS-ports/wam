@@ -208,7 +208,8 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   constexpr char var_name[] = "PRIVILEGED_PLUGIN_PATH";
   // WebPageBlink reads PRIVILEGED_PLUGIN_PATH from the environment; the test
   // runs on a single thread.
-  auto* const actual_value = getenv(var_name);  // NOLINT(concurrency-mt-unsafe)
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  auto* const actual_value = getenv(var_name);  // Flawfinder: ignore
   std::string test_value(path);
   if (!actual_value) {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)

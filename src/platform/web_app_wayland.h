@@ -131,9 +131,9 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void FirstFrameVisuallyCommitted() override;
   void NavigationHistoryChanged() override;
 
-  std::string GetWindowType() const { return window_type_; }
+  const std::string& GetWindowType() const { return window_type_; }
   std::string WindowType() const override { return window_type_; }
-  bool CursorVisibility() {
+  static bool CursorVisibility() {
     return InputManager::Instance()->GlobalCursorVisibility();
   }
   void SendWebOSMouseEvent(const std::string& event_name);
@@ -177,7 +177,7 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void DoAttach() override;
   void ShowWindow() override;
 
-  void SetupWindowGroup(ApplicationDescription* desc);
+  void SetupWindowGroup(const ApplicationDescription* desc);
 
   void MoveInputRegion(int height);
 

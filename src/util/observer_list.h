@@ -26,7 +26,7 @@ class ObserverList {
   void AddObserver(ObserverType* observer);
   void RemoveObserver(ObserverType* observer);
   bool HasObserver(ObserverType* observer);
-  size_t Size() { return observers_.size(); }
+  size_t Size() const { return observers_.size(); }
 
   typename std::vector<ObserverType*>::iterator Begin();
   typename std::vector<ObserverType*>::iterator End();

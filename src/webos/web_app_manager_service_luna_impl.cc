@@ -178,17 +178,16 @@ void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
                    screen_rotation.empty() ? "Empty" : screen_rotation.c_str()),
            "");
   if (!country.empty()) {
-    WebAppManagerService::SetDeviceInfo("LocalCountry", country.c_str());
+    WebAppManagerService::SetDeviceInfo("LocalCountry", country);
   }
   if (!smart_service_country.empty()) {
     WebAppManagerService::SetDeviceInfo("SmartServiceCountry",
-                                        smart_service_country.c_str());
+                                        smart_service_country);
   }
   if (!audio_guidance.empty()) {
     WebAppManagerService::SetAccessibilityEnabled(audio_guidance == "on");
   }
   if (!screen_rotation.empty()) {
-    WebAppManagerService::SetDeviceInfo("ScreenRotation",
-                                        screen_rotation.c_str());
+    WebAppManagerService::SetDeviceInfo("ScreenRotation", screen_rotation);
   }
 }

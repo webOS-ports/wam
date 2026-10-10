@@ -131,7 +131,7 @@ class WebPageBase {
   virtual void SetAudioGuidanceOn(bool /*on*/) {}
   virtual bool IsInputMethodActive() const { return false; }
 
-  std::string LaunchParams() const;
+  const std::string& LaunchParams() const;
   void Load();
   void SetEnableBackgroundRun(bool enable) { enable_background_run_ = enable; }
   void SendLocaleChangeEvent(const std::string& language);
@@ -147,10 +147,10 @@ class WebPageBase {
     instance_id_ = instance_id;
   }
   const std::string& InstanceId() const { return instance_id_; }
-  const ApplicationDescription& GetAppDescription() { return app_desc_; }
+  const ApplicationDescription& GetAppDescription() const { return app_desc_; }
 
   void SetClosing(bool status) { is_closing_ = status; }
-  bool IsClosing() { return is_closing_; }
+  bool IsClosing() const { return is_closing_; }
 
   void SetIsPreload(bool is_preload) { is_preload_ = is_preload; }
   bool IsPreload() const { return is_preload_; }
@@ -182,23 +182,23 @@ class WebPageBase {
   void HandleLoadStarted();
   void HandleLoadFinished();
   void HandleLoadFailed(int error_code);
-  bool GetDeviceInfo(const std::string& name, std::string& value);
-  bool GetSystemLanguage(std::string& value);
-  int CurrentUiWidth();
-  int CurrentUiHeight();
-  WebProcessManager* GetWebProcessManager();
-  WebAppManagerConfig* GetWebAppManagerConfig();
+  static bool GetDeviceInfo(const std::string& name, std::string& value);
+  static bool GetSystemLanguage(std::string& value);
+  static int CurrentUiWidth();
+  static int CurrentUiHeight();
+  static WebProcessManager* GetWebProcessManager();
+  static WebAppManagerConfig* GetWebAppManagerConfig();
   bool ProcessCrashed();
 
   virtual int MaxCustomSuspendDelay();
-  std::string TelluriumNubPath();
+  static std::string TelluriumNubPath();
 
   void ApplyPolicyForErrorPage(bool is_main_frame,
                                const std::string& url,
                                int error_code);
-  void PostRunningAppList();
-  void PostWebProcessCreated(uint32_t pid);
-  bool IsAccessibilityEnabled() const;
+  static void PostRunningAppList();
+  void PostWebProcessCreated(uint32_t pid) const;
+  static bool IsAccessibilityEnabled();
 
   // Owned by WebAppBasePrivate
   const ApplicationDescription& app_desc_;

@@ -74,7 +74,8 @@ bool EntryPointUsesLegacyFramework(const std::string& path) {
   }
 
   std::string head(static_cast<size_t>(kFrameworkSniffBytes), '\0');
-  file.read(head.data(), kFrameworkSniffBytes);
+  // Reads at most the size of the buffer it reads into.
+  file.read(head.data(), kFrameworkSniffBytes);  // Flawfinder: ignore
   head.resize(static_cast<size_t>(file.gcount()));
 
   // The markers are written in lower case; the paths and attributes they match
@@ -106,8 +107,8 @@ bool ApplicationDescription::CheckTrustLevel(const std::string& trust_level) {
 
 ApplicationDescription::ApplicationDescription() = default;
 
-const ApplicationDescription::WindowGroupInfo
-ApplicationDescription::GetWindowGroupInfo() {
+ApplicationDescription::WindowGroupInfo
+ApplicationDescription::GetWindowGroupInfo() const {
   ApplicationDescription::WindowGroupInfo info;
 
   if (!group_window_desc_.empty()) {
@@ -129,8 +130,8 @@ ApplicationDescription::GetWindowGroupInfo() {
   return info;
 }
 
-const ApplicationDescription::WindowOwnerInfo
-ApplicationDescription::GetWindowOwnerInfo() {
+ApplicationDescription::WindowOwnerInfo
+ApplicationDescription::GetWindowOwnerInfo() const {
   ApplicationDescription::WindowOwnerInfo info;
   if (!group_window_desc_.empty()) {
     Json::Value const json = util::StringToJson(group_window_desc_);
@@ -156,8 +157,8 @@ ApplicationDescription::GetWindowOwnerInfo() {
   return info;
 }
 
-const ApplicationDescription::WindowClientInfo
-ApplicationDescription::GetWindowClientInfo() {
+ApplicationDescription::WindowClientInfo
+ApplicationDescription::GetWindowClientInfo() const {
   ApplicationDescription::WindowClientInfo info;
   if (!group_window_desc_.empty()) {
     Json::Value const json = util::StringToJson(group_window_desc_);

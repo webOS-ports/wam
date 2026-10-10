@@ -28,8 +28,8 @@ class Timer {
   virtual void HandleCallback() = 0;
   virtual void Start(int delay_in_milli_seconds);
 
-  bool IsRunning() { return is_running_; }
-  bool IsRepeating() { return is_repeating_; }
+  bool IsRunning() const { return is_running_; }
+  bool IsRepeating() const { return is_repeating_; }
   void Stop();
 
  protected:

@@ -146,17 +146,17 @@ class WebPageBlinkPrivate {
 
 WebPageBlink::WebPageBlink(const wam::Url& url,
                            const ApplicationDescription& desc,
-                           const std::string& params,
+                           const std::string& launch_params,
                            std::unique_ptr<WebViewFactory> factory)
-    : WebPageBase(url, desc, params),
+    : WebPageBase(url, desc, launch_params),
       page_private_(std::make_unique<WebPageBlinkPrivate>(this)),
       trust_level_(desc.TrustLevel()),
       factory_(std::move(factory)) {}
 
 WebPageBlink::WebPageBlink(const wam::Url& url,
                            const ApplicationDescription& desc,
-                           const std::string& params)
-    : WebPageBlink(url, desc, params, nullptr) {}
+                           const std::string& launch_params)
+    : WebPageBlink(url, desc, launch_params, nullptr) {}
 
 WebPageBlink::~WebPageBlink() {
   if (dom_suspend_timer_.IsRunning()) {
@@ -1143,7 +1143,7 @@ void WebPageBlink::SetCustomPluginIfNeeded() {
   std::string custom_plugin_path = app_desc_.FolderPath();
   custom_plugin_path.append("/plugins");
 
-  if (!util::DoesPathExist(custom_plugin_path.c_str())) {
+  if (!util::DoesPathExist(custom_plugin_path)) {
     return;
   }
   if (custom_plugin_path_ == custom_plugin_path) {
@@ -1227,7 +1227,7 @@ void WebPageBlink::UpdateBoardType() {
   page_private_->page_view_->SetBoardType(board_type);
 }
 
-double WebPageBlink::DevicePixelRatio() {
+double WebPageBlink::DevicePixelRatio() const {
   float device_pixel_ratio = 1.0;
 
   int app_width = 0;

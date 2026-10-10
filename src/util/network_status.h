@@ -30,15 +30,15 @@ class NetworkStatus {
   class Information {
    public:
     void FromJsonObject(const Json::Value& info);
-    std::string Netmask() const { return netmask_; }
-    std::string Dns1() const { return dns1_; }
-    std::string Dns2() const { return dns2_; }
-    std::string IpAddress() const { return ip_address_; }
-    std::string Method() const { return method_; }
-    std::string State() const { return state_; }
-    std::string Gateway() const { return gateway_; }
-    std::string InterfaceName() const { return interface_name_; }
-    std::string OnInternet() const { return on_internet_; }
+    const std::string& Netmask() const { return netmask_; }
+    const std::string& Dns1() const { return dns1_; }
+    const std::string& Dns2() const { return dns2_; }
+    const std::string& IpAddress() const { return ip_address_; }
+    const std::string& Method() const { return method_; }
+    const std::string& State() const { return state_; }
+    const std::string& Gateway() const { return gateway_; }
+    const std::string& InterfaceName() const { return interface_name_; }
+    const std::string& OnInternet() const { return on_internet_; }
 
    private:
     std::string netmask_;
@@ -53,10 +53,10 @@ class NetworkStatus {
   };
 
   void FromJsonObject(const Json::Value& object);
-  std::string Type() const { return type_; }
-  Information GetInformation() const { return information_; }
-  std::string SavedDate() const { return saved_date_; }
-  bool IsInternetConnectionAvailable() {
+  const std::string& Type() const { return type_; }
+  const Information& GetInformation() const { return information_; }
+  const std::string& SavedDate() const { return saved_date_; }
+  bool IsInternetConnectionAvailable() const {
     return is_internet_connection_available_;
   }
 

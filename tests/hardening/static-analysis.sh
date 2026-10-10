@@ -158,7 +158,10 @@ if [ "${1:-}" = "--tu" ]; then
 			--header-filter="^$ROOT/src/" --extra-arg=-Wno-unknown-warning-option \
 			"$src" >"$log" 2>&1 ;;
 	cppcheck)
-		# Our headers only: Chromium, glib and libc++ are not ours to lint
+		# Our headers only: Chromium, glib and libc++ are not ours to lint.
+		# -UDISABLE_LOGMANAGER: nothing in the build defines it, and in that
+		# configuration (which --force checks too) LOG_* expand to nothing,
+		# so every value only logged looks unused.
 		incs=$(find "$ROOT/src" -name '*.h' -exec dirname {} \; | sort -u | sed 's/^/-I/')
 		# shellcheck disable=SC2086
 		timeout "$SA_TIMEOUT" "$CPPCHECK" --enable=all --check-level=exhaustive --inconclusive \
@@ -166,7 +169,7 @@ if [ "${1:-}" = "--tu" ]; then
 			--suppress=missingIncludeSystem --suppress=missingInclude --suppress=unmatchedSuppression \
 			--suppress=checkersReport --suppress=unusedFunction \
 			--template='{file}:{line}: {severity}: {message} [{id}]' \
-			-D__linux__ -D__GNUC__ $incs "$src" >"$log" 2>&1 ;;
+			-D__linux__ -D__GNUC__ -UDISABLE_LOGMANAGER $incs "$src" >"$log" 2>&1 ;;
 	*) die "unknown tool $tool" ;;
 	esac
 	status=$?

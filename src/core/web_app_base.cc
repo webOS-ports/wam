@@ -96,7 +96,7 @@ void WebAppBase::SetForceClose() {
   app_private_->force_close_ = true;
 }
 
-bool WebAppBase::ForceClose() {
+bool WebAppBase::ForceClose() const {
   return app_private_->force_close_;
 }
 
@@ -116,7 +116,7 @@ void WebAppBase::SetLaunchingAppId(const std::string& app_id) {
   app_private_->launching_app_id_ = app_id;
 }
 
-std::string WebAppBase::AppId() const {
+const std::string& WebAppBase::AppId() const {
   return app_private_->app_id_;
 }
 
@@ -124,15 +124,15 @@ void WebAppBase::SetInstanceId(const std::string& instance_id) {
   app_private_->instance_id_ = instance_id;
 }
 
-std::string WebAppBase::InstanceId() const {
+const std::string& WebAppBase::InstanceId() const {
   return app_private_->instance_id_;
 }
 
-std::string WebAppBase::Url() const {
+const std::string& WebAppBase::Url() const {
   return app_private_->url_;
 }
 
-std::string WebAppBase::LaunchingAppId() const {
+const std::string& WebAppBase::LaunchingAppId() const {
   return app_private_->launching_app_id_;
 }
 
@@ -433,6 +433,8 @@ void WebAppBase::HandleWebAppMessage(WebAppManager::WebAppMessageType type,
   }
 }
 
+// Changes the page or window the object owns: not const in any useful sense.
+// cppcheck-suppress functionConst
 void WebAppBase::SetUseAccessibility(bool enabled) {
   bool use_accessibility = false;
 
@@ -451,6 +453,8 @@ void WebAppBase::SetUseAccessibility(bool enabled) {
   Page()->SetUseAccessibility(use_accessibility);
 }
 
+// Changes the page or window the object owns: not const in any useful sense.
+// cppcheck-suppress functionConst
 void WebAppBase::ExecuteCloseCallback() {
   Page()->ExecuteCloseCallback(ForceClose());
   LOG_INFO(MSGID_EXECUTE_CLOSECALLBACK, 3, PMLOGKS("APP_ID", AppId().c_str()),
@@ -483,6 +487,8 @@ void WebAppBase::CloseWebApp() {
   delete this;
 }
 
+// Changes the page or window the object owns: not const in any useful sense.
+// cppcheck-suppress functionConst
 void WebAppBase::DispatchUnload() {
   Page()->CleanResources();
 }
@@ -493,7 +499,7 @@ void WebAppBase::OnCursorVisibilityChanged(const std::string& jsscript) {
 
 void WebAppBase::ServiceCall(const std::string& url,
                              const std::string& payload,
-                             const std::string& app_id) {
+                             const std::string& app_id) const {
   LOG_INFO(MSGID_SERVICE_CALL, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKS("URL", url.c_str()), "");

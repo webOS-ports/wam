@@ -67,12 +67,12 @@ bool BCP47::HasRegion() const {
   return !region_.empty();
 }
 
-std::string BCP47::Language() const {
+const std::string& BCP47::Language() const {
   return language_;
 }
-std::string BCP47::Script() const {
+const std::string& BCP47::Script() const {
   return script_;
 }
-std::string BCP47::Region() const {
+const std::string& BCP47::Region() const {
   return region_;
 }

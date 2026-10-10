@@ -60,7 +60,7 @@ WebPageBase::~WebPageBase() {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()), "");
 }
 
-std::string WebPageBase::LaunchParams() const {
+const std::string& WebPageBase::LaunchParams() const {
   return launch_params_;
 }
 
@@ -263,7 +263,7 @@ void WebPageBase::SendRelaunchEvent() {
       << "      Mojo.relaunch();"
       << "    }"
       << "}, 1);";
-  EvaluateJavaScript(relaunch_event.str().c_str());
+  EvaluateJavaScript(relaunch_event.str());
 }
 
 void WebPageBase::CallLegacyMojoCallback(const std::string& name,
@@ -342,6 +342,8 @@ WebAppManagerConfig* WebPageBase::GetWebAppManagerConfig() {
   return WebAppManager::Instance()->Config();
 }
 
+// Makes WebAppManager reload or close the app this page belongs to.
+// cppcheck-suppress functionConst
 bool WebPageBase::ProcessCrashed() {
   return WebAppManager::Instance()->ProcessCrashed(AppId(), InstanceId());
 }
@@ -398,7 +400,7 @@ void WebPageBase::PostRunningAppList() {
   WebAppManager::Instance()->PostRunningAppList();
 }
 
-void WebPageBase::PostWebProcessCreated(uint32_t pid) {
+void WebPageBase::PostWebProcessCreated(uint32_t pid) const {
   WebAppManager::Instance()->PostWebProcessCreated(app_id_, instance_id_, pid);
 }
 
@@ -514,7 +516,7 @@ void WebPageBase::RemoveObserver(WebPageObserver* observer) {
   observers_.RemoveObserver(observer);
 }
 
-bool WebPageBase::IsAccessibilityEnabled() const {
+bool WebPageBase::IsAccessibilityEnabled() {
   return WebAppManager::Instance()->IsAccessibilityEnabled();
 }
 

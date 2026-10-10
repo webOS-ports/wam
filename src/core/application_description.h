@@ -162,9 +162,9 @@ class ApplicationDescription {
     bool is_owner = false;
   };
 
-  const WindowGroupInfo GetWindowGroupInfo();
-  const WindowOwnerInfo GetWindowOwnerInfo();
-  const WindowClientInfo GetWindowClientInfo();
+  WindowGroupInfo GetWindowGroupInfo() const;
+  WindowOwnerInfo GetWindowOwnerInfo() const;
+  WindowClientInfo GetWindowClientInfo() const;
 
   // To support multi display
   DisplayId GetDisplayAffinity() const { return display_affinity_; }
@@ -178,7 +178,7 @@ class ApplicationDescription {
   }
 
  private:
-  bool CheckTrustLevel(const std::string& trust_level);
+  static bool CheckTrustLevel(const std::string& trust_level);
 
   // Grouped by size, largest first, so that the object carries no padding
   // between members.

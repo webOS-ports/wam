@@ -96,7 +96,7 @@ class WebAppManagerServiceLuna : public PalmServiceBase,
   static LSMethod methods_[];
 
  private:
-  bool IsValidInstanceId(const std::string& instance_id);
+  static bool IsValidInstanceId(const std::string& instance_id);
 };
 
 #endif  // WEBOS_WEB_APP_MANAGER_SERVICE_LUNA_H_

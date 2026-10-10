@@ -105,52 +105,54 @@ class WebAppManagerService {
   virtual Json::Value fireNotificationEvent(const Json::Value& request) = 0;
 
  protected:
-  std::string OnLaunch(const std::string& app_desc_string,
-                       const std::string& params,
-                       const std::string& launching_app_id,
-                       int& err_code,
-                       std::string& err_msg);
+  static std::string OnLaunch(const std::string& app_desc_string,
+                              const std::string& params,
+                              const std::string& launching_app_id,
+                              int& err_code,
+                              std::string& err_msg);
 
-  bool OnKillApp(const std::string& app_id,
-                 const std::string& instance_id,
-                 bool force = false);
-  bool OnPauseApp(const std::string& instance_id);
-  bool SetAppShownWhileDeactivated(const std::string& instance_id,
-                                   const std::string& app_id,
-                                   bool shown);
-  Json::Value OnLogControl(const std::string& keys, const std::string& value);
-  bool OnCloseAllApps(uint32_t pid = 0);
-  Json::Value GetWebProcessProfiling();
-  int MaskForBrowsingDataType(const char* type);
-  void OnClearBrowsingData(const int remove_browsing_data_mask);
-  void OnAppInstalled(const std::string& app_id);
-  void OnAppRemoved(const std::string& app_id);
+  static bool OnKillApp(const std::string& app_id,
+                        const std::string& instance_id,
+                        bool force = false);
+  static bool OnPauseApp(const std::string& instance_id);
+  static bool SetAppShownWhileDeactivated(const std::string& instance_id,
+                                          const std::string& app_id,
+                                          bool shown);
+  static Json::Value OnLogControl(const std::string& keys,
+                                  const std::string& value);
+  static bool OnCloseAllApps(uint32_t pid = 0);
+  static Json::Value GetWebProcessProfiling();
+  static int MaskForBrowsingDataType(const char* type);
+  static void OnClearBrowsingData(const int remove_browsing_data_mask);
+  static void OnAppInstalled(const std::string& app_id);
+  static void OnAppRemoved(const std::string& app_id);
 
-  void SetDeviceInfo(const std::string& name, const std::string& value);
-  void SetUiSize(int width, int height);
-  void SetSystemLanguage(const std::string& language);
-  std::string GetSystemLanguage();
-  void SetForceCloseApp(const std::string& app_id,
-                        const std::string& instance_id);
-  void UpdateNetworkStatus(const Json::Value& object);
-  void NotifyMemoryPressure(webos::WebViewBase::MemoryPressureLevel level);
-  std::map<std::string, std::string> GetAppPermissions(
+  static void SetDeviceInfo(const std::string& name, const std::string& value);
+  static void SetUiSize(int width, int height);
+  static void SetSystemLanguage(const std::string& language);
+  static std::string GetSystemLanguage();
+  static void SetForceCloseApp(const std::string& app_id,
+                               const std::string& instance_id);
+  static void UpdateNetworkStatus(const Json::Value& object);
+  static void NotifyMemoryPressure(
+      webos::WebViewBase::MemoryPressureLevel level);
+  static std::map<std::string, std::string> GetAppPermissions(
       const std::string& permission);
-  void SetAppPermission(const std::string& app_id,
-                        const std::string& permission,
-                        const std::string& setting);
-  void ResetAppPermissions(const std::string& permission);
-  void SetAccessibilityEnabled(bool enable);
-  uint32_t GetWebProcessId(const std::string& app_id,
-                           const std::string& instance_id);
+  static void SetAppPermission(const std::string& app_id,
+                               const std::string& permission,
+                               const std::string& setting);
+  static void ResetAppPermissions(const std::string& permission);
+  static void SetAccessibilityEnabled(bool enable);
+  static uint32_t GetWebProcessId(const std::string& app_id,
+                                  const std::string& instance_id);
 
-  std::list<const WebAppBase*> RunningApps();
-  std::list<const WebAppBase*> RunningApps(uint32_t pid);
-  std::vector<ApplicationInfo> List(bool include_system_apps = false);
+  static std::list<const WebAppBase*> RunningApps();
+  static std::list<const WebAppBase*> RunningApps(uint32_t pid);
+  static std::vector<ApplicationInfo> List(bool include_system_apps = false);
 
-  bool IsEnyoApp(const std::string& app_id);
-  bool SetOrientation(const std::string& orientation);
-  void SetDisplayRotation(int degrees);
+  static bool IsEnyoApp(const std::string& app_id);
+  static bool SetOrientation(const std::string& orientation);
+  static void SetDisplayRotation(int degrees);
 };
 
 #endif  // CORE_WEB_APP_MANAGER_SERVICE_H_

@@ -52,8 +52,8 @@ class WebProcessManager {
   virtual void ResetAppPermissions(const std::string& permission) = 0;
 
  protected:
-  std::list<const WebAppBase*> RunningApps();
-  WebAppBase* FindAppByInstanceId(const std::string& instance_id);
+  static std::list<const WebAppBase*> RunningApps();
+  static WebAppBase* FindAppByInstanceId(const std::string& instance_id);
 };
 
 #endif  // CORE_WEB_PROCESS_MANAGER_H_

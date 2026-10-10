@@ -128,7 +128,9 @@ std::string UriToLocal(const std::string& uri) {
 std::string GetEnvVar(const char* env) {
   // getenv() races only with setenv(); WAM's one setenv() is the HOME of the
   // user it drops to, at startup (wam_main.cc).
-  return GetString(getenv(env));  // NOLINT(concurrency-mt-unsafe)
+  // WAM's configuration comes from its own service unit's environment.
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  return GetString(getenv(env));  // Flawfinder: ignore
 }
 
 // STRING

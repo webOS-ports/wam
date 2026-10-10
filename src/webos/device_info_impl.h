@@ -58,10 +58,10 @@ class DeviceInfoImpl : public DeviceInfo {
   std::string hardware_version_ = "0x00000001";
   std::string firmware_version_ = "00.00.01";
 
-  bool GetInfoFromLunaPrefs(const char* key, std::string& value) const;
+  static bool GetInfoFromLunaPrefs(const char* key, std::string& value);
 
   //! \brief Reads the declared layout of the physical keyboard, or "Unknown".
-  std::string ReadKeyboardType() const;
+  static std::string ReadKeyboardType();
   void InitDisplayInfo();
   void InitPlatformInfo();
   void GatherInfo();

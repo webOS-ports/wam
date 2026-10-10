@@ -16,6 +16,7 @@
 
 #include "web_app_manager_service_luna.h"
 
+#include <algorithm>
 #include <map>
 #include <optional>
 #include <set>
@@ -546,15 +547,10 @@ bool IsValidAppId(const Json::Value& value) {
   if (id.empty() || id.size() > 255) {
     return false;
   }
-  for (const char c : id) {
-    const bool ok = (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
-                    (c >= '0' && c <= '9') || c == '.' || c == '-' ||
-                    c == '_';
-    if (!ok) {
-      return false;
-    }
-  }
-  return true;
+  return std::all_of(id.begin(), id.end(), [](char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+           (c >= '0' && c <= '9') || c == '.' || c == '-' || c == '_';
+  });
 }
 
 Json::Value AppPermissionError(int code, const std::string& text) {
@@ -837,7 +833,7 @@ void WebAppManagerServiceLuna::GetSystemLocalePreferencesCallback(
     return;
   }
 
-  WebAppManagerService::SetSystemLanguage(language.c_str());
+  WebAppManagerService::SetSystemLanguage(language);
 }
 
 void WebAppManagerServiceLuna::MemoryManagerConnectCallback(
@@ -885,7 +881,7 @@ void WebAppManagerServiceLuna::GetCloseAppIdCallback(const Json::Value& reply) {
   std::string const instance_id = reply["instanceId"].asString();
 
   if (!app_id.empty() && !instance_id.empty()) {
-    WebAppManagerService::SetForceCloseApp(app_id.c_str(), instance_id.c_str());
+    WebAppManagerService::SetForceCloseApp(app_id, instance_id);
   }
 }
 
@@ -979,7 +975,7 @@ void WebAppManagerServiceLuna::GetForegroundAppInfoCallback(
     if (reply.isMember("appId") && reply["appId"].isString()) {
       std::string const app_id = reply["appId"].asString();
       webos::Runtime::GetInstance()->SetIsForegroundAppEnyo(
-          WebAppManagerService::IsEnyoApp(app_id.c_str()));
+          WebAppManagerService::IsEnyoApp(app_id));
     }
   }
 }
@@ -1017,8 +1013,8 @@ Json::Value WebAppManagerServiceLuna::webProcessCreated(
     std::string const instance_id = request["instanceId"].isString()
                                   ? request["instanceId"].asString()
                                   : "";
-    uint32_t const pid = WebAppManagerService::GetWebProcessId(
-        app_id.c_str(), instance_id.c_str());
+    uint32_t const pid =
+        WebAppManagerService::GetWebProcessId(app_id, instance_id);
     reply["id"] = app_id;
     reply["instanceId"] = instance_id;
 

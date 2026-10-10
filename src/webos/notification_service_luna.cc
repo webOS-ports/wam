@@ -40,11 +40,6 @@ std::map<std::string, std::string> prompt_ids;
 
 // static
 NotificationService* NotificationService::Instance() {
-  return NotificationServiceLuna::Instance();
-}
-
-// static
-NotificationServiceLuna* NotificationServiceLuna::Instance() {
   // Never destroyed: pages may still close their notifications while the
   // process exits.
   // NOLINTNEXTLINE(cppcoreguidelines-owning-memory)

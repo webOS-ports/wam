@@ -22,10 +22,6 @@
 #include "service_sender_luna.h"
 #include "web_app_manager_config.h"
 
-PlatformModuleFactoryImpl::PlatformModuleFactoryImpl() {
-  PrepareRenderingContext();
-}
-
 std::unique_ptr<ServiceSender>
 PlatformModuleFactoryImpl::CreateServiceSender() {
   return std::make_unique<ServiceSenderLuna>();
@@ -44,5 +40,3 @@ std::unique_ptr<WebAppManagerConfig>
 PlatformModuleFactoryImpl::CreateWebAppManagerConfig() {
   return std::make_unique<WebAppManagerConfig>();
 }
-
-void PlatformModuleFactoryImpl::PrepareRenderingContext() {}

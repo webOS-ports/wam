@@ -359,7 +359,7 @@ void PalmSystemBlink::ClearBannerMessages() {
 std::string PalmSystemBlink::ScaledDeviceInfo() const {
   std::string device_info = GetDeviceInfo("TvDeviceInfo");
 
-  auto* page = static_cast<WebPageBlink*>(app_->Page());
+  const auto* page = static_cast<const WebPageBlink*>(app_->Page());
   if (!page)
     return device_info;
 

@@ -37,7 +37,6 @@ class WebAppBaseMock : public WebAppBase {
   bool IsNormal() override { return false; }
   void OnStageActivated() override {}
   void OnStageDeactivated() override {}
-  void StartLaunchTimer() override {}
   void SetHiddenWindow(bool /*hidden*/) override {}
   void ConfigureWindow(const std::string& /*type*/) override {}
   void SetKeepAlive(bool /*keep_alive*/) override {}
@@ -67,10 +66,8 @@ class WebAppBaseMock : public WebAppBase {
   void KeyboardVisibilityChanged(bool /*visible*/, int /*height*/) override {}
   void DoClose() override {}
   void SetUseVirtualKeyboard(const bool /*enable*/) override {}
-  bool IsKeyboardVisible() override { return false; }
   bool HideWindow() override { return false; }
   void DoAttach() override {}
-  void WebPageLoadFailed(int /*error_code*/) override {}
 };
 
 #endif  // TESTS_MOCKS_WEB_APP_BASE_MOCK_H_

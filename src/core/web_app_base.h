@@ -128,24 +128,24 @@ class WebAppBase : public WebPageObserver {
   bool GetHiddenWindow() const;
   bool KeepAlive() const;
   void SetForceClose();
-  bool ForceClose();
+  bool ForceClose() const;
   WebPageBase* Page() const;
   void HandleWebAppMessage(WebAppManager::WebAppMessageType type,
                            const std::string& message);
   void SetAppId(const std::string& app_id);
   void SetLaunchingAppId(const std::string& app_id);
-  std::string AppId() const;
-  std::string LaunchingAppId() const;
+  const std::string& AppId() const;
+  const std::string& LaunchingAppId() const;
   void SetInstanceId(const std::string& instance_id);
-  std::string InstanceId() const;
-  std::string Url() const;
+  const std::string& InstanceId() const;
+  const std::string& Url() const;
 
   ApplicationDescription* GetAppDescription() const;
 
   void SetAppProperties(const std::string& properties);
 
   void SetNeedReload(bool status) { need_reload_ = status; }
-  bool NeedReload() { return need_reload_; }
+  bool NeedReload() const { return need_reload_; }
 
   static int CurrentUiWidth();
   static int CurrentUiHeight();
@@ -156,14 +156,14 @@ class WebAppBase : public WebPageObserver {
   void SetUseAccessibility(bool enabled);
   void ServiceCall(const std::string& url,
                    const std::string& payload,
-                   const std::string& app_id);
+                   const std::string& app_id) const;
 
   void SetPreloadState(const std::string& properties);
   void ClearPreloadState();
   PreloadState GetPreloadState() const { return preload_state_; }
 
   bool IsClosing() const;
-  bool IsCheckLaunchTimeEnabled();
+  static bool IsCheckLaunchTimeEnabled();
   void SetClosePageRequested(bool requested) {
     close_page_requested_ = requested;
   }
@@ -173,8 +173,8 @@ class WebAppBase : public WebPageObserver {
   virtual void DoAttach() = 0;
   virtual void ShowWindow();
 
-  void SetUiSize(int width, int height);
-  void SetActiveInstanceId(const std::string& id);
+  static void SetUiSize(int width, int height);
+  static void SetActiveInstanceId(const std::string& id);
   void ForceCloseAppInternal();
   void CloseAppInternal();
   void CloseWebApp();

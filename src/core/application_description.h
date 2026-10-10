@@ -52,8 +52,6 @@ class ApplicationDescription {
 
   bool HandlesRelaunch() const { return handles_relaunch_; }
 
-  const std::string& VendorExtension() const { return vendor_extension_; }
-
   WindowClass WindowClassValue() const { return window_class_value_; }
 
   const std::string& TrustLevel() const { return trust_level_; }
@@ -189,7 +187,6 @@ class ApplicationDescription {
   std::string requested_window_orientation_;
 
   bool transparency_ = false;
-  std::string vendor_extension_;
   WindowClass window_class_value_ = kWindowClassNormal;
   std::string trust_level_;
   std::string sub_type_;

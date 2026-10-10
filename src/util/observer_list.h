@@ -26,8 +26,6 @@ class ObserverList {
   void AddObserver(ObserverType* observer);
   void RemoveObserver(ObserverType* observer);
   bool HasObserver(ObserverType* observer);
-  void Clear();
-  void Compact();
   size_t Size() { return observers_.size(); }
 
   typename std::vector<ObserverType*>::iterator Begin();
@@ -70,18 +68,6 @@ bool ObserverList<ObserverType>::HasObserver(ObserverType* observer) {
     return true;
   }
   return false;
-}
-
-template <class ObserverType>
-void ObserverList<ObserverType>::Clear() {
-  observers_.clear();
-}
-
-template <class ObserverType>
-void ObserverList<ObserverType>::Compact() {
-  observers_.erase(std::remove(observers_.begin(), observers_.end(),
-                               static_cast<ObserverType*>(nullptr)),
-                   observers_.end());
 }
 
 template <class ObserverType>

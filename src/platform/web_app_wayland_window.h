@@ -17,6 +17,8 @@
 #ifndef PLATFORM_WEB_APP_WAYLAND_WINDOW_H_
 #define PLATFORM_WEB_APP_WAYLAND_WINDOW_H_
 
+#include <memory>
+
 #include "webos/webapp_window_base.h"
 
 class WebAppWayland;
@@ -25,10 +27,8 @@ class WebAppWaylandWindow : public webos::WebAppWindowBase {
  public:
   WebAppWaylandWindow();
   ~WebAppWaylandWindow() override = default;
-  static WebAppWaylandWindow* Take();
-  static void Prepare();
+  static std::unique_ptr<WebAppWaylandWindow> Take();
 
-  inline const WebAppWayland* WebApp() const { return web_app_; }
   inline void SetWebApp(WebAppWayland* web_app) { web_app_ = web_app; }
 
   virtual void HideWindow();
@@ -41,8 +41,6 @@ class WebAppWaylandWindow : public webos::WebAppWindowBase {
 
   void AttachWebContentsToWindow(void* web_contents);
 
-  void SendKeyCode(int key_code);
-
   void DidSwapPageCompositorFrame();
 
   // webos::WebAppWindowBase
@@ -53,22 +51,16 @@ class WebAppWaylandWindow : public webos::WebAppWindowBase {
  protected:
   bool CursorVisible() const { return cursor_visible_; }
   void SetCursorVisible(bool visible) { cursor_visible_ = visible; }
-  bool CursorEnabled() const { return cursor_enabled_; }
-  void SetCursorEnabled(bool enabled) { cursor_enabled_ = enabled; }
 
  private:
   void OnWindowStateChangeEvent();
   bool OnCursorVisibileChangeEvent(WebOSEvent* e);
-  static WebAppWaylandWindow* CreateWindow();
   void LogEventDebugging(WebOSEvent* event);
-
-  static WebAppWaylandWindow* instance_;
 
   bool cursor_enabled_;
 
   WebAppWayland* web_app_ = nullptr;
   bool cursor_visible_ = false;
-  bool xinput_activated_ = false;
 
   WebOSMouseEvent last_mouse_event_{WebOSEvent::None, -1., -1.};
 };

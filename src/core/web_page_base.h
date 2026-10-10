@@ -110,7 +110,6 @@ class WebPageBase {
   virtual void CreatePalmSystem(WebAppBase* app) = 0;
   virtual void SetUseLaunchOptimization(bool /*enabled*/,
                                         int /*delay_ms*/ = {}) {}
-  virtual void SetUseSystemAppOptimization(bool /*enabled*/) {}
   virtual void SetUseAccessibility(bool /*enabled*/) {}
   virtual void SetAppPreloadHint(bool /*is_preload*/) {}
 
@@ -121,7 +120,6 @@ class WebPageBase {
   virtual void ResumeWebPagePaintingAndJSExecution() = 0;
   virtual bool IsRegisteredCloseCallback() { return false; }
   virtual void ExecuteCloseCallback(bool /*forced*/) {}
-  virtual void ReloadExtensionData() {}
   virtual bool IsLoadErrorPageFinish() { return is_load_error_page_finish_; }
   virtual bool IsLoadErrorPageStart() { return is_load_error_page_start_; }
   virtual void UpdateIsLoadErrorPageFinish();

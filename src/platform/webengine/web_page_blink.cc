@@ -485,10 +485,6 @@ void WebPageBlink::SetUseLaunchOptimization(bool enabled, int delay_ms) {
   }
 }
 
-void WebPageBlink::SetUseSystemAppOptimization(bool enabled) {
-  page_private_->page_view_->SetUseEnyoOptimization(enabled);
-}
-
 void WebPageBlink::SetUseAccessibility(bool enabled) {
   page_private_->page_view_->SetUseAccessibility(enabled);
 }
@@ -676,18 +672,6 @@ std::string WebPageBlink::EscapeData(const std::string& value) {
   util::ReplaceSubstr(escaped_value, "\n", "\\n");
   util::ReplaceSubstr(escaped_value, "\r", "\\r");
   return escaped_value;
-}
-
-void WebPageBlink::ReloadExtensionData() {
-  std::string const event_js =
-      "if (typeof(webOSSystem) != 'undefined') {"
-      "  webOSSystem.reloadInjectionData();"
-      "};";
-
-  LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", AppId().c_str()),
-           PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
-           PMLOGKFV("PID", "%d", GetWebProcessPID()), "Reload");
-  EvaluateJavaScript(event_js);
 }
 
 void WebPageBlink::UpdateExtensionData(const std::string& key,

@@ -32,9 +32,7 @@ Json::Value Callback(const std::string& notification_id,
 }
 
 std::map<std::string, LSCalloutContext> toast_contexts;
-std::map<std::string, LSCalloutContext> alert_contexts;
 std::map<std::string, std::string> toast_ids;
-std::map<std::string, std::string> alert_ids;
 std::map<std::string, LSCalloutContext> prompt_contexts;
 std::map<std::string, std::string> prompt_ids;
 
@@ -99,71 +97,9 @@ bool NotificationServiceLuna::CreateToast(
               notification.app_id.c_str(), &toast_contexts.at(notification.id));
 }
 
-bool NotificationServiceLuna::CreateAlert(
-    const NotificationData& notification) {
-  Json::Value alert_buttons;
-
-  Json::Value params;
-  params["appId"] = notification.app_id;
-  params["notificationId"] = notification.id;
-  params["origin"] = notification.origin;
-
-  // Dismissing the alert is the only way the page can learn it was closed.
-  Json::Value button;
-  button["label"] = "OK";
-  button["onclick"] =
-      "luna://com.webos.service.webappmanager/fireNotificationEvent";
-  button["params"] = params;
-  button["params"]["type"] = "notificationclose";
-  alert_buttons.append(button);
-
-  Json::Value click_button;
-  params["type"] = "notificationclick";
-  if (!notification.buttons.empty()) {
-    params["actionIndex"] = 0;
-    click_button["label"] = notification.buttons[0].title;
-  } else {
-    click_button["label"] = "Shortcut";
-  }
-  click_button["onclick"] =
-      "luna://com.webos.service.webappmanager/fireNotificationEvent";
-  click_button["params"] = params;
-  alert_buttons.append(click_button);
-
-  Json::Value alert_params;
-  alert_params["buttons"] = alert_buttons;
-  // notificationmgr refuses an alert without a message, and a web
-  // notification needs only a title, so a title on its own becomes the
-  // message.
-  if (notification.message.empty()) {
-    alert_params["message"] = notification.title;
-  } else {
-    alert_params["message"] = notification.message;
-    alert_params["title"] = notification.title;
-  }
-  if (!notification.icon.empty()) {
-    alert_params["iconUrl"] = notification.icon;
-  }
-
-  alert_contexts.emplace(
-      notification.id,
-      LSCalloutContext(std::bind(Callback, notification.id,
-                                 std::ref(alert_contexts), std::ref(alert_ids),
-                                 std::cref("alertId"), std::placeholders::_1)));
-  return Call("luna://com.webos.notification/createAlert", alert_params,
-              nullptr, &alert_contexts.at(notification.id));
-}
-
 bool NotificationServiceLuna::Close(const std::string& notification_id) {
-  // Display() creates only an alert, so a missing toast must not stop the
-  // alert from being closed.
-  bool const toast_closed =
-      Close(notification_id, toast_ids, "toastId",
-            "luna://com.webos.notification/closeToast");
-  bool const alert_closed =
-      Close(notification_id, alert_ids, "alertId",
-            "luna://com.webos.notification/closeAlert");
-  return toast_closed || alert_closed;
+  return Close(notification_id, toast_ids, "toastId",
+               "luna://com.webos.notification/closeToast");
 }
 
 bool NotificationServiceLuna::ShowPermissionPrompt(

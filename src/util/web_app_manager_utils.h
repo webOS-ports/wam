@@ -18,22 +18,10 @@
 #define UTIL_WEB_APP_MANAGER_UTILS_H_
 
 #include <string>
-#include <vector>
 
 class WebAppManagerUtils {
  public:
-  static int UpdateAndGetCpuIdle(bool update_only = false);
-  static bool SetGroups();
   static std::string TruncateURL(const std::string& url);
-
- private:
-  static long Percentages(int cnt, int* out, long* now, long* old, long* diffs);
-  static char* SkipToken(const char* p);
-  static void Tokenize(std::string& str,
-                       std::vector<std::string>& tokens,
-                       const std::string& delimiters);
-  static bool InGroup(const std::string& line, const char* user_name);
-  static bool InVector(std::vector<std::string>& tokens, const char* arg);
 };
 
 #endif  // UTIL_WEB_APP_MANAGER_UTILS_H_

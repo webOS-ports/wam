@@ -108,8 +108,6 @@ bool WebAppManager::Run() {
   return true;
 }
 
-void WebAppManager::Quit() {}
-
 WebAppFactoryManager* WebAppManager::GetWebAppFactory() {
   return web_app_factory_ ? web_app_factory_.get()
                           : WebAppFactoryManagerImpl::Instance();
@@ -240,18 +238,6 @@ bool WebAppManager::SetInspectorEnable(const std::string& app_id) {
     }
   }
   return false;
-}
-
-void WebAppManager::OnShutdownEvent() {
-#if defined(TARGET_DESKTOP)
-
-  for (const WebAppBase* app : app_list_) {
-    delete app;
-  }
-
-//		Palm::WebGlobal::garbageCollectNow();
-#endif
-  return;
 }
 
 bool WebAppManager::OnKillApp(const std::string& app_id,
@@ -435,12 +421,6 @@ void WebAppManager::ForceCloseAppInternal(WebAppBase* app) {
   CloseAppInternal(app);
 }
 
-void WebAppManager::RemoveClosingAppList(const std::string& instance_id) {
-  while (closing_app_list_.contains(instance_id)) {
-    closing_app_list_.erase(instance_id);
-  }
-}
-
 void WebAppManager::CloseAppInternal(WebAppBase* app,
                                      bool ignore_clean_resource) {
   WebPageBase* page = app->Page();
@@ -486,8 +466,6 @@ void WebAppManager::CloseAppInternal(WebAppBase* app,
   if (ignore_clean_resource) {
     delete app;
   } else {
-    closing_app_list_.emplace(app->InstanceId(), app);
-
     if (page->IsRegisteredCloseCallback()) {
       LOG_INFO(MSGID_CLOSE_APP_INTERNAL, 3,
                PMLOGKS("APP_ID", app->AppId().c_str()),
@@ -541,15 +519,6 @@ void WebAppManager::WebPageAdded(WebPageBase* page) {
 }
 
 void WebAppManager::WebPageRemoved(WebPageBase* page) {
-  if (!deleting_pages_) {
-    // Remove from list of pending delete pages
-    PageList::iterator const iter = std::find(pages_to_delete_list_.begin(),
-                                        pages_to_delete_list_.end(), page);
-    if (iter != pages_to_delete_list_.end()) {
-      pages_to_delete_list_.erase(iter);
-    }
-  }
-
   auto range = app_page_map_.equal_range(page->AppId());
   auto it = range.first;
   while (it != range.second) {
@@ -569,17 +538,6 @@ WebAppBase* WebAppManager::FindAppById(const std::string& app_id) {
   }
 
   return nullptr;
-}
-
-std::list<WebAppBase*> WebAppManager::FindAppsById(const std::string& app_id) {
-  std::list<WebAppBase*> apps;
-  for (WebAppBase* app : app_list_) {
-    if (app->Page() && app->AppId() == app_id) {
-      apps.push_back(app);
-    }
-  }
-
-  return apps;
 }
 
 WebAppBase* WebAppManager::FindAppByInstanceId(const std::string& instance_id) {

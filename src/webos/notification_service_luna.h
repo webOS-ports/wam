@@ -46,7 +46,6 @@ class NotificationServiceLuna : public PalmServiceBase,
   ~NotificationServiceLuna() override = default;
 
   bool CreateToast(const NotificationData& notification);
-  bool CreateAlert(const NotificationData& notification);
   bool Close(const std::string& notification_id,
              std::map<std::string, std::string>& map,
              const std::string& name,

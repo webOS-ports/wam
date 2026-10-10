@@ -151,8 +151,8 @@ void WebAppWayland::Init(std::optional<int> width, std::optional<int> height) {
       app_window_ =
           std::unique_ptr<WebAppWindow>(window_factory_->CreateWindow());
     } else {
-      app_window_ = std::make_unique<WebAppWindowImpl>(
-          std::unique_ptr<WebAppWaylandWindow>(WebAppWaylandWindow::Take()));
+      app_window_ =
+          std::make_unique<WebAppWindowImpl>(WebAppWaylandWindow::Take());
     }
   }
   if (width.has_value() && height.has_value()) {
@@ -856,10 +856,6 @@ void WebAppWayland::FirstFrameVisuallyCommitted() {
     }
     ShowWindow();
   }
-}
-
-void WebAppWayland::PostEvent(WebOSEvent* ev) {
-  app_window_->Event(ev);
 }
 
 void WebAppWayland::NavigationHistoryChanged() {

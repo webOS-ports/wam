@@ -75,7 +75,6 @@ class WebAppManager {
   void SetPlatformModules(std::unique_ptr<PlatformModuleFactory> factory);
   void SetWebAppFactory(std::unique_ptr<WebAppFactoryManager> factory);
   bool Run();
-  void Quit();
 
   std::list<const WebAppBase*> RunningApps();
   std::list<const WebAppBase*> RunningApps(uint32_t pid);
@@ -85,7 +84,6 @@ class WebAppManager {
   static bool IsWindowOpenInstanceId(const std::string& instance_id);
 
   WebAppBase* FindAppById(const std::string& app_id);
-  std::list<WebAppBase*> FindAppsById(const std::string& app_id);
   WebAppBase* FindAppByInstanceId(const std::string& instance_id);
 
   std::string Launch(const std::string& app_desc_string,
@@ -104,8 +102,6 @@ class WebAppManager {
   void SetActiveInstanceId(const std::string& id) { active_instance_id_ = id; }
   const std::string GetActiveInstanceId() const { return active_instance_id_; }
 
-  void OnGlobalProperties(int key);
-  void OnShutdownEvent();
   bool OnKillApp(const std::string& app_id,
                  const std::string& instance_id,
                  bool force = false);
@@ -155,7 +151,6 @@ class WebAppManager {
   void AppDeleted(WebAppBase* app);
   void PostRunningAppList();
   std::string GenerateInstanceId();
-  void RemoveClosingAppList(const std::string& instance_id);
 
   bool IsAccessibilityEnabled() const { return is_accessibility_enabled_; }
   void SetAccessibilityEnabled(bool enabled);
@@ -228,17 +223,12 @@ class WebAppManager {
   WebAppManager();
 
   typedef std::list<WebAppBase*> AppList;
-  typedef std::list<WebPageBase*> PageList;
 
   bool IsRunningApp(const std::string& id);
-  std::unordered_map<std::string, WebAppBase*> closing_app_list_;
 
   // Mappings
   AppList app_list_;
   std::unordered_multimap<std::string, WebPageBase*> app_page_map_;
-
-  PageList pages_to_delete_list_;
-  bool deleting_pages_ = false;
 
   std::string active_instance_id_;
 

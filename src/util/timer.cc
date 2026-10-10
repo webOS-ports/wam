@@ -31,23 +31,13 @@ int Timer::OnTimeout(void* data) {
   return is_repeating;
 }
 
-int Timer::OnTimeoutAndDestroy(void* data) {
-  Timer* timer = static_cast<Timer*>(data);
-  timer->source_id_ = 0;
-  timer->HandleCallback();
-  delete timer;
-  return 0;
-}
-
-void Timer::Start(int delay_in_milli_seconds, bool will_destroy) {
+void Timer::Start(int delay_in_milli_seconds) {
   // Cancel a source that is still pending. Without this the previous source
   // keeps the only reference to it out of reach of Stop(), so it stays armed
   // and fires into a receiver that may already be gone.
   Stop();
   is_running_ = true;
-  source_id_ =
-      g_timeout_add(delay_in_milli_seconds,
-                    will_destroy ? OnTimeoutAndDestroy : OnTimeout, this);
+  source_id_ = g_timeout_add(delay_in_milli_seconds, OnTimeout, this);
 }
 
 void Timer::Stop() {
@@ -80,8 +70,4 @@ void ElapsedTimer::Stop() {
 
 int ElapsedTimer::ElapsedMs() const {
   return static_cast<int>(g_timer_elapsed(timer_, nullptr) * 1000);
-}
-
-int ElapsedTimer::ElapsedUs() const {
-  return static_cast<int>(g_timer_elapsed(timer_, nullptr) * 1000000);
 }

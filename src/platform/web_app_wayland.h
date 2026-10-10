@@ -136,7 +136,6 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   }
   void SendWebOSMouseEvent(const std::string& event_name);
 
-  void PostEvent(WebOSEvent* ev);
   void OnDelegateWindowFrameSwapped();
   void OnLaunchTimeout();
 

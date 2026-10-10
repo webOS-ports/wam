@@ -29,13 +29,11 @@ std::string GetString(const char* value);
 std::vector<std::string> GetErrorPagePaths(
     const std::string& error_page_location,
     const std::string& language = {});
-std::string GetHostname(const std::string& url);
 
 bool DoesPathExist(const std::string& path);
 std::string ReadFile(const std::string& path);
 
 std::string UriToLocal(const std::string& uri);
-std::string LocalToUri(const std::string& uri);
 
 std::string GetEnvVar(const char* env);
 

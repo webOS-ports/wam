@@ -134,7 +134,6 @@ class WebAppManagerService {
                         const std::string& instance_id);
   void UpdateNetworkStatus(const Json::Value& object);
   void NotifyMemoryPressure(webos::WebViewBase::MemoryPressureLevel level);
-  void UpdateNotificationPermission(const std::string& app_id, bool enabled);
   std::map<std::string, std::string> GetAppPermissions(
       const std::string& permission);
   void SetAppPermission(const std::string& app_id,

@@ -26,7 +26,7 @@ class Timer {
 
   // Timer
   virtual void HandleCallback() = 0;
-  virtual void Start(int delay_in_milli_seconds, bool will_destroy = false);
+  virtual void Start(int delay_in_milli_seconds);
 
   bool IsRunning() { return is_running_; }
   bool IsRepeating() { return is_repeating_; }
@@ -36,10 +36,9 @@ class Timer {
   void Running(bool is_running) { is_running_ = is_running; }
 
  private:
-  // GLib trampolines. Members so that they can clear source_id_ once GLib is
+  // GLib trampoline. A member so that it can clear source_id_ once GLib is
   // about to destroy the source.
   static int OnTimeout(void* data);
-  static int OnTimeoutAndDestroy(void* data);
 
   int source_id_ = 0;
   bool is_running_ = false;
@@ -60,11 +59,10 @@ class BaseTimer : public Timer {
 
   void StartWithReceiver(int delay_in_milli_seconds,
                          Receiver* receiver,
-                         ReceiverMethod method,
-                         bool will_destroy = false) {
+                         ReceiverMethod method) {
     receiver_ = receiver;
     method_ = method;
-    Start(delay_in_milli_seconds, will_destroy);
+    Start(delay_in_milli_seconds);
   }
 
  private:
@@ -78,22 +76,6 @@ class OneShotTimer : public BaseTimer<Receiver, false> {};
 template <class Receiver>
 class RepeatingTimer : public BaseTimer<Receiver, true> {};
 
-template <class Receiver>
-class SingleShotTimer : public BaseTimer<Receiver, false> {
- public:
-  typedef void (Receiver::*ReceiverMethod)();
-
-  static void SingleShot(int delay_in_milli_seconds,
-                         Receiver* receiver,
-                         ReceiverMethod method) {
-    SingleShotTimer<Receiver>* timer = new SingleShotTimer<Receiver>;
-    timer->StartWithReceiver(delay_in_milli_seconds, receiver, method, true);
-  }
-
- private:
-  SingleShotTimer() = default;
-};
-
 class ElapsedTimer {
  public:
   ElapsedTimer();
@@ -105,7 +87,6 @@ class ElapsedTimer {
   void Start();
   void Stop();
   int ElapsedMs() const;
-  int ElapsedUs() const;
 
  private:
   bool is_running_ = false;

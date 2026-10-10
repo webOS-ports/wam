@@ -190,9 +190,6 @@ std::unique_ptr<ApplicationDescription> ApplicationDescription::FromJsonString(
   auto app_desc = std::make_unique<ApplicationDescription>();
 
   app_desc->transparency_ = json_obj["transparent"].asBool();
-  auto vendor_extension =
-      json_obj.get("vendorExtension", Json::Value(Json::objectValue));
-  app_desc->vendor_extension_ = util::JsonToString(vendor_extension);
   app_desc->trust_level_ = json_obj["trustLevel"].asString();
   app_desc->system_app_ =
       json_obj["systemApp"].isBool() && json_obj["systemApp"].asBool();

@@ -81,7 +81,6 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   uint32_t GetWebProcessPID() const override { return RenderProcessPid(); }
   void CreatePalmSystem(WebAppBase* app) override;
   void SetUseLaunchOptimization(bool enabled, int delay_ms = 0) override;
-  void SetUseSystemAppOptimization(bool enabled) override;
   void SetUseAccessibility(bool enabled) override;
   void SetAppPreloadHint(bool is_preload) override;
   void SuspendWebPageAll() override;
@@ -91,7 +90,6 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void ResumeWebPagePaintingAndJSExecution() override;
   bool IsRegisteredCloseCallback() override { return has_close_callback_; }
   void ExecuteCloseCallback(bool forced) override;
-  void ReloadExtensionData() override;
   void UpdateIsLoadErrorPageFinish() override;
   void UpdateDatabaseIdentifier() override;
   void SetInspectorEnable() override;

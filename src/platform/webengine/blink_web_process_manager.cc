@@ -24,7 +24,6 @@
 #include "blink_web_view_profile_helper.h"
 #include "log_manager.h"
 #include "web_app_base.h"
-#include "web_app_manager_utils.h"
 #include "web_page_blink.h"
 #include "web_process_manager.h"
 

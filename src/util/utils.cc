@@ -22,7 +22,6 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -98,30 +97,6 @@ std::vector<std::string> GetErrorPagePaths(
   return result;
 }
 
-std::string GetHostname(const std::string& url) {
-  if (url.empty()) {
-    return std::string();
-  }
-
-  // source https://datatracker.ietf.org/doc/html/rfc3986#appendix-B
-
-  std::regex const rfc3986_regex(
-      R"(^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?)");
-  std::regex const authority_regex(R"(^(?:[\w\:]+[@])?([\w.]+)(?:[:])?(?:[0-9]+)?)");
-  std::smatch matches;
-
-  if (!std::regex_match(url, matches, rfc3986_regex)) {
-    return std::string();
-  }
-
-  std::string const authority = matches[4];
-  if (!std::regex_match(authority, matches, authority_regex)) {
-    return std::string();
-  }
-
-  return matches[1];
-}
-
 bool DoesPathExist(const std::string& path) {
   if (path.empty()) {
     return false;
@@ -147,11 +122,6 @@ std::string ReadFile(const std::string& path) {
 
 std::string UriToLocal(const std::string& uri) {
   g_autofree gchar const* cpath = g_filename_from_uri(uri.c_str(), nullptr, nullptr);
-  return GetString(cpath);
-}
-
-std::string LocalToUri(const std::string& uri) {
-  g_autofree gchar const* cpath = g_filename_to_uri(uri.c_str(), nullptr, nullptr);
   return GetString(cpath);
 }
 

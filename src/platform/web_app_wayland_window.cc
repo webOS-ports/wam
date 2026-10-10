@@ -20,47 +20,8 @@
 #include "utils.h"
 #include "web_app_wayland.h"
 
-WebAppWaylandWindow* WebAppWaylandWindow::instance_ = nullptr;
-
-WebAppWaylandWindow* WebAppWaylandWindow::Take() {
-  WebAppWaylandWindow* window = nullptr;
-
-  if (!instance_) {
-    instance_ = new WebAppWaylandWindow();
-    if (!instance_) {
-      LOG_CRITICAL(MSGID_TAKE_FAIL, 0, "Failed to take WebAppWaylandWindow");
-      return nullptr;
-    }
-  }
-
-  window = instance_;
-  instance_ = nullptr;
-  return window;
-}
-
-void WebAppWaylandWindow::Prepare() {
-  if (instance_) {
-    return;
-  }
-
-  // TODO: Need to make sure preparing window is helpful
-  WebAppWaylandWindow* window = CreateWindow();
-  if (!window) {
-    return;
-  }
-
-  instance_ = window;
-}
-
-WebAppWaylandWindow* WebAppWaylandWindow::CreateWindow() {
-  WebAppWaylandWindow* window = new WebAppWaylandWindow();
-  if (!window) {
-    LOG_CRITICAL(MSGID_PREPARE_FAIL, 0,
-                 "Failed to prepare WindowedWebAppWindow");
-    return nullptr;
-  }
-  window->Resize(1, 1);
-  return window;
+std::unique_ptr<WebAppWaylandWindow> WebAppWaylandWindow::Take() {
+  return std::make_unique<WebAppWaylandWindow>();
 }
 
 WebAppWaylandWindow::WebAppWaylandWindow()
@@ -338,12 +299,4 @@ void WebAppWaylandWindow::LogEventDebugging(WebOSEvent* event) {
                PMLOGKFV("TYPE", "%d", event->GetType()), "");
     }
   }
-}
-
-void WebAppWaylandWindow::SendKeyCode(int key_code) {
-  if (!xinput_activated_) {
-    XInputActivate();
-    xinput_activated_ = true;
-  }
-  XInputInvokeAction(key_code);
 }

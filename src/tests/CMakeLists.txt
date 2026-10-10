@@ -65,6 +65,7 @@ set(HEADERS
     mocks/blink_web_process_manager_mock.h
     mocks/platform_module_factory_impl_mock.h
     mocks/plugin_lib_wrapper_mock.h
+    mocks/temp_dir.h
     mocks/web_app_base_mock.h
     mocks/web_app_factory_interface_mock.h
     mocks/web_app_factory_manager_mock.h
@@ -98,4 +99,9 @@ set(TEST_BIN_LIBS
 add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${TEST_BIN_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TEST_BIN_LIBS})
+# PluginLoadTest.LoadTestPlugin falls back on the test plugin built here when
+# the installed one is not there, as on the build host.
+add_dependencies(${PROJECT_NAME} webappmgr-test-plugin)
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+    WAM_TEST_PLUGIN_BUILD_DIR="${CMAKE_BINARY_DIR}/src/testplugin")
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/opt/webos/tests)

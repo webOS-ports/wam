@@ -17,6 +17,7 @@
 #include "web_view_factory_mock.h"
 
 #include <iostream>
+#include <utility>
 
 #include "web_view.h"
 
@@ -31,15 +32,17 @@ WebViewFactoryMock::~WebViewFactoryMock() {
 }
 
 WebView* WebViewFactoryMock::CreateWebView() {
-  if (web_view_) {
-    return web_view_;
+  if (!web_views_.empty()) {
+    WebView* next = web_views_.front().release();
+    web_views_.pop_front();
+    return next;
   }
-  std::cerr << "Missing WebView pointer. Method setWebView should be called "
-               "prior to createWebView"
+  std::cerr << "WebViewFactoryMock::CreateWebView: no mock left; set one with SetWebView() for "
+               "every view to be created"
             << '\n';
   return nullptr;
 }
 
-void WebViewFactoryMock::SetWebView(WebView* web_view) {
-  web_view_ = web_view;
+void WebViewFactoryMock::SetWebView(std::unique_ptr<WebView> web_view) {
+  web_views_.push_back(std::move(web_view));
 }

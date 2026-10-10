@@ -41,8 +41,10 @@ class BaseMockInitializer {
 
     auto web_view_factory = std::make_unique<WebViewFactoryMock>();
     auto web_app_window_factory = std::make_unique<WebAppWindowFactoryMock>();
-    web_view_factory->SetWebView(web_view_);
-    web_app_window_factory->SetWebAppWindow(web_app_window_);
+    web_view_factory_ = web_view_factory.get();
+    web_app_window_factory_ = web_app_window_factory.get();
+    web_view_ = AddWebViewMock();
+    web_app_window_ = AddWebAppWindowMock();
 
     auto web_app_factory_manager = std::make_unique<WebAppFactoryManagerMock>();
     web_app_factory_manager->SetWebViewFactory(std::move(web_view_factory));
@@ -57,12 +59,31 @@ class BaseMockInitializer {
 
   ~BaseMockInitializer() { WebAppManager::Instance()->CloseAllApps(); }
 
+  // The mocks the first app launched gets.
   T* GetWebViewMock() { return web_view_; }
   U* GetWebAppWindowMock() { return web_app_window_; }
 
+  // A view and a window for one more app: every page deletes its own view,
+  // and the app its window.
+  T* AddWebViewMock() {
+    auto web_view = std::make_unique<T>();
+    T* const added = web_view.get();
+    web_view_factory_->SetWebView(std::move(web_view));
+    return added;
+  }
+  U* AddWebAppWindowMock() {
+    auto web_app_window = std::make_unique<U>();
+    U* const added = web_app_window.get();
+    web_app_window_factory_->SetWebAppWindow(std::move(web_app_window));
+    return added;
+  }
+
  private:
-  T* web_view_ = new T();
-  U* web_app_window_ = new U();
+  // Owned by the web app factory WebAppManager holds.
+  WebViewFactoryMock* web_view_factory_ = nullptr;
+  WebAppWindowFactoryMock* web_app_window_factory_ = nullptr;
+  T* web_view_ = nullptr;
+  U* web_app_window_ = nullptr;
 };
 
 #endif  // TESTS_MOCKS_BASE_MOCK_INITIALIZER_H_

@@ -1,6 +1,9 @@
 # Outcome of each test on the x86-64 host with the recipe's flags.
-# Tests that need the device (web engine, plugin paths) fail or abort
-# here; only these are allowed to. Regenerate with run-sanitizers.sh -u.
+# Tests that reach the web engine's webos::Runtime or webos::WebOSPlatform
+# (launching an app, setting the system language) abort here: those
+# singletons register with a base::AtExitManager, which the test binary has
+# no way to create since libcbe does not export it. Only these are allowed
+# to fail. Regenerate with run-sanitizers.sh -u.
 CRASH(134) CloseAllApps.CloseAllApps
 CRASH(134) ErrorPageTestSuite.LoadErrorPage
 CRASH(134) ErrorPageTestSuite.ReloadOnNetworkRecovery
@@ -31,15 +34,8 @@ CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Home
 CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Incorrect
 CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setWindowProperty
 CRASH(134) PauseAppTest.PauseApp
-FAIL PluginLoadTest.CustomWebApp
-FAIL PluginLoadTest.DefaultWebApp
-FAIL PluginLoadTest.Load
-FAIL PluginLoadTest.LoadTestPlugin
 CRASH(134) SetInspectorEnableTest.checkCaseApplicationExists
 CRASH(134) SetInspectorEnableTest.checkCaseApplicationNotExists
 CRASH(134) TouchEventTestSuite.EnterEventTest
 CRASH(134) TouchEventTestSuite.LeaveEventTest
-FAIL WebPageBlinkTestSuite.AddCustomPluginDir
-FAIL WebPageBlinkTestSuite.addUserScript
-FAIL WebPageBlinkTestSuite.CheckWebViewLoad
 CRASH(134) WebProcessCreatedTest.WebProcessCreated

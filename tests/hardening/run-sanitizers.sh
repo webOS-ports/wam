@@ -17,7 +17,8 @@
 # clang and GCC compile against the workdir's sysroot instead (same glibc
 # major version needed: the test is loaded by the sysroot's ld.so). Every
 # test runs in its own process, because some tests abort on the host (they
-# reach the real web engine, which needs a device); the outcome of each test
+# reach web engine singletons that need a base::AtExitManager, which libcbe
+# does not export; see host-results.baseline); the outcome of each test
 # is compared with host-results.baseline and any sanitizer or valgrind
 # report fails the run.
 #
@@ -227,8 +228,11 @@ if [ $need_plain = 1 ]; then
 	run_tests plain "" || exit 1
 	if [ $UPDATE = 1 ]; then
 		{ echo "# Outcome of each test on the x86-64 host with the recipe's flags."
-		  echo "# Tests that need the device (web engine, plugin paths) fail or abort"
-		  echo "# here; only these are allowed to. Regenerate with run-sanitizers.sh -u."
+		  echo "# Tests that reach the web engine's webos::Runtime or webos::WebOSPlatform"
+		  echo "# (launching an app, setting the system language) abort here: those"
+		  echo "# singletons register with a base::AtExitManager, which the test binary has"
+		  echo "# no way to create since libcbe does not export it. Only these are allowed"
+		  echo "# to fail. Regenerate with run-sanitizers.sh -u."
 		  grep -v '^PASS ' "$OUT/results-plain.txt" | cut -d' ' -f1-2; } >"$HERE/host-results.baseline"
 		echo "host-results.baseline written"; exit 0
 	fi

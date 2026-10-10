@@ -98,9 +98,11 @@ build `webruntime-clang` and its dependencies' packages first. To test
 against a web engine you built yourself, put its output directory first:
 `RUNTIME_LIB_DIRS=<chromium>/out/Release`.
 
-Every test runs in its own process: tests that launch an app reach the real
-web engine, which aborts on the host. `host-results.baseline` lists the
-tests allowed to fail or abort there (refresh with `-u`); any other failure
+Every test runs in its own process: tests that launch an app or set the
+system language reach the web engine's webos::Runtime and WebOSPlatform
+singletons, which abort without a base::AtExitManager - and libcbe does not
+export one for the test to create. `host-results.baseline` lists the tests
+allowed to abort there (refresh with `-u`); any other failure
 and any sanitizer or valgrind report fails the run. Known pre-existing
 issues are suppressed, with the reason, in `lsan.supp`, `tsan.supp` and
 `valgrind.supp`.

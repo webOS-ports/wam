@@ -14,7 +14,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -158,19 +160,21 @@ class PalmSystemBlinkTestSuite : public ::testing::Test {
 void PalmSystemBlinkTestSuite::SetUp() {
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
-  web_view_factory_ = new WebViewFactoryMock();
-  web_app_window_factory_ = new WebAppWindowFactoryMock();
-  web_view_ = new NiceWebViewMock();
-  web_app_window_ = new NiceWebAppWindowMock();
+  auto web_view_factory = std::make_unique<WebViewFactoryMock>();
+  auto web_app_window_factory = std::make_unique<WebAppWindowFactoryMock>();
+  auto web_view = std::make_unique<NiceWebViewMock>();
+  auto web_app_window = std::make_unique<NiceWebAppWindowMock>();
+  web_view_factory_ = web_view_factory.get();
+  web_app_window_factory_ = web_app_window_factory.get();
+  web_view_ = web_view.get();
+  web_app_window_ = web_app_window.get();
 
   auto web_app_factory_manager = std::make_unique<WebAppFactoryManagerMock>();
-  web_app_factory_manager->SetWebViewFactory(
-      std::unique_ptr<WebViewFactory>(web_view_factory_));
+  web_view_factory->SetWebView(std::move(web_view));
+  web_app_window_factory->SetWebAppWindow(std::move(web_app_window));
+  web_app_factory_manager->SetWebViewFactory(std::move(web_view_factory));
   web_app_factory_manager->SetWebAppWindowFactory(
-      std::unique_ptr<WebAppWindowFactory>(web_app_window_factory_));
-
-  web_view_factory_->SetWebView(web_view_);
-  web_app_window_factory_->SetWebAppWindow(web_app_window_);
+      std::move(web_app_window_factory));
 
   WebAppManager::Instance()->SetWebAppFactory(
       std::move(web_app_factory_manager));

@@ -18,6 +18,7 @@
 // allocate has to be freed, launched or not.
 
 #include <memory>
+#include <utility>
 
 #include <gtest/gtest.h>
 
@@ -28,6 +29,7 @@
 #include "web_app_factory_manager_mock.h"
 #include "web_app_manager.h"
 #include "web_app_window_factory_mock.h"
+#include "web_app_window_mock.h"
 #include "web_page_base.h"
 #include "web_view_factory.h"
 #include "web_view_factory_mock.h"
@@ -91,4 +93,42 @@ TEST(WebAppFactoryManagerMockTest, OneViewFactoryServesSeveralPages) {
   EXPECT_EQ(CountingViewFactory::instances, 1);
   second.reset();
   EXPECT_EQ(CountingViewFactory::instances, 0);
+}
+
+TEST(FactoryMockTest, EachMockIsHandedOutOnce) {
+  // Two apps launched with one initializer used to get the same view and
+  // window, and closing them deleted both twice.
+  WebViewFactoryMock view_factory;
+  auto first_view = std::make_unique<NiceWebViewMock>();
+  auto second_view = std::make_unique<NiceWebViewMock>();
+  const WebView* const first_view_ptr = first_view.get();
+  const WebView* const second_view_ptr = second_view.get();
+  view_factory.SetWebView(std::move(first_view));
+  view_factory.SetWebView(std::move(second_view));
+  std::unique_ptr<WebView> const view_a(view_factory.CreateWebView());
+  std::unique_ptr<WebView> const view_b(view_factory.CreateWebView());
+  EXPECT_EQ(view_a.get(), first_view_ptr);
+  EXPECT_EQ(view_b.get(), second_view_ptr);
+  EXPECT_EQ(view_factory.CreateWebView(), nullptr);
+
+  WebAppWindowFactoryMock window_factory;
+  auto first_window = std::make_unique<NiceWebAppWindowMock>();
+  auto second_window = std::make_unique<NiceWebAppWindowMock>();
+  const WebAppWindow* const first_window_ptr = first_window.get();
+  const WebAppWindow* const second_window_ptr = second_window.get();
+  window_factory.SetWebAppWindow(std::move(first_window));
+  window_factory.SetWebAppWindow(std::move(second_window));
+  std::unique_ptr<WebAppWindow> const window_a(window_factory.CreateWindow());
+  std::unique_ptr<WebAppWindow> const window_b(window_factory.CreateWindow());
+  EXPECT_EQ(window_a.get(), first_window_ptr);
+  EXPECT_EQ(window_b.get(), second_window_ptr);
+  EXPECT_EQ(window_factory.CreateWindow(), nullptr);
+}
+
+TEST(FactoryMockTest, MocksNeverHandedOutAreFreed) {
+  // Checked by the sanitizer and valgrind runs: nothing may leak.
+  WebViewFactoryMock view_factory;
+  view_factory.SetWebView(std::make_unique<NiceWebViewMock>());
+  WebAppWindowFactoryMock window_factory;
+  window_factory.SetWebAppWindow(std::make_unique<NiceWebAppWindowMock>());
 }

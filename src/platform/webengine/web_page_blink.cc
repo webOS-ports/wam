@@ -1461,9 +1461,10 @@ WebView* WebPageBlink::CreateWindow(
 
   // Create a new page, with a factory associated with the new content.
   wam::Url const new_wam_url(new_url);
-  WebPageBlink* new_page = new WebPageBlink(new_wam_url, *new_app_desc, "{}",
-                                            std::move(dedicated_factory));
+  auto new_page = std::make_unique<WebPageBlink>(
+      new_wam_url, *new_app_desc, "{}", std::move(dedicated_factory));
   new_page->Init();
+  const WebPageBlink* page = new_page.get();
 
   // Create a new webApp instance for this page.
   WebAppManager* web_app_mgr = WebAppManager::Instance();
@@ -1487,23 +1488,30 @@ WebView* WebPageBlink::CreateWindow(
   }
 
   WebAppBase* new_web_app = web_app_mgr->CreateWindowForAppPage(
-      child_win_type, std::move(new_app_desc), "{}", app_id_, new_page);
+      child_win_type, std::move(new_app_desc), "{}", app_id_,
+      std::move(new_page));
+  if (!new_web_app) {
+    // The page went with it. No view tells the engine that no window was
+    // made, rather than handing it one that nothing owns.
+    LOG_WARNING(MSGID_BAD_WINDOW_TYPE, 1,
+                PMLOGKS("WINDOW_TYPE", child_win_type.c_str()),
+                "No app for a window this page opened");
+    return nullptr;
+  }
 
-  if (new_web_app && height > 0) {
+  if (height > 0) {
     new_web_app->Resize(CurrentUiWidth(), height);
   }
 
-  if (new_web_app) {
-    for (auto attr = window_attributes.begin(); attr != window_attributes.end();
-         ++attr) {
-      std::string const attr_key = attr.name();
-      std::string const attr_value = AttributeString(*attr);
+  for (auto attr = window_attributes.begin(); attr != window_attributes.end();
+       ++attr) {
+    std::string const attr_key = attr.name();
+    std::string const attr_value = AttributeString(*attr);
 
-      if (!attr_key.empty() && !attr_value.empty()) {
-        new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);
-      }
+    if (!attr_key.empty() && !attr_value.empty()) {
+      new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);
     }
   }
 
-  return new_page->PageView();
+  return page->PageView();
 }

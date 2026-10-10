@@ -53,6 +53,26 @@ class NewViewFactory : public WebViewFactory {
   WebView* CreateWebView() override { return new NiceWebViewMock(); }
 };
 
+// A view mock that counts how many exist, to see that one is freed.
+class CountedViewMock : public WebViewMock {
+ public:
+  CountedViewMock() { ++instances; }
+  ~CountedViewMock() override { --instances; }
+  CountedViewMock(const CountedViewMock&) = delete;
+  CountedViewMock& operator=(const CountedViewMock&) = delete;
+
+  static int instances;
+};
+
+int CountedViewMock::instances = 0;
+
+class CountedViewFactory : public WebViewFactory {
+ public:
+  WebView* CreateWebView() override {
+    return new ::testing::NiceMock<CountedViewMock>();
+  }
+};
+
 using Properties = std::vector<std::pair<std::string, std::string>>;
 
 // The application the window is created for. It keeps the page, as the real
@@ -75,13 +95,20 @@ class WindowAppMock : public WebAppBaseMock {
 
 class WindowAppFactoryManager : public WebAppFactoryManager {
  public:
-  WindowAppFactoryManager(std::string* win_type, WindowAppMock** app)
-      : win_type_(win_type), app_(app) {}
+  // With |make_apps| false no app is made, as WebAppFactoryManagerImpl does
+  // for a subtype no factory plugin handles.
+  WindowAppFactoryManager(std::string* win_type,
+                          WindowAppMock** app,
+                          bool make_apps = true)
+      : win_type_(win_type), app_(app), make_apps_(make_apps) {}
 
   WebAppBase* CreateWebApp(const std::string& win_type,
                            const ApplicationDescription& /*desc*/,
                            const std::string& /*app_type*/) override {
     *win_type_ = win_type;
+    if (!make_apps_) {
+      return nullptr;
+    }
     *app_ = new WindowAppMock();
     return *app_;
   }
@@ -102,6 +129,7 @@ class WindowAppFactoryManager : public WebAppFactoryManager {
  private:
   std::string* win_type_;
   WindowAppMock** app_;
+  bool make_apps_;
 };
 
 class CreateWindowTest : public ::testing::Test {
@@ -218,4 +246,20 @@ TEST_F(CreateWindowTest, AttributesOnlyAsTheFeatureKey) {
       Open({R"(01234567890{"window":"popupalert","a":"attributes="})"}));
   EXPECT_EQ(win_type_, DefaultType());
   EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+}
+
+TEST_F(CreateWindowTest, NoAppForTheWindow) {
+  WebAppManager::Instance()->SetWebAppFactory(
+      std::make_unique<WindowAppFactoryManager>(&win_type_, &app_,
+                                                /*make_apps=*/false));
+  const int views = CountedViewMock::instances;
+
+  const WebView* view = opener_->CreateWindow(
+      "about:blank", std::make_unique<CountedViewFactory>(), 0, {});
+
+  // No window, and nothing left behind: the page made for it, and the view
+  // it took from the engine, are freed.
+  EXPECT_EQ(view, nullptr);
+  EXPECT_EQ(app_, nullptr);
+  EXPECT_EQ(CountedViewMock::instances, views);
 }

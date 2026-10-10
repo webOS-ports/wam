@@ -384,7 +384,7 @@ WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
                                            std::unique_ptr<ApplicationDescription> app_desc,
                                            const std::string& args,
                                            const std::string& launching_app_id,
-                                           WebPageBase* page) {
+                                           std::unique_ptr<WebPageBase> new_page) {
 
   std::string const instance_id = GenerateInstanceId();
   std::string const app_desc_id = app_desc->Id();
@@ -395,6 +395,9 @@ WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
                                           app_desc->SubType().c_str());
 
   if (app) {
+    // The app owns the page from here on (Attach() below).
+    WebPageBase* page = new_page.release();
+
     // set use launching time optimization true while app loading.
     page->SetUseLaunchOptimization(true);
 

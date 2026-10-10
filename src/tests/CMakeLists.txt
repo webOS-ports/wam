@@ -28,6 +28,7 @@ set(SOURCES
     close_all_apps_test.cc
     create_window_test.cc
     device_info_test.cc
+    display_rotation_test.cc
     error_page_test.cc
     get_web_process_size_test.cc
     json_helper_test.cc

@@ -16,7 +16,6 @@
 
 #include "web_app_manager_service_luna.h"
 
-#include <cstdlib>
 #include <map>
 #include <optional>
 #include <set>
@@ -757,6 +756,10 @@ void WebAppManagerServiceLuna::LocationPreferenceCallback(
 
 void WebAppManagerServiceLuna::GetCompositorGeometryCallback(
     const Json::Value& reply) {
+  // jsoncpp asserts on a member lookup in anything but an object.
+  if (!reply.isObject() || !reply["configs"].isObject()) {
+    return;
+  }
   const Json::Value& value =
       reply["configs"]["com.webos.surfacemanager.compositorGeometry"];
   if (!value.isString()) {
@@ -770,7 +773,14 @@ void WebAppManagerServiceLuna::GetCompositorGeometryCallback(
   if (r == std::string::npos) {
     return;
   }
-  const int degrees = std::atoi(geometry.c_str() + r + 1);
+  // A rotation that is not a number, or does not fit an int, is ignored like
+  // any other the compositor cannot apply, rather than read as 0 or wrapped.
+  int degrees = 0;
+  if (!util::StrToInt(geometry.substr(r + 1), degrees)) {
+    LOG_WARNING(MSGID_TYPE_ERROR, 0, "Ignoring compositor geometry '%s'",
+                geometry.c_str());
+    return;
+  }
   WebAppManagerService::SetDisplayRotation(degrees);
 }
 

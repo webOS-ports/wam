@@ -1,0 +1,7 @@
+# LeakSanitizer suppressions for run-sanitizers.sh. Each entry is a known,
+# pre-existing defect, named so it can be fixed and dropped from here.
+#
+# BaseMockInitializer allocates the two mock factories with new and hands
+# WebAppFactoryManagerMock raw pointers it never deletes: 16 bytes each,
+# per test that uses the initializer. Test-code leak.
+leak:BaseMockInitializer

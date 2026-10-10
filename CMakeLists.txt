@@ -30,4 +30,13 @@ webos_component(1 0 2)
 
 webos_build_system_bus_files(${CMAKE_SOURCE_DIR}/files/sysbus)
 
+# Sanitizer builds for tests/hardening/run-sanitizers.sh, e.g.
+# -DWAM_SANITIZE=address,undefined. Empty, the default, changes nothing.
+set(WAM_SANITIZE "" CACHE STRING "-fsanitize= list for test builds (empty: none)")
+if(WAM_SANITIZE)
+    add_compile_options(-fsanitize=${WAM_SANITIZE} -fno-sanitize-recover=all
+                        -fno-omit-frame-pointer)
+    add_link_options(-fsanitize=${WAM_SANITIZE})
+endif()
+
 add_subdirectory(src)

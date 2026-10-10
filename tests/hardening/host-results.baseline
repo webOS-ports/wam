@@ -1,0 +1,45 @@
+# Outcome of each test on the x86-64 host with the recipe's flags.
+# Tests that need the device (web engine, plugin paths) fail or abort
+# here; only these are allowed to. Regenerate with run-sanitizers.sh -u.
+CRASH(134) CloseAllApps.CloseAllApps
+CRASH(134) ErrorPageTestSuite.LoadErrorPage
+CRASH(134) ErrorPageTestSuite.ReloadOnNetworkRecovery
+CRASH(134) ErrorPageTestSuite.ReloadOnRelaunch
+CRASH(134) ErrorPageTestSuite.ReloadOnTimeout
+CRASH(134) GetWebProcessSizeTest.checkCaseProcessExists
+CRASH(134) KillAppTest.ForceKillApp
+CRASH(134) KillAppTest.KillApp
+CRASH(134) LaunchAppTestSuite.LaunchAppsWithError
+CRASH(134) LaunchAppTestSuite.LaunchAppsWithoutParams
+CRASH(134) LaunchAppTestSuite.LaunchAppsWithParams
+CRASH(134) LaunchAppTestSuite.LaunchOnPrimaryDisplay
+CRASH(134) LaunchAppTestSuite.LaunchOnSecondaryDisplay
+CRASH(134) ListRunningAppsTest.ExcludeSysApps
+CRASH(134) ListRunningAppsTest.IncludeSysApps
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_getIdentifier
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_initialize
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_isActivated
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_isKeyboardVisible
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_platformBack
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_PmLogInfoWithClock
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_PmLogString
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setCursor
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Back
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Combination
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Exit
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Home
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setKeyMask_Incorrect
+CRASH(134) PalmSystemBlinkTestSuite.handleBrowserControlMessage_setWindowProperty
+CRASH(134) PauseAppTest.PauseApp
+FAIL PluginLoadTest.CustomWebApp
+FAIL PluginLoadTest.DefaultWebApp
+FAIL PluginLoadTest.Load
+FAIL PluginLoadTest.LoadTestPlugin
+CRASH(134) SetInspectorEnableTest.checkCaseApplicationExists
+CRASH(134) SetInspectorEnableTest.checkCaseApplicationNotExists
+CRASH(134) TouchEventTestSuite.EnterEventTest
+CRASH(134) TouchEventTestSuite.LeaveEventTest
+FAIL WebPageBlinkTestSuite.AddCustomPluginDir
+FAIL WebPageBlinkTestSuite.addUserScript
+FAIL WebPageBlinkTestSuite.CheckWebViewLoad
+CRASH(134) WebProcessCreatedTest.WebProcessCreated

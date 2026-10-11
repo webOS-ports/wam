@@ -1,0 +1,21 @@
+# gcc -fanalyzer budgets of their own, for files the gate's raised default
+# (analyzer-bb-explosion-factor=50, analyzer-max-enodes-per-program-point=64)
+# runs out of memory or time on: these get GCC's own default budget, with
+# which each finishes inside the 20 GB cap and the 30-minute timeout. At the
+# raised budget each ran out of memory or time, in the run the first
+# baseline was made with (web_page_base.cc -O0: in a later run, after it
+# had finished before). For the unit tests that run out of memory this
+# did not help: launch_app_test ran out of memory at GCC's default budget
+# too (the others were not tried); they are listed in
+# static-analysis.baseline.
+# Format: -O0|-O2 <file> <--param...>
+-O0 src/util/bcp47.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O2 src/util/bcp47.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O0 src/util/utils.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O2 src/util/utils.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O0 src/core/web_app_manager.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O2 src/core/web_app_manager.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O0 src/platform/web_app_wayland.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O0 src/platform/webengine/web_page_blink.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O2 src/core/web_app_factory_manager_impl.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8
+-O0 src/core/web_page_base.cc --param=analyzer-bb-explosion-factor=5 --param=analyzer-max-enodes-per-program-point=8

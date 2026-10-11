@@ -53,9 +53,10 @@ left out with `SA_SKIP="gcc-O0 gcc-O2"` (reported as SKIPPED, never as
 passed; `SA_ALLOW_SKIP=1` accepts that), 0 otherwise. After triaging every
 new finding, refresh the baseline with `-u`.
 
-The baseline was made on webOS-OSE 07a3adf. The analyzer was run on the
-product code only (not `src/tests`); four files hit its 20G cap or the
-30-minute timeout and are listed as such.
+The baseline lists only findings triaged as false positives, grouped under
+their reason. gcc -fanalyzer runs out of the 20G cap on most unit test
+files (launch_app_test also with GCC's default budget and with a tighter
+one); those are listed as such.
 
 `-fanalyzer` runs with a raised budget (`analyzer-bb-explosion-factor=50`,
 `analyzer-max-enodes-per-program-point=64`). A file that runs out of memory

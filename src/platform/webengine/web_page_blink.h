@@ -81,7 +81,6 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   uint32_t GetWebProcessPID() const override { return RenderProcessPid(); }
   void CreatePalmSystem(WebAppBase* app) override;
   void SetUseLaunchOptimization(bool enabled, int delay_ms = 0) override;
-  void SetUseSystemAppOptimization(bool enabled) override;
   void SetUseAccessibility(bool enabled) override;
   void SetAppPreloadHint(bool is_preload) override;
   void SuspendWebPageAll() override;
@@ -91,7 +90,6 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void ResumeWebPagePaintingAndJSExecution() override;
   bool IsRegisteredCloseCallback() override { return has_close_callback_; }
   void ExecuteCloseCallback(bool forced) override;
-  void ReloadExtensionData() override;
   void UpdateIsLoadErrorPageFinish() override;
   void UpdateDatabaseIdentifier() override;
   void SetInspectorEnable() override;
@@ -143,13 +141,13 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetTrustLevel(const std::string& trust_level) {
     trust_level_ = trust_level;
   }
-  std::string TrustLevel() const { return trust_level_; }
+  const std::string& TrustLevel() const { return trust_level_; }
   std::string DefaultTrustLevel() const;
-  std::string EscapeData(const std::string& value);
+  static std::string EscapeData(const std::string& value);
   int RenderProcessPid() const;
   static void SetFileAccessBlocked(bool blocked);
   void UpdateBoardType();
-  double DevicePixelRatio();
+  double DevicePixelRatio() const;
   void SetAdditionalContentsScale(float scale_x, float scale_y);
   void UpdateHardwareResolution();
 
@@ -179,11 +177,11 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetVisible(bool visible) override;
   void SuspendWebPagePaintingAndJSExecution() override;
 
-  virtual WebView* CreatePageView();
+  virtual std::unique_ptr<WebView> CreatePageView();
   virtual void SetupStaticUserScripts();
   virtual bool ShouldStopJSOnSuspend() const { return true; }
 
-  bool Inspectable();
+  static bool Inspectable();
 
   // WebPageDelegate
   void HandleBrowserControlCommand(

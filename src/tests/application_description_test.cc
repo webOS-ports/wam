@@ -287,8 +287,8 @@ TEST_F(ApplicationDescriptionTest, checkGetCustomSuspendDomTime) {
 
 TEST_F(ApplicationDescriptionTest, checkGetNetworkStableTimeout) {
   ASSERT_TRUE(application_description_->NetworkStableTimeout().has_value());
-  EXPECT_DOUBLE_EQ(12345.6789,
-                   application_description_->NetworkStableTimeout().value());
+  EXPECT_DOUBLE_EQ(
+      12345.6789, application_description_->NetworkStableTimeout().value_or(0));
 }
 
 TEST_F(ApplicationDescriptionTest, checkGetSupportsAudioGuidance) {

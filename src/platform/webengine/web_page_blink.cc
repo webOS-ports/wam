@@ -17,10 +17,13 @@
 #include "web_page_blink.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <cmath>
 #include <cstdlib>
 #include <limits>
 #include <sstream>
+#include <string>
+#include <system_error>
 
 #include <json/json.h>
 
@@ -128,13 +131,6 @@ Json::Value WindowAttributesFromFeatures(
   return window_attributes;
 }
 
-// An attribute value as a string, or empty for one that has none: asString()
-// asserts on an array or object.
-std::string AttributeString(const Json::Value& value) {
-  return value.isConvertibleTo(Json::stringValue) ? value.asString()
-                                                  : std::string();
-}
-
 }  // namespace
 
 class WebPageBlinkPrivate {
@@ -150,17 +146,17 @@ class WebPageBlinkPrivate {
 
 WebPageBlink::WebPageBlink(const wam::Url& url,
                            const ApplicationDescription& desc,
-                           const std::string& params,
+                           const std::string& launch_params,
                            std::unique_ptr<WebViewFactory> factory)
-    : WebPageBase(url, desc, params),
+    : WebPageBase(url, desc, launch_params),
       page_private_(std::make_unique<WebPageBlinkPrivate>(this)),
       trust_level_(desc.TrustLevel()),
       factory_(std::move(factory)) {}
 
 WebPageBlink::WebPageBlink(const wam::Url& url,
                            const ApplicationDescription& desc,
-                           const std::string& params)
-    : WebPageBlink(url, desc, params, nullptr) {}
+                           const std::string& launch_params)
+    : WebPageBlink(url, desc, launch_params, nullptr) {}
 
 WebPageBlink::~WebPageBlink() {
   if (dom_suspend_timer_.IsRunning()) {
@@ -169,7 +165,7 @@ WebPageBlink::~WebPageBlink() {
 }
 
 void WebPageBlink::Init() {
-  page_private_->page_view_ = std::unique_ptr<WebView>(CreatePageView());
+  page_private_->page_view_ = CreatePageView();
   page_private_->page_view_->SetDelegate(this);
   page_private_->page_view_->Initialize(
       app_desc_.Id() + std::to_string(app_desc_.GetDisplayAffinity()),
@@ -485,10 +481,6 @@ void WebPageBlink::SetUseLaunchOptimization(bool enabled, int delay_ms) {
   }
 }
 
-void WebPageBlink::SetUseSystemAppOptimization(bool enabled) {
-  page_private_->page_view_->SetUseEnyoOptimization(enabled);
-}
-
 void WebPageBlink::SetUseAccessibility(bool enabled) {
   page_private_->page_view_->SetUseAccessibility(enabled);
 }
@@ -678,18 +670,6 @@ std::string WebPageBlink::EscapeData(const std::string& value) {
   return escaped_value;
 }
 
-void WebPageBlink::ReloadExtensionData() {
-  std::string const event_js =
-      "if (typeof(webOSSystem) != 'undefined') {"
-      "  webOSSystem.reloadInjectionData();"
-      "};";
-
-  LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", AppId().c_str()),
-           PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
-           PMLOGKFV("PID", "%d", GetWebProcessPID()), "Reload");
-  EvaluateJavaScript(event_js);
-}
-
 void WebPageBlink::UpdateExtensionData(const std::string& key,
                                        const std::string& value) {
   if (!page_private_->palm_system_->IsInitialized()) {
@@ -743,7 +723,7 @@ void WebPageBlink::CleanResources() {
 }
 
 void WebPageBlink::Close() {
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, WebPageClosePageRequested());
+  ForEachObserver(observers_, &WebPageObserver::WebPageClosePageRequested);
 }
 
 void WebPageBlink::DidFirstFrameFocused() {
@@ -785,7 +765,7 @@ void WebPageBlink::LoadFinished(const std::string& url) {
              PMLOGKFV("PID", "%d", GetWebProcessPID()),
              "cleaningResources():true; (should be about:blank) emit "
              "'didDispatchUnload'");
-    FOR_EACH_OBSERVER(WebPageObserver, observers_, DidDispatchUnload());
+    ForEachObserver(observers_, &WebPageObserver::DidDispatchUnload);
     return;
   }
   HandleLoadFinished();
@@ -922,7 +902,7 @@ void WebPageBlink::LoadFailed(const std::string& url, int err_code) {
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[FAILED ][%d]%s",
            err_code, WebAppManagerUtils::TruncateURL(url).c_str());
 
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, WebPageLoadFailed(err_code));
+  ForEachObserver(observers_, &WebPageObserver::WebPageLoadFailed, err_code);
 
   if (err_code == -21 /*ERR_NETWORK_CHANGED*/) {
     LoadUrl(page_private_->page_view_->GetUrl());
@@ -939,7 +919,7 @@ void WebPageBlink::DidErrorPageLoadedFromNetErrorHelper() {
 
 void WebPageBlink::LoadVisuallyCommitted() {
   has_been_shown_ = true;
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, FirstFrameVisuallyCommitted());
+  ForEachObserver(observers_, &WebPageObserver::FirstFrameVisuallyCommitted);
 }
 
 void WebPageBlink::RenderProcessCreated(int pid) {
@@ -947,11 +927,11 @@ void WebPageBlink::RenderProcessCreated(int pid) {
 }
 
 void WebPageBlink::TitleChanged(const std::string& /*title*/) {
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, TitleChanged());
+  ForEachObserver(observers_, &WebPageObserver::TitleChanged);
 }
 
 void WebPageBlink::NavigationHistoryChanged() {
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, NavigationHistoryChanged());
+  ForEachObserver(observers_, &WebPageObserver::NavigationHistoryChanged);
 }
 
 void WebPageBlink::ForwardEvent(void* event) {
@@ -971,7 +951,7 @@ void WebPageBlink::RecreateWebView() {
   }
 
   Init();
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, WebViewRecreated());
+  ForEachObserver(observers_, &WebPageObserver::WebViewRecreated);
 
   if (!is_suspended_) {
     // Remove white screen while reloading contents due to the renderer crash
@@ -1019,8 +999,7 @@ void WebPageBlink::RenderProcessCrashed() {
       close_callback_timer_.Stop();
     }
 
-    FOR_EACH_OBSERVER(WebPageObserver, observers_,
-                      ClosingAppProcessDidCrashed());
+    ForEachObserver(observers_, &WebPageObserver::ClosingAppProcessDidCrashed);
     return;
   }
 
@@ -1032,11 +1011,11 @@ void WebPageBlink::RenderProcessCrashed() {
 }
 
 // functions from webappmanager2
-WebView* WebPageBlink::CreatePageView() {
+std::unique_ptr<WebView> WebPageBlink::CreatePageView() {
   if (factory_) {
     return factory_->CreateWebView();
   }
-  return new WebViewImpl(std::make_unique<BlinkWebView>());
+  return std::make_unique<WebViewImpl>(std::make_unique<BlinkWebView>());
 }
 
 WebView* WebPageBlink::PageView() const {
@@ -1092,7 +1071,8 @@ void WebPageBlink::AddUserScriptUrl(const wam::Url& url) {
   if (file_content.empty()) {
     LOG_DEBUG(
         "WebPageBlink: Couldn't open '%s' as user script due to error '%s'.",
-        path.c_str(), strerror(errno));
+        path.c_str(),
+        std::error_code(errno, std::generic_category()).message().c_str());
     return;
   }
   page_private_->page_view_->AddUserScript(file_content);
@@ -1163,7 +1143,7 @@ void WebPageBlink::SetCustomPluginIfNeeded() {
   std::string custom_plugin_path = app_desc_.FolderPath();
   custom_plugin_path.append("/plugins");
 
-  if (!util::DoesPathExist(custom_plugin_path.c_str())) {
+  if (!util::DoesPathExist(custom_plugin_path)) {
     return;
   }
   if (custom_plugin_path_ == custom_plugin_path) {
@@ -1196,7 +1176,7 @@ void WebPageBlink::DidRunCloseCallback() {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()),
            "WebPageBlink::didRunCloseCallback(); onclose callback done");
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, CloseCallbackExecuted());
+  ForEachObserver(observers_, &WebPageObserver::CloseCallbackExecuted);
 }
 
 void WebPageBlink::SetHasOnCloseCallback(bool has_close_callback) {
@@ -1220,7 +1200,7 @@ void WebPageBlink::TimeoutCloseCallback() {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()),
            "WebPageBlink::timeoutCloseCallback(); onclose callback Timeout");
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, TimeoutExecuteCloseCallback());
+  ForEachObserver(observers_, &WebPageObserver::TimeoutExecuteCloseCallback);
 }
 
 void WebPageBlink::SetFileAccessBlocked(bool blocked) {
@@ -1247,7 +1227,7 @@ void WebPageBlink::UpdateBoardType() {
   page_private_->page_view_->SetBoardType(board_type);
 }
 
-double WebPageBlink::DevicePixelRatio() {
+double WebPageBlink::DevicePixelRatio() const {
   float device_pixel_ratio = 1.0;
 
   int app_width = 0;
@@ -1278,8 +1258,10 @@ double WebPageBlink::DevicePixelRatio() {
     device_height = CurrentUiHeight();
   }
 
-  float const ratio_x = static_cast<float>(device_width) / app_width;
-  float const ratio_y = static_cast<float>(device_height) / app_height;
+  float const ratio_x =
+      static_cast<float>(device_width) / static_cast<float>(app_width);
+  float const ratio_y =
+      static_cast<float>(device_height) / static_cast<float>(app_height);
   bool const ratios_are_equal =
       std::abs(ratio_x - ratio_y) < std::numeric_limits<float>::epsilon();
   if (!ratios_are_equal) {
@@ -1451,7 +1433,7 @@ WebView* WebPageBlink::CreateWindow(
 
   const Json::Value window_attributes =
       WindowAttributesFromFeatures(additional_features);
-  const std::string window = AttributeString(window_attributes["window"]);
+  const std::string window = util::JsonAsString(window_attributes["window"]);
 
   if (window == "dashboard") {
     new_app_desc->SetDefaultWindowType("floating");
@@ -1506,7 +1488,7 @@ WebView* WebPageBlink::CreateWindow(
   for (auto attr = window_attributes.begin(); attr != window_attributes.end();
        ++attr) {
     std::string const attr_key = attr.name();
-    std::string const attr_value = AttributeString(*attr);
+    std::string const attr_value = util::JsonAsString(*attr);
 
     if (!attr_key.empty() && !attr_value.empty()) {
       new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);

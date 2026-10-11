@@ -26,21 +26,20 @@ namespace {
 
 class WebViewFactoryExistingWebContents : public WebViewFactory {
  public:
-  explicit WebViewFactoryExistingWebContents(WebView* web_view_new_contents)
-      : web_view_new_contents_(web_view_new_contents) {}
+  explicit WebViewFactoryExistingWebContents(
+      std::unique_ptr<WebView> web_view_new_contents)
+      : web_view_new_contents_(std::move(web_view_new_contents)) {}
 
-  WebView* CreateWebView() override {
-    WebView* new_view = web_view_new_contents_;
+  std::unique_ptr<WebView> CreateWebView() override {
     // If CreateWebView() is called again, do not hand out this WebView twice.
-    web_view_new_contents_ = nullptr;
-    if (!new_view) {
-      new_view = new WebViewImpl(std::make_unique<BlinkWebView>());
+    if (web_view_new_contents_) {
+      return std::move(web_view_new_contents_);
     }
-    return new_view;
+    return std::make_unique<WebViewImpl>(std::make_unique<BlinkWebView>());
   }
 
  private:
-  WebView* web_view_new_contents_;
+  std::unique_ptr<WebView> web_view_new_contents_;
 };
 
 }  // namespace
@@ -282,10 +281,8 @@ content::WebContents* BlinkWebView::CreateWindowForWebView(
   LOG_DEBUG("Creating window for webview with height = %d", height);
 
   // Create a new factory for this new_contents.
-  WebView* new_contents_view =
-      new WebViewImpl(std::make_unique<BlinkWebView>(webview));
-  auto dedicated_factory =
-      std::make_unique<WebViewFactoryExistingWebContents>(new_contents_view);
+  auto dedicated_factory = std::make_unique<WebViewFactoryExistingWebContents>(
+      std::make_unique<WebViewImpl>(std::make_unique<BlinkWebView>(webview)));
   // Create a new WebPage using this factory.
   WebView* new_web_view = delegate_->CreateWindow(
       new_url, std::move(dedicated_factory), height, additional_features);

@@ -127,7 +127,8 @@ void PalmSystemWebOS::SetInputRegion(const std::string& params) {
 
 void PalmSystemWebOS::SetGroupClientEnvironment(GroupClientCallKey call_key,
                                                 const std::string& params) {
-  ApplicationDescription* app_desc = app_ ? app_->GetAppDescription() : nullptr;
+  const ApplicationDescription* app_desc =
+      app_ ? app_->GetAppDescription() : nullptr;
   if (app_desc) {
     ApplicationDescription::WindowGroupInfo const group_info =
         app_desc->GetWindowGroupInfo();

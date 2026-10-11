@@ -28,11 +28,11 @@ class PlugInService {
   virtual void StartService() = 0;
 
  protected:
-  WebAppBase* FindAppById(const std::string& app_id);
-  WebAppBase* FindAppByInstanceId(const std::string& instance_id);
-  std::string GetActiveInstanceId();
+  static WebAppBase* FindAppById(const std::string& app_id);
+  static WebAppBase* FindAppByInstanceId(const std::string& instance_id);
+  static std::string GetActiveInstanceId();
 
-  std::list<const WebAppBase*> RunningApps();
+  static std::list<const WebAppBase*> RunningApps();
 };
 
 #endif  // CORE_PLUGIN_SERVICE_H_

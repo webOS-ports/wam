@@ -26,9 +26,7 @@ class ObserverList {
   void AddObserver(ObserverType* observer);
   void RemoveObserver(ObserverType* observer);
   bool HasObserver(ObserverType* observer);
-  void Clear();
-  void Compact();
-  size_t Size() { return observers_.size(); }
+  size_t Size() const { return observers_.size(); }
 
   typename std::vector<ObserverType*>::iterator Begin();
   typename std::vector<ObserverType*>::iterator End();
@@ -73,18 +71,6 @@ bool ObserverList<ObserverType>::HasObserver(ObserverType* observer) {
 }
 
 template <class ObserverType>
-void ObserverList<ObserverType>::Clear() {
-  observers_.clear();
-}
-
-template <class ObserverType>
-void ObserverList<ObserverType>::Compact() {
-  observers_.erase(std::remove(observers_.begin(), observers_.end(),
-                               static_cast<ObserverType*>(nullptr)),
-                   observers_.end());
-}
-
-template <class ObserverType>
 typename std::vector<ObserverType*>::iterator
 ObserverList<ObserverType>::Begin() {
   return observers_.begin();
@@ -96,14 +82,15 @@ ObserverList<ObserverType>::End() {
   return observers_.end();
 }
 
-#define FOR_EACH_OBSERVER(ObserverType, observer_list, func)                \
-  {                                                                         \
-    auto buffered_list = observer_list;                                     \
-    if (buffered_list.Size()) {                                             \
-      for (std::vector<ObserverType*>::iterator it = buffered_list.Begin(); \
-           it != buffered_list.End(); ++it)                                 \
-        (*it)->func;                                                        \
-    }                                                                       \
+// Calls |method| with |args| on every observer of |observers|. It goes over
+// a copy of the list, so an observer may remove itself while it is called.
+template <class ObserverType, class Method, class... Args>
+void ForEachObserver(ObserverList<ObserverType> observers,
+                     Method method,
+                     const Args&... args) {
+  for (auto it = observers.Begin(); it != observers.End(); ++it) {
+    ((*it)->*method)(args...);
   }
+}
 
 #endif  // UTIL_OBSERVER_LIST_H_

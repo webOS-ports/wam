@@ -52,8 +52,6 @@ class ApplicationDescription {
 
   bool HandlesRelaunch() const { return handles_relaunch_; }
 
-  const std::string& VendorExtension() const { return vendor_extension_; }
-
   WindowClass WindowClassValue() const { return window_class_value_; }
 
   const std::string& TrustLevel() const { return trust_level_; }
@@ -164,9 +162,9 @@ class ApplicationDescription {
     bool is_owner = false;
   };
 
-  const WindowGroupInfo GetWindowGroupInfo();
-  const WindowOwnerInfo GetWindowOwnerInfo();
-  const WindowClientInfo GetWindowClientInfo();
+  WindowGroupInfo GetWindowGroupInfo() const;
+  WindowOwnerInfo GetWindowOwnerInfo() const;
+  WindowClientInfo GetWindowClientInfo() const;
 
   // To support multi display
   DisplayId GetDisplayAffinity() const { return display_affinity_; }
@@ -180,21 +178,20 @@ class ApplicationDescription {
   }
 
  private:
-  bool CheckTrustLevel(const std::string& trust_level);
+  static bool CheckTrustLevel(const std::string& trust_level);
 
+  // Grouped by size, largest first, so that the object carries no padding
+  // between members.
+  std::optional<double> ui_scale_;
+  std::optional<double> network_stable_timeout_;
   std::string id_;
   std::string title_;
   std::string entry_point_;
   std::string icon_;
   std::string requested_window_orientation_;
-
-  bool transparency_ = false;
-  std::string vendor_extension_;
-  WindowClass window_class_value_ = kWindowClassNormal;
   std::string trust_level_;
   std::string sub_type_;
   std::string deep_linking_params_;
-  bool handles_relaunch_ = false;
   std::string folder_path_;
   std::string default_window_type_;
   std::string enyo_bundle_version_;
@@ -203,15 +200,23 @@ class ApplicationDescription {
   std::string version_;
   std::string v8_snapshot_path_;
   std::string v8_extra_flags_;
+  std::string group_window_desc_;
+  std::string location_hint_;
+  std::set<std::string> web_app_permissions_;
+  std::unordered_map<int, std::pair<int, int>> key_filter_table_;
+  uint32_t splash_dismiss_timeout_ms_ = 8000;
+  int display_affinity_ = kUndefinedDisplayId;
+  std::optional<int> width_override_;
+  std::optional<int> height_override_;
+  std::optional<int> delay_ms_for_launch_optimization_;
+  std::optional<int> custom_suspend_dom_time_;
+  bool transparency_ = false;
+  WindowClass window_class_value_ = kWindowClassNormal;
+  bool handles_relaunch_ = false;
   bool inspectable_ = true;
   bool custom_plugin_ = false;
   bool back_history_api_disabled_ = false;
-  std::optional<int> width_override_;
-  std::optional<int> height_override_;
   bool uses_legacy_framework_ = false;
-  std::optional<double> ui_scale_;
-  std::unordered_map<int, std::pair<int, int>> key_filter_table_;
-  std::string group_window_desc_;
   bool do_not_track_ = false;
   bool handle_exit_key_ = false;
   bool enable_background_run_ = false;
@@ -220,20 +225,13 @@ class ApplicationDescription {
   bool allow_audio_capture_ = false;
   bool supports_audio_guidance_ = false;
   bool use_native_scroll_ = false;
-  uint32_t splash_dismiss_timeout_ms_ = 8000;
   bool use_prerendering_ = false;
-  std::optional<double> network_stable_timeout_;
   bool disallow_scrolling_in_main_frame_ = true;
-  std::optional<int> delay_ms_for_launch_optimization_;
   bool use_unlimited_media_policy_ = false;
   ThirdPartyCookiesPolicy third_party_cookies_policy_ =
       ThirdPartyCookiesPolicy::kDefault;
-  int display_affinity_ = kUndefinedDisplayId;
-  std::string location_hint_;
   bool use_virtual_keyboard_ = true;
-  std::optional<int> custom_suspend_dom_time_;
   bool use_video_decode_accelerator_ = false;
-  std::set<std::string> web_app_permissions_;
 };
 
 #endif  // CORE_APPLICATION_DESCRIPTION_H_

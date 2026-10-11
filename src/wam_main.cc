@@ -21,7 +21,10 @@
 #include <webos/app/webos_main.h>
 #include <webos/public/runtime.h>
 
+#include <cerrno>
 #include <cstdlib>
+#include <string>
+#include <vector>
 
 #include "log_manager.h"
 #include "platform/platform_factory.h"
@@ -30,11 +33,33 @@
 #include "web_app_manager.h"
 #include "web_app_manager_service_luna.h"
 
+namespace {
+
+// getpwnam_r()/getgrnam_r() with a buffer that grows until the entry fits.
+// The reentrant forms: the plain ones return static storage that any thread
+// may overwrite.
+template <typename Entry, typename Lookup>
+Entry* LookUp(const std::string& name,
+              Entry* entry,
+              std::vector<char>* buffer,
+              Lookup lookup) {
+  Entry* result = nullptr;
+  for (buffer->resize(1024); buffer->size() <= (1u << 20);
+       buffer->resize(buffer->size() * 2)) {
+    const int error =
+        lookup(name.c_str(), entry, buffer->data(), buffer->size(), &result);
+    if (error != ERANGE) {
+      return error == 0 ? result : nullptr;
+    }
+  }
+  return nullptr;
+}
+
 // Drops privileges when WAM_UID/WAM_GID ask for it. Returns false if a drop was
 // requested but did not fully succeed. These checks used to be assert()s, which
 // release builds compile out (-DNDEBUG), so a failed drop went unnoticed and
 // WAM carried on with the privileges it was started with.
-static bool ChangeUserIDGroupID() {
+bool ChangeUserIDGroupID() {
   std::string const uid = util::GetEnvVar("WAM_UID");
   std::string const gid = util::GetEnvVar("WAM_GID");
 
@@ -42,14 +67,18 @@ static bool ChangeUserIDGroupID() {
     return true;
   }
 
-  struct passwd const* pwd = getpwnam(uid.c_str());
+  struct passwd pwd_entry = {};
+  std::vector<char> pwd_buffer;
+  struct passwd const* pwd = LookUp(uid, &pwd_entry, &pwd_buffer, getpwnam_r);
   if (!pwd) {
     LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_UID", uid.c_str()),
               "Unknown user; cannot drop privileges");
     return false;
   }
 
-  struct group const* grp = getgrnam(gid.c_str());
+  struct group grp_entry = {};
+  std::vector<char> grp_buffer;
+  struct group const* grp = LookUp(gid, &grp_entry, &grp_buffer, getgrnam_r);
   if (!grp) {
     LOG_ERROR(MSGID_WAM_DEBUG, 1, PMLOGKS("WAM_GID", gid.c_str()),
               "Unknown group; cannot drop privileges");
@@ -76,11 +105,13 @@ static bool ChangeUserIDGroupID() {
     return false;
   }
 
-  setenv("HOME", pwd->pw_dir, 1);
+  // The engine finds the profile through HOME, which has to be the dropped
+  // user's. There is no thread-safe way to set it.
+  setenv("HOME", pwd->pw_dir, 1);  // NOLINT(concurrency-mt-unsafe)
   return true;
 }
 
-static void StartWebAppManager() {
+void StartWebAppManager() {
   if (!ChangeUserIDGroupID()) {
     LOG_CRITICAL(MSGID_WAM_DEBUG, 0,
                  "Refusing to continue with undropped privileges");
@@ -95,8 +126,6 @@ static void StartWebAppManager() {
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
 }
-
-namespace {
 
 class WebOSMainDelegateWAM : public webos::WebOSMainDelegate {
  public:

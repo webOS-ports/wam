@@ -47,7 +47,7 @@ WebPageBase::WebPageBase(const wam::Url& url,
       launch_params_(params) {
   Json::Value json = util::StringToJson(params);
   if (json.isObject()) {
-    instance_id_ = json["instanceId"].asString();
+    instance_id_ = util::JsonAsString(json["instanceId"]);
   } else {
     LOG_WARNING(MSGID_TYPE_ERROR, 0,
                 "[%s] failed get instanceId from params '%s'", app_id_.c_str(),
@@ -60,7 +60,7 @@ WebPageBase::~WebPageBase() {
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()), "");
 }
 
-std::string WebPageBase::LaunchParams() const {
+const std::string& WebPageBase::LaunchParams() const {
   return launch_params_;
 }
 
@@ -140,16 +140,15 @@ bool WebPageBase::Relaunch(const std::string& launch_params,
   // 3-3. Send webOSRelaunch event
 
   // 1. Handling service worker clients.openWindow case
-  Json::Value json_obj = util::StringToJson(launch_params);
-  if (json_obj.isMember("sw_clients_openwindow")) {
-    const auto& sw_clients_openwindow = json_obj["sw_clients_openwindow"];
-    if (sw_clients_openwindow.isString()) {
-      std::string const target_url = sw_clients_openwindow.asString();
-      LOG_DEBUG("[%s] service worker clients.openWindow(%s) relaunch",
-                app_id_.c_str(), target_url.c_str());
-      LoadUrl(target_url);
-      return true;
-    }
+  Json::Value const json_obj = util::StringToJson(launch_params);
+  const auto& sw_clients_openwindow =
+      util::JsonMember(json_obj, "sw_clients_openwindow");
+  if (sw_clients_openwindow.isString()) {
+    std::string const target_url = sw_clients_openwindow.asString();
+    LOG_DEBUG("[%s] service worker clients.openWindow(%s) relaunch",
+              app_id_.c_str(), target_url.c_str());
+    LoadUrl(target_url);
+    return true;
   }
 
   if (DoHostedWebAppRelaunch(launch_params)) {
@@ -214,9 +213,10 @@ bool WebPageBase::DoDeeplinking(const std::string& launch_params) {
   }
 
   std::string const handled_by =
-      obj["handledBy"].isNull() ? "default" : obj["handledBy"].asString();
+      obj["handledBy"].isNull() ? "default"
+                                : util::JsonAsString(obj["handledBy"]);
   if (handled_by == "platform") {
-    std::string const target_url = obj["contentTarget"].asString();
+    std::string const target_url = util::JsonAsString(obj["contentTarget"]);
     LOG_INFO(MSGID_DEEPLINKING, 4, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", GetWebProcessPID()),
@@ -263,7 +263,7 @@ void WebPageBase::SendRelaunchEvent() {
       << "      Mojo.relaunch();"
       << "    }"
       << "}, 1);";
-  EvaluateJavaScript(relaunch_event.str().c_str());
+  EvaluateJavaScript(relaunch_event.str());
 }
 
 void WebPageBase::CallLegacyMojoCallback(const std::string& name,
@@ -286,7 +286,7 @@ void WebPageBase::HandleLoadFinished() {
            "WebPageBase::handleLoadFinished; suspend_at_load_ : %s",
            suspend_at_load_ ? "true; suspend in this time" : "false");
 
-  FOR_EACH_OBSERVER(WebPageObserver, observers_, WebPageLoadFinished());
+  ForEachObserver(observers_, &WebPageObserver::WebPageLoadFinished);
 
   // if there was an attempt made to suspend while this page was loading, then
   // we flag suspend_at_load_ = true, and suspend it after it is loaded. This is
@@ -342,6 +342,8 @@ WebAppManagerConfig* WebPageBase::GetWebAppManagerConfig() {
   return WebAppManager::Instance()->Config();
 }
 
+// Makes WebAppManager reload or close the app this page belongs to.
+// cppcheck-suppress functionConst
 bool WebPageBase::ProcessCrashed() {
   return WebAppManager::Instance()->ProcessCrashed(AppId(), InstanceId());
 }
@@ -398,7 +400,7 @@ void WebPageBase::PostRunningAppList() {
   WebAppManager::Instance()->PostRunningAppList();
 }
 
-void WebPageBase::PostWebProcessCreated(uint32_t pid) {
+void WebPageBase::PostWebProcessCreated(uint32_t pid) const {
   WebAppManager::Instance()->PostWebProcessCreated(app_id_, instance_id_, pid);
 }
 
@@ -514,7 +516,7 @@ void WebPageBase::RemoveObserver(WebPageObserver* observer) {
   observers_.RemoveObserver(observer);
 }
 
-bool WebPageBase::IsAccessibilityEnabled() const {
+bool WebPageBase::IsAccessibilityEnabled() {
   return WebAppManager::Instance()->IsAccessibilityEnabled();
 }
 

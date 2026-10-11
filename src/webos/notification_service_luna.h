@@ -23,8 +23,6 @@
 class NotificationServiceLuna : public PalmServiceBase,
                                 public NotificationService {
  public:
-  static NotificationServiceLuna* Instance();
-
   NotificationServiceLuna(const NotificationServiceLuna&) = delete;
   NotificationServiceLuna& operator=(const NotificationServiceLuna&) = delete;
 
@@ -42,11 +40,12 @@ class NotificationServiceLuna : public PalmServiceBase,
   bool ClosePermissionPrompt(const std::string& prompt_id) override;
 
  private:
+  // Made only by NotificationService::Instance().
+  friend class NotificationService;
   NotificationServiceLuna();
   ~NotificationServiceLuna() override = default;
 
   bool CreateToast(const NotificationData& notification);
-  bool CreateAlert(const NotificationData& notification);
   bool Close(const std::string& notification_id,
              std::map<std::string, std::string>& map,
              const std::string& name,

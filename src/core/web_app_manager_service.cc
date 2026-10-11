@@ -144,12 +144,6 @@ void WebAppManagerService::NotifyMemoryPressure(
   WebAppManager::Instance()->NotifyMemoryPressure(level);
 }
 
-void WebAppManagerService::UpdateNotificationPermission(
-    const std::string& app_id,
-    bool enabled) {
-  WebAppManager::Instance()->SetNotifierEnabled(app_id, enabled);
-}
-
 std::map<std::string, std::string> WebAppManagerService::GetAppPermissions(
     const std::string& permission) {
   return WebAppManager::Instance()->GetAppPermissions(permission);

@@ -15,52 +15,16 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #include "web_app_wayland_window.h"
+
+#include <limits>
+
 #include "application_description.h"
 #include "log_manager.h"
 #include "utils.h"
 #include "web_app_wayland.h"
 
-WebAppWaylandWindow* WebAppWaylandWindow::instance_ = nullptr;
-
-WebAppWaylandWindow* WebAppWaylandWindow::Take() {
-  WebAppWaylandWindow* window = nullptr;
-
-  if (!instance_) {
-    instance_ = new WebAppWaylandWindow();
-    if (!instance_) {
-      LOG_CRITICAL(MSGID_TAKE_FAIL, 0, "Failed to take WebAppWaylandWindow");
-      return nullptr;
-    }
-  }
-
-  window = instance_;
-  instance_ = nullptr;
-  return window;
-}
-
-void WebAppWaylandWindow::Prepare() {
-  if (instance_) {
-    return;
-  }
-
-  // TODO: Need to make sure preparing window is helpful
-  WebAppWaylandWindow* window = CreateWindow();
-  if (!window) {
-    return;
-  }
-
-  instance_ = window;
-}
-
-WebAppWaylandWindow* WebAppWaylandWindow::CreateWindow() {
-  WebAppWaylandWindow* window = new WebAppWaylandWindow();
-  if (!window) {
-    LOG_CRITICAL(MSGID_PREPARE_FAIL, 0,
-                 "Failed to prepare WindowedWebAppWindow");
-    return nullptr;
-  }
-  window->Resize(1, 1);
-  return window;
+std::unique_ptr<WebAppWaylandWindow> WebAppWaylandWindow::Take() {
+  return std::make_unique<WebAppWaylandWindow>();
 }
 
 WebAppWaylandWindow::WebAppWaylandWindow()
@@ -157,7 +121,6 @@ bool WebAppWaylandWindow::HandleWebOSEvent(WebOSEvent* event) {
       }
       break;
     case WebOSEvent::KeyPress:
-      break;
     case WebOSEvent::KeyRelease:
       break;
     case WebOSEvent::MouseButtonPress:
@@ -211,13 +174,10 @@ bool WebAppWaylandWindow::HandleWebOSEvent(WebOSEvent* event) {
       web_app_->Unfocus();
       break;
     case WebOSEvent::InputPanelVisible: {
-      float const height =
-          static_cast<WebOSVirtualKeyboardEvent*>(event)->GetHeight();
-      if (static_cast<WebOSVirtualKeyboardEvent*>(event)->GetVisible()) {
-        web_app_->KeyboardVisibilityChanged(true, height);
-      } else {
-        web_app_->KeyboardVisibilityChanged(false, height);
-      }
+      auto* const keyboard_event =
+          static_cast<WebOSVirtualKeyboardEvent*>(event);
+      web_app_->KeyboardVisibilityChanged(keyboard_event->GetVisible(),
+                                          keyboard_event->GetHeight());
     } break;
     default:
       break;
@@ -240,13 +200,18 @@ bool WebAppWaylandWindow::OnCursorVisibileChangeEvent(WebOSEvent* /*e*/) {
 
 unsigned int WebAppWaylandWindow::CheckKeyFilterTable(unsigned keycode,
                                                       unsigned* modifier) {
-  auto table = web_app_->GetAppDescription()->KeyFilterTable();
+  const auto& table = web_app_->GetAppDescription()->KeyFilterTable();
 
   if (table.empty()) {
     return 0;
   }
 
-  auto found = table.find(keycode);
+  // The table keys are ints from appinfo.json; a key code beyond int's range
+  // cannot be in it.
+  if (keycode > static_cast<unsigned>(std::numeric_limits<int>::max())) {
+    return 0;
+  }
+  auto found = table.find(static_cast<int>(keycode));
   if (found == table.end()) {
     return 0;
   }
@@ -338,12 +303,4 @@ void WebAppWaylandWindow::LogEventDebugging(WebOSEvent* event) {
                PMLOGKFV("TYPE", "%d", event->GetType()), "");
     }
   }
-}
-
-void WebAppWaylandWindow::SendKeyCode(int key_code) {
-  if (!xinput_activated_) {
-    XInputActivate();
-    xinput_activated_ = true;
-  }
-  XInputInvokeAction(key_code);
 }

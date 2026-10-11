@@ -22,7 +22,6 @@
 #include <filesystem>
 #include <fstream>
 #include <limits>
-#include <regex>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -98,30 +97,6 @@ std::vector<std::string> GetErrorPagePaths(
   return result;
 }
 
-std::string GetHostname(const std::string& url) {
-  if (url.empty()) {
-    return std::string();
-  }
-
-  // source https://datatracker.ietf.org/doc/html/rfc3986#appendix-B
-
-  std::regex const rfc3986_regex(
-      R"(^(([^:\/?#]+):)?(\/\/([^\/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?)");
-  std::regex const authority_regex(R"(^(?:[\w\:]+[@])?([\w.]+)(?:[:])?(?:[0-9]+)?)");
-  std::smatch matches;
-
-  if (!std::regex_match(url, matches, rfc3986_regex)) {
-    return std::string();
-  }
-
-  std::string const authority = matches[4];
-  if (!std::regex_match(authority, matches, authority_regex)) {
-    return std::string();
-  }
-
-  return matches[1];
-}
-
 bool DoesPathExist(const std::string& path) {
   if (path.empty()) {
     return false;
@@ -150,13 +125,12 @@ std::string UriToLocal(const std::string& uri) {
   return GetString(cpath);
 }
 
-std::string LocalToUri(const std::string& uri) {
-  g_autofree gchar const* cpath = g_filename_to_uri(uri.c_str(), nullptr, nullptr);
-  return GetString(cpath);
-}
-
 std::string GetEnvVar(const char* env) {
-  return GetString(getenv(env));
+  // getenv() races only with setenv(); WAM's one setenv() is the HOME of the
+  // user it drops to, at startup (wam_main.cc).
+  // WAM's configuration comes from its own service unit's environment.
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  return GetString(getenv(env));  // Flawfinder: ignore
 }
 
 // STRING
@@ -178,7 +152,7 @@ bool StrToInt(const std::string& str, int& num) {
     return false;
   }
 
-  num = value;
+  num = static_cast<int>(value);
   return true;
 }
 
@@ -351,10 +325,50 @@ std::u16string Utf8ToUtf16(const std::string& utf8) {
 }
 
 // JSON
+namespace {
+
+// jsoncpp's strict mode stops at a nesting depth of 1000 by throwing; stay
+// well clear of it.
+constexpr int kMaxJsonDepth = 500;
+
+// Whether the arrays and objects of |str| nest deeper than |limit|. Brackets
+// inside strings do not count. Malformed input is left to the parser.
+bool NestsDeeperThan(const std::string& str, int limit) {
+  int depth = 0;
+  bool in_string = false;
+  bool escaped = false;
+  for (char const c : str) {
+    if (in_string) {
+      if (escaped) {
+        escaped = false;
+      } else if (c == '\\') {
+        escaped = true;
+      } else if (c == '"') {
+        in_string = false;
+      }
+    } else if (c == '"') {
+      in_string = true;
+    } else if (c == '[' || c == '{') {
+      if (++depth > limit) {
+        return true;
+      }
+    } else if (c == ']' || c == '}') {
+      --depth;
+    }
+  }
+  return false;
+}
+
+}  // namespace
+
 bool StringToJson(const std::string& str, Json::Value& value) {
+  if (NestsDeeperThan(str, kMaxJsonDepth)) {
+    return false;
+  }
+
   Json::CharReaderBuilder builder;
   Json::CharReaderBuilder::strictMode(&builder.settings_);
-  std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+  std::unique_ptr<Json::CharReader> const reader(builder.newCharReader());
 
   return reader->parse(str.c_str(), str.c_str() + str.size(), &value, nullptr);
 }
@@ -371,6 +385,28 @@ std::string JsonToString(const Json::Value& value) {
   builder["enableYAMLCompatibility"] = true;
 
   return Json::writeString(builder, value);
+}
+
+bool JsonAsBool(const Json::Value& value, bool fallback) {
+  return value.isConvertibleTo(Json::booleanValue) ? value.asBool() : fallback;
+}
+
+int JsonAsInt(const Json::Value& value, int fallback) {
+  return value.isConvertibleTo(Json::intValue) ? value.asInt() : fallback;
+}
+
+double JsonAsDouble(const Json::Value& value, double fallback) {
+  return value.isConvertibleTo(Json::realValue) ? value.asDouble() : fallback;
+}
+
+std::string JsonAsString(const Json::Value& value,
+                         const std::string& fallback) {
+  return value.isConvertibleTo(Json::stringValue) ? value.asString()
+                                                  : fallback;
+}
+
+const Json::Value& JsonMember(const Json::Value& object, const char* key) {
+  return object.isObject() ? object[key] : Json::Value::nullSingleton();
 }
 
 }  // namespace util

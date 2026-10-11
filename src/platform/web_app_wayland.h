@@ -44,7 +44,9 @@ class InputManager : public webos::InputPointer {
   static InputManager* Instance() {
     // InputManager should be globally one.
     if (!webos::WebOSPlatform::GetInstance()->GetInputPointer()) {
-      webos::WebOSPlatform::GetInstance()->SetInputPointer(new InputManager());
+      // The platform keeps it for as long as the process runs.
+      webos::WebOSPlatform::GetInstance()->SetInputPointer(
+          new InputManager());  // NOLINT(cppcoreguidelines-owning-memory)
     }
     return static_cast<InputManager*>(
         webos::WebOSPlatform::GetInstance()->GetInputPointer());
@@ -129,14 +131,13 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void FirstFrameVisuallyCommitted() override;
   void NavigationHistoryChanged() override;
 
-  std::string GetWindowType() const { return window_type_; }
+  const std::string& GetWindowType() const { return window_type_; }
   std::string WindowType() const override { return window_type_; }
-  bool CursorVisibility() {
+  static bool CursorVisibility() {
     return InputManager::Instance()->GlobalCursorVisibility();
   }
   void SendWebOSMouseEvent(const std::string& event_name);
 
-  void PostEvent(WebOSEvent* ev);
   void OnDelegateWindowFrameSwapped();
   void OnLaunchTimeout();
 
@@ -176,7 +177,7 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   void DoAttach() override;
   void ShowWindow() override;
 
-  void SetupWindowGroup(ApplicationDescription* desc);
+  void SetupWindowGroup(const ApplicationDescription* desc);
 
   void MoveInputRegion(int height);
 
@@ -208,7 +209,7 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
   bool enable_input_region_ = false;
 
   bool is_focused_ = false;
-  float vkb_height_ = 0;
+  int vkb_height_ = 0;
 
   ElapsedTimer elapsed_launch_timer_;
   OneShotTimer<WebAppWayland> launch_timeout_timer_;

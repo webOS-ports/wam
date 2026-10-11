@@ -24,8 +24,10 @@
 #include "application_description.h"
 #include "util/url.h"
 #include "web_app_wayland.h"
+#include "web_app_window.h"
 #include "web_app_window_factory.h"
 #include "web_page_blink.h"
+#include "web_view.h"
 #include "web_view_factory.h"
 
 namespace {
@@ -34,7 +36,9 @@ class SharedWebViewFactory : public WebViewFactory {
  public:
   explicit SharedWebViewFactory(std::shared_ptr<WebViewFactory> factory)
       : factory_(std::move(factory)) {}
-  WebView* CreateWebView() override { return factory_->CreateWebView(); }
+  std::unique_ptr<WebView> CreateWebView() override {
+    return factory_->CreateWebView();
+  }
 
  private:
   std::shared_ptr<WebViewFactory> factory_;
@@ -45,7 +49,9 @@ class SharedWebAppWindowFactory : public WebAppWindowFactory {
   explicit SharedWebAppWindowFactory(
       std::shared_ptr<WebAppWindowFactory> factory)
       : factory_(std::move(factory)) {}
-  WebAppWindow* CreateWindow() override { return factory_->CreateWindow(); }
+  std::unique_ptr<WebAppWindow> CreateWindow() override {
+    return factory_->CreateWindow();
+  }
 
  private:
   std::shared_ptr<WebAppWindowFactory> factory_;
@@ -62,7 +68,8 @@ WebAppBase* WebAppFactoryManagerMock::CreateWebApp(
     const ApplicationDescription& desc,
     const std::string& /*app_type*/) {
   if (window_factory_) {
-    return new WebAppWayland(
+    // WebAppFactoryManager hands apps over as raw pointers.
+    return new WebAppWayland(  // NOLINT(cppcoreguidelines-owning-memory)
         win_type, std::make_unique<SharedWebAppWindowFactory>(window_factory_),
         desc.WidthOverride(), desc.HeightOverride(), desc.GetDisplayAffinity(),
         desc.LocationHint());

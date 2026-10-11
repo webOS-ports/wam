@@ -28,9 +28,9 @@ class BCP47 {
   bool HasScript() const;
   bool HasRegion() const;
 
-  std::string Language() const;
-  std::string Script() const;
-  std::string Region() const;
+  const std::string& Language() const;
+  const std::string& Script() const;
+  const std::string& Region() const;
 
   ~BCP47();
 

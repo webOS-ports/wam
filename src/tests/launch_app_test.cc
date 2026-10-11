@@ -14,7 +14,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -202,19 +204,21 @@ class LaunchAppTestSuite : public ::testing::Test {
 void LaunchAppTestSuite::SetUp() {
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
-  web_view_factory_ = new WebViewFactoryMock();
-  web_app_window_factory_ = new WebAppWindowFactoryMock();
-  web_view_ = new NiceWebViewMock();
-  web_app_window_ = new NiceWebAppWindowMock();
+  auto web_view_factory = std::make_unique<WebViewFactoryMock>();
+  auto web_app_window_factory = std::make_unique<WebAppWindowFactoryMock>();
+  auto web_view = std::make_unique<NiceWebViewMock>();
+  auto web_app_window = std::make_unique<NiceWebAppWindowMock>();
+  web_view_factory_ = web_view_factory.get();
+  web_app_window_factory_ = web_app_window_factory.get();
+  web_view_ = web_view.get();
+  web_app_window_ = web_app_window.get();
 
   auto web_app_factory_manager = std::make_unique<WebAppFactoryManagerMock>();
-  web_app_factory_manager->SetWebViewFactory(
-      std::unique_ptr<WebViewFactory>(web_view_factory_));
+  web_view_factory->SetWebView(std::move(web_view));
+  web_app_window_factory->SetWebAppWindow(std::move(web_app_window));
+  web_app_factory_manager->SetWebViewFactory(std::move(web_view_factory));
   web_app_factory_manager->SetWebAppWindowFactory(
-      std::unique_ptr<WebAppWindowFactory>(web_app_window_factory_));
-
-  web_view_factory_->SetWebView(web_view_);
-  web_app_window_factory_->SetWebAppWindow(web_app_window_);
+      std::move(web_app_window_factory));
 
   WebAppManager::Instance()->SetWebAppFactory(
       std::move(web_app_factory_manager));
@@ -345,8 +349,12 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithoutParams) {
 TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   constexpr char path[] = "file:///usr/share/localization/wam/loaderror.html";
   constexpr char var_name[] = "WAM_ERROR_PAGE";
-  const auto actual_value = getenv(var_name);
+  // The configuration reads WAM_ERROR_PAGE from the environment; the test runs
+  // on a single thread.
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  const char* const actual_value = getenv(var_name);  // Flawfinder: ignore
   if (!actual_value) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   }
@@ -398,7 +406,8 @@ TEST_F(LaunchAppTestSuite, LaunchAppsWithError) {
   ASSERT_TRUE(result.isMember("appId"));
 
   if (!actual_value) {
-    int const unset_result = unsetenv(var_name);
+    int const unset_result =
+        unsetenv(var_name);  // NOLINT(concurrency-mt-unsafe)
     ASSERT_FALSE(unset_result);
   }
 }

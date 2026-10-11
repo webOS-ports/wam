@@ -69,8 +69,17 @@ SA_MIN_FREE_GB=${SA_MIN_FREE_GB:-30}
 ANALYZER_CHECKERS=core,unix,deadcode,security,nullability,optin.portability,optin.core,alpha.unix,alpha.security,alpha.core
 # The IR gate's list; the exclusions are style or false alarms for this code:
 # swappable parameters and unused parameters (signatures are Chromium's and
-# LS2's), include-cleaner, reserved identifiers in macros, Annex K advice.
-TIDY_CHECKS='clang-analyzer-*,bugprone-*,cert-*,concurrency-*,misc-*,performance-*,portability-*,readability-misleading-indentation,readability-suspicious-call-argument,cppcoreguidelines-owning-memory,bugprone-use-after-move,-bugprone-easily-swappable-parameters,-misc-include-cleaner,-misc-unused-parameters,-cert-err33-c,-bugprone-assignment-in-if-condition,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-bugprone-reserved-identifier,-cert-dcl37-c,-cert-dcl51-cpp'
+# LS2's), include-cleaner, reserved identifiers in macros, Annex K advice;
+# data members that are not private (the app and page base classes keep
+# their state protected for their subclasses, and gtest fixtures and plain
+# records are public by design) and overrides with a visibility of their own
+# (implementations of an interface keep its methods private on purpose, the
+# Chromium style this code follows: they are called through the interface).
+# misc-const-correctness checks values only: its pointee analysis (clang-tidy
+# 21) asks for a pointer-to-const where the pointer is returned or stored as
+# a pointer to mutable, which would not compile.
+TIDY_OPTIONS='{CheckOptions: {misc-const-correctness.WarnPointersAsPointers: false}}'
+TIDY_CHECKS='clang-analyzer-*,bugprone-*,cert-*,concurrency-*,misc-*,performance-*,portability-*,readability-misleading-indentation,readability-suspicious-call-argument,cppcoreguidelines-owning-memory,bugprone-use-after-move,-bugprone-easily-swappable-parameters,-misc-include-cleaner,-misc-unused-parameters,-cert-err33-c,-bugprone-assignment-in-if-condition,-clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling,-bugprone-reserved-identifier,-cert-dcl37-c,-cert-dcl51-cpp,-misc-non-private-member-variables-in-classes,-misc-override-with-different-visibility'
 
 die() { echo "static-analysis.sh: $*" >&2; exit 1; }
 have() { command -v "$1" >/dev/null 2>&1; }
@@ -130,19 +139,29 @@ if [ "${1:-}" = "--tu" ]; then
 			ulimit -v $(($(echo "$SA_ANALYZER_MEM" | tr -d G) * 1048576))
 			set -- timeout "$SA_TIMEOUT" "$GXX" "$@"
 		fi
-		"$@" -Wno-template-body -${tool#gcc-} -fanalyzer \
-			-Wanalyzer-too-complex --param=analyzer-bb-explosion-factor=50 \
-			--param=analyzer-max-enodes-per-program-point=64 -c -o /dev/null "$src" >"$log" 2>&1 ;;
+		# The analyzer's budget: raised above GCC's default for every file,
+		# except one analyzer-budget gives a budget of its own (one the raised
+		# budget runs out of memory or time on)
+		budget="--param=analyzer-bb-explosion-factor=50 --param=analyzer-max-enodes-per-program-point=64"
+		own=$(awk -v o="-${tool#gcc-}" -v f="${src#"$ROOT"/}" \
+			'$1 == o && $2 == f { $1 = ""; $2 = ""; print; exit }' "$HERE/analyzer-budget" 2>/dev/null)
+		[ -n "$own" ] && budget=$own
+		# shellcheck disable=SC2086
+		"$@" -Wno-template-body -${tool#gcc-} -fanalyzer -Wanalyzer-too-complex \
+			$budget -c -o /dev/null "$src" >"$log" 2>&1 ;;
 	clang-analyzer)
 		eval "set -- $(db_args "$db" "$src" clang)"
 		timeout "$SA_TIMEOUT" "$CLANG" "$@" --analyze -Xanalyzer -analyzer-output=text \
 			-Xanalyzer -analyzer-checker=$ANALYZER_CHECKERS -o /dev/null "$src" >"$log" 2>&1 ;;
 	clang-tidy)
-		timeout "$SA_TIMEOUT" "$CLANG_TIDY" --quiet -p "$OUT" --checks="$TIDY_CHECKS" \
+		timeout "$SA_TIMEOUT" "$CLANG_TIDY" --quiet -p "$OUT" --checks="$TIDY_CHECKS" --config="$TIDY_OPTIONS" \
 			--header-filter="^$ROOT/src/" --extra-arg=-Wno-unknown-warning-option \
 			"$src" >"$log" 2>&1 ;;
 	cppcheck)
-		# Our headers only: Chromium, glib and libc++ are not ours to lint
+		# Our headers only: Chromium, glib and libc++ are not ours to lint.
+		# -UDISABLE_LOGMANAGER: nothing in the build defines it, and in that
+		# configuration (which --force checks too) LOG_* expand to nothing,
+		# so every value only logged looks unused.
 		incs=$(find "$ROOT/src" -name '*.h' -exec dirname {} \; | sort -u | sed 's/^/-I/')
 		# shellcheck disable=SC2086
 		timeout "$SA_TIMEOUT" "$CPPCHECK" --enable=all --check-level=exhaustive --inconclusive \
@@ -150,7 +169,7 @@ if [ "${1:-}" = "--tu" ]; then
 			--suppress=missingIncludeSystem --suppress=missingInclude --suppress=unmatchedSuppression \
 			--suppress=checkersReport --suppress=unusedFunction \
 			--template='{file}:{line}: {severity}: {message} [{id}]' \
-			-D__linux__ -D__GNUC__ $incs "$src" >"$log" 2>&1 ;;
+			-D__linux__ -D__GNUC__ -UDISABLE_LOGMANAGER $incs "$src" >"$log" 2>&1 ;;
 	*) die "unknown tool $tool" ;;
 	esac
 	status=$?
@@ -242,17 +261,40 @@ def key(r):
     return "\t".join((r[0], r[1], r[3], re.sub(r"\d+", "N", r[4])))
 rows = [l.rstrip("\n").split("\t") for l in open(os.path.join(out, "findings.tsv")) if l.strip()]
 now = collections.Counter(key(r) for r in rows)
-if update == "1":
-    with open(baseline, "w") as f:
-        f.write("# static-analysis.sh baseline: tool, file, check, message (digits as N).\n")
-        f.write("# Regenerate with static-analysis.sh -u after triaging every new entry.\n")
-        for k in sorted(now.elements()):
-            f.write(k + "\n")
-    print("baseline written: %d findings" % sum(now.values()))
-    sys.exit(0)
-base = collections.Counter()
+# Every baseline entry carries its reason: the last "## " line above it
+UNDOCUMENTED = "UNDOCUMENTED - triage: fix it, or replace this line with why it is a false positive"
+base, reasons, reason = collections.Counter(), {}, None
 if os.path.exists(baseline):
-    base.update(l.rstrip("\n") for l in open(baseline) if l.strip() and not l.startswith("#"))
+    for l in open(baseline):
+        l = l.rstrip("\n")
+        if l.startswith("## "):
+            reason = l[3:].strip()
+        elif l.strip() and not l.startswith("#"):
+            base[l] += 1
+            reasons.setdefault(l, reason or UNDOCUMENTED)
+if update == "1":
+    # Reasons are kept for the findings still reported; a new one is written
+    # under UNDOCUMENTED, which the gate refuses until it is triaged
+    groups = collections.defaultdict(list)
+    for k in sorted(now.elements()):
+        groups[reasons.get(k, UNDOCUMENTED)].append(k)
+    with open(baseline, "w") as f:
+        f.write("# static-analysis.sh baseline: findings triaged as false positives, or as\n"
+                "# what a tool cannot see past. The gate fails on a finding not listed\n"
+                "# here and on an entry listed without a reason.\n"
+                "# One line per finding (repeated when reported more than once):\n"
+                "# tool<TAB>file<TAB>check<TAB>message, digits as N, no line numbers.\n"
+                "# A \"## <reason>\" line documents the entries below it.\n"
+                "# Regenerate with static-analysis.sh -u (reasons of findings still\n"
+                "# reported are kept).\n")
+        for r in sorted(groups, key=lambda r: (r == UNDOCUMENTED, r)):
+            f.write("\n## %s\n" % r)
+            for k in groups[r]:
+                f.write(k + "\n")
+    print("baseline written: %d findings" % sum(now.values()))
+    if UNDOCUMENTED in groups:
+        print("%d of them UNDOCUMENTED: triage them before committing" % len(groups[UNDOCUMENTED]))
+    sys.exit(0)
 new = now - base
 fixed = base - now
 per = collections.defaultdict(lambda: [0, 0])
@@ -279,7 +321,12 @@ if newrows:
         print("  %s:%s: [%s] %s: %s" % (r[1], r[2], r[0], r[3], r[4]))
 if fixed:
     print("\n%d baseline entries no longer found (refresh with -u)" % sum(fixed.values()))
-sys.exit(1 if newrows else 0)
+undocumented = sorted(k for k in base if reasons.get(k) == UNDOCUMENTED)
+if undocumented:
+    print("\n%d baseline entries without a reason (a \"## \" line above them):" % len(undocumented))
+    for k in undocumented:
+        print("  " + k.replace("\t", " | "))
+sys.exit(1 if newrows or undocumented else 0)
 EOF
 }
 
@@ -313,7 +360,7 @@ OUT=${OUT:-$ROOT/build-static-analysis}
 mkdir -p "$OUT"; OUT=$(cd "$OUT" && pwd)
 [ "${SA_RESUME:-0}" = 1 ] || rm -rf "$OUT/raw"
 mkdir -p "$OUT/raw"; rm -f "$OUT/errors.tsv"
-export SA_RESUME=${SA_RESUME:-0} SA_ANALYZER_MEM SA_MIN_FREE_GB OUT ROOT GXX CLANG_TIDY CPPCHECK SA_TIMEOUT ANALYZER_CHECKERS TIDY_CHECKS
+export SA_RESUME=${SA_RESUME:-0} SA_ANALYZER_MEM SA_MIN_FREE_GB OUT ROOT GXX CLANG_TIDY CPPCHECK SA_TIMEOUT ANALYZER_CHECKERS TIDY_CHECKS TIDY_OPTIONS
 
 # A Yocto build dir calls the compiler by name from recipe-sysroot-native
 WORKDIR=$(dirname "$BUILD")
@@ -338,6 +385,14 @@ else
 fi
 TUS=$(python3 -c 'import json,os,sys; db={e["file"] for e in json.load(open(sys.argv[1]))}; [print(f) for f in sys.argv[2:] if f in db and os.path.exists(f)]' \
 	"$OUT/compile_commands.json" $FILES)
+# A source of the tree the database does not compile is not analysed: say
+# so (a file added since the workdir was configured needs -p on a build of
+# this tree; the others are built only with options the recipe does not set)
+if [ $# -eq 0 ]; then
+	MISSING=$(find "$ROOT/src" -name '*.cc' | sort | while read -r f; do
+		printf '%s\n' $TUS | grep -qx "$f" || echo "${f#"$ROOT"/}"; done)
+	[ -n "$MISSING" ] && echo "not in the compile database, not analysed:" $MISSING
+fi
 CFILES=$(printf '%s\n' $TUS | grep '\.c$' || true)
 CLANG=${CLANG:-$(python3 -c 'import json,shlex,sys; e=json.load(open(sys.argv[1]))[0]; print((e.get("arguments") or shlex.split(e["command"]))[0])' "$OUT/compile_commands.json")}
 export CLANG
@@ -400,7 +455,8 @@ else
 	skip gcc-O0 "$GXX with -fanalyzer not installed"; skip gcc-O2 "$GXX with -fanalyzer not installed"
 fi
 if [ -z "$CFILES" ]; then
-	skip sparse "no C files; sparse cannot parse C++"
+	# Not a tool left out: there is nothing for it to read
+	echo "== sparse: not applicable (no C files; sparse cannot parse C++)"
 elif have "$SPARSE"; then
 	echo "== sparse"; mkdir -p "$OUT/raw/sparse"
 	for f in $CFILES; do

@@ -42,6 +42,14 @@ const char* toStr(const bool value) {
 
 PalmSystemBlink::PalmSystemBlink(WebAppBase* app) : PalmSystemWebOS(app) {}
 
+PalmSystemBlink::~PalmSystemBlink() {
+  // A reply still on its way would write to this object once it is gone:
+  // dropping the context cancels the call.
+  for (const int banner_id : pending_banners_) {
+    banner_contexts.erase(banner_id);
+  }
+}
+
 std::string PalmSystemBlink::HandleBrowserControlMessage(
     const std::string& command,
     const std::vector<std::string>& arguments) {
@@ -55,7 +63,7 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     return LocaleRegion();
   } else if (command == "isMinimal") {
     return toStr(IsMinimal());
-  } else if (command == "identifier") {
+  } else if (command == "identifier" || command == "getIdentifier") {
     return Identifier();
   } else if (command == "screenOrientation") {
     return ScreenOrientation();
@@ -79,8 +87,6 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
     return toStr(IsActivated());
   } else if (command == "isKeyboardVisible") {
     return toStr(IsKeyboardVisible());
-  } else if (command == "getIdentifier") {
-    return Identifier();
   } else if (command == "launchParams") {
     LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
              PMLOGKS("INSTANCE_ID", app_->InstanceId().c_str()),
@@ -291,6 +297,7 @@ int PalmSystemBlink::AddBannerMessage(const std::string& msg_title,
   // Left empty until createToast answers. RemoveBannerMessage() treats an
   // empty entry as "not created yet" rather than closing toastId "".
   banner_ids_[banner_id] = std::string();
+  pending_banners_.insert(banner_id);
 
   // banner_id is captured by value: current_notif_id is a static local and will
   // have moved on by the time this reply arrives if another banner was posted
@@ -301,6 +308,7 @@ int PalmSystemBlink::AddBannerMessage(const std::string& msg_title,
         if (payload.isObject() && payload["toastId"].isString()) {
           this->banner_ids_[banner_id] = payload["toastId"].asString();
         }
+        this->pending_banners_.erase(banner_id);
         banner_contexts.erase(banner_id);
         return Json::Value();
       }));
@@ -349,9 +357,9 @@ void PalmSystemBlink::ClearBannerMessages() {
 // Divided per application rather than in DeviceInfoImpl because the scale is per
 // application: a modern application at zoom 1 must keep the panel's own numbers.
 std::string PalmSystemBlink::ScaledDeviceInfo() const {
-  const std::string device_info = GetDeviceInfo("TvDeviceInfo");
+  std::string device_info = GetDeviceInfo("TvDeviceInfo");
 
-  auto* page = static_cast<WebPageBlink*>(app_->Page());
+  const auto* page = static_cast<const WebPageBlink*>(app_->Page());
   if (!page)
     return device_info;
 

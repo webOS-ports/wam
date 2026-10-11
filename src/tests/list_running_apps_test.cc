@@ -14,8 +14,6 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <cstdlib>
-
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <json/json.h>
@@ -141,16 +139,20 @@ static constexpr char kLaunchWebRTCAppJsonBody[] = R"({
   "reason": "com.webos.app.home"
 })";
 
+constexpr int kPid = 4242;
+
 }  // namespace
 
 TEST(ListRunningAppsTest, IncludeSysApps) {
   BaseMockInitializer<NiceWebViewMockImpl> mock_initializer;
-  mock_initializer.GetWebViewMock()->SetOnInitActions();
-  mock_initializer.GetWebViewMock()->SetOnLoadURLActions();
-
-  int const pid = 1 + rand() % 10000;
-  EXPECT_CALL(*mock_initializer.GetWebViewMock(), RenderProcessPid())
-      .WillRepeatedly(testing::Return(pid));
+  // Two apps are launched, and each page needs a view of its own.
+  for (NiceWebViewMockImpl* view :
+       {mock_initializer.GetWebViewMock(), mock_initializer.AddWebViewMock()}) {
+    view->SetOnInitActions();
+    view->SetOnLoadURLActions();
+    EXPECT_CALL(*view, RenderProcessPid()).WillRepeatedly(testing::Return(kPid));
+  }
+  mock_initializer.AddWebAppWindowMock();
 
   Json::Value bare_request;
   ASSERT_TRUE(util::StringToJson(kLaunchBareAppJsonBody, bare_request));
@@ -189,7 +191,7 @@ TEST(ListRunningAppsTest, IncludeSysApps) {
   EXPECT_EQ(bare_request["instanceId"].asString(),
             running_app["instanceId"].asString());
   EXPECT_TRUE(running_app.isMember("webprocessid"));
-  EXPECT_EQ(std::to_string(pid), running_app["webprocessid"].asString());
+  EXPECT_EQ(std::to_string(kPid), running_app["webprocessid"].asString());
 
   running_app = running_apps[1];
   EXPECT_TRUE(running_app.isMember("id"));
@@ -199,17 +201,19 @@ TEST(ListRunningAppsTest, IncludeSysApps) {
   EXPECT_EQ(webrtc_request["instanceId"].asString(),
             running_app["instanceId"].asString());
   EXPECT_TRUE(running_app.isMember("webprocessid"));
-  EXPECT_EQ(std::to_string(pid), running_app["webprocessid"].asString());
+  EXPECT_EQ(std::to_string(kPid), running_app["webprocessid"].asString());
 }
 
 TEST(ListRunningAppsTest, ExcludeSysApps) {
   BaseMockInitializer<NiceWebViewMockImpl> mock_initializer;
-  mock_initializer.GetWebViewMock()->SetOnInitActions();
-  mock_initializer.GetWebViewMock()->SetOnLoadURLActions();
-
-  int const pid = 1 + rand() % 10000;
-  EXPECT_CALL(*mock_initializer.GetWebViewMock(), RenderProcessPid())
-      .WillRepeatedly(testing::Return(pid));
+  // Two apps are launched, and each page needs a view of its own.
+  for (NiceWebViewMockImpl* view :
+       {mock_initializer.GetWebViewMock(), mock_initializer.AddWebViewMock()}) {
+    view->SetOnInitActions();
+    view->SetOnLoadURLActions();
+    EXPECT_CALL(*view, RenderProcessPid()).WillRepeatedly(testing::Return(kPid));
+  }
+  mock_initializer.AddWebAppWindowMock();
 
   Json::Value bare_request;
   ASSERT_TRUE(util::StringToJson(kLaunchBareAppJsonBody, bare_request));
@@ -247,5 +251,5 @@ TEST(ListRunningAppsTest, ExcludeSysApps) {
   EXPECT_EQ(bare_request["instanceId"].asString(),
             running_app["instanceId"].asString());
   EXPECT_TRUE(running_app.isMember("webprocessid"));
-  EXPECT_EQ(std::to_string(pid), running_app["webprocessid"].asString());
+  EXPECT_EQ(std::to_string(kPid), running_app["webprocessid"].asString());
 }

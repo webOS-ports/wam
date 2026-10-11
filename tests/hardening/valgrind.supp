@@ -9,18 +9,3 @@
    fun:free
    fun:*basic_filebuf*
 }
-# See lsan.supp: the mock factories of BaseMockInitializer are never freed.
-{
-   wam-tests-base-mock-initializer
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:_Zna*
-   fun:*BaseMockInitializer*
-}
-{
-   wam-tests-base-mock-initializer-new
-   Memcheck:Leak
-   match-leak-kinds: definite
-   fun:_Znw*
-   fun:*BaseMockInitializer*
-}

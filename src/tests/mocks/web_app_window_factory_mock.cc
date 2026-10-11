@@ -17,6 +17,7 @@
 #include "web_app_window_factory_mock.h"
 
 #include <iostream>
+#include <utility>
 
 #include "web_app_window.h"
 
@@ -30,17 +31,18 @@ WebAppWindowFactoryMock::~WebAppWindowFactoryMock() {
   --instances_;
 }
 
-WebAppWindow* WebAppWindowFactoryMock::CreateWindow() {
-  if (web_app_window_) {
-    return web_app_window_;
+std::unique_ptr<WebAppWindow> WebAppWindowFactoryMock::CreateWindow() {
+  if (!web_app_windows_.empty()) {
+    std::unique_ptr<WebAppWindow> next = std::move(web_app_windows_.front());
+    web_app_windows_.pop_front();
+    return next;
   }
-
-  std::cerr << "Missing WebAppWindow pointer. Method setWebAppWindow should be "
-               "called prior to createWindow"
+  std::cerr << "WebAppWindowFactoryMock::CreateWindow: no mock left; set one with SetWebAppWindow() for "
+               "every window to be created"
             << '\n';
   return nullptr;
 }
 
-void WebAppWindowFactoryMock::SetWebAppWindow(WebAppWindow* web_app_window) {
-  web_app_window_ = web_app_window;
+void WebAppWindowFactoryMock::SetWebAppWindow(std::unique_ptr<WebAppWindow> web_app_window) {
+  web_app_windows_.push_back(std::move(web_app_window));
 }

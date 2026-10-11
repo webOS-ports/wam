@@ -17,6 +17,7 @@
 #ifndef CORE_WEB_APP_MANAGER_CONFIG_H_
 #define CORE_WEB_APP_MANAGER_CONFIG_H_
 
+#include <functional>
 #include <string>
 
 class WebAppManagerConfig {
@@ -65,7 +66,8 @@ class WebAppManagerConfig {
   void ResetConfiguration();
 
  private:
-  void InitConfiguration();
+  void InitConfiguration(
+      const std::function<std::string(const char*)>& get_env);
 
   std::string web_app_factory_plugin_types_;
   std::string web_app_factory_plugin_path_;

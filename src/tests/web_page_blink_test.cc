@@ -14,16 +14,19 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-#include <cerrno>
+#include <memory>
 #include <string>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "application_description.h"
 #include "platform_module_factory_impl.h"
+#include "temp_dir.h"
 #include "utils.h"
 #include "web_app_manager.h"
+#include "web_app_manager_config.h"
 #include "web_page_blink.h"
 #include "web_page_blink_delegate.h"
 #include "web_view.h"
@@ -32,6 +35,7 @@
 
 namespace {
 
+using ::testing::ByMove;
 using ::testing::HasSubstr;
 using ::testing::Return;
 
@@ -47,10 +51,10 @@ const std::string kAppDescString = R"({
   "defaultWindowType": "card",
   "disableBackHistoryAPI": false,
   "favicon": "",
-  "folderPath": "/usr/palm/applications/com.webos.app.test.webrtc",
+  "folderPath": "@FOLDER@",
   "handlesRelaunch": false,
   "hasPromotion": false,
-  "icon": "/usr/palm/applications/com.webos.app.test.webrtc/icon.png",
+  "icon": "icon.png",
   "icons": [],
   "id": "com.webos.app.test.webrtc",
   "imageForRecents": "",
@@ -89,23 +93,46 @@ const std::string params = R"({"displayAffinity": 0, "instanceId": ""})";
 
 class WebViewFactoryMock : public WebViewFactory {
  public:
-  WebViewFactoryMock();
+  WebViewFactoryMock() = default;
   ~WebViewFactoryMock() override = default;
 
-  // Owns a raw WebViewMock*; copying it would hand out the same pointer twice.
-  WebViewFactoryMock(const WebViewFactoryMock&) = delete;
-  WebViewFactoryMock& operator=(const WebViewFactoryMock&) = delete;
+  MOCK_METHOD(std::unique_ptr<WebView>, CreateWebView, (), (override));
 
-  MOCK_METHOD(WebView*, CreateWebView, (), (override));
-
-  WebViewMock* web_view_;
+  // Handed to the page by CreateWebView(); the test keeps web_view_ to set
+  // expectations on.
+  std::unique_ptr<WebViewMock> owned_view_ =
+      std::make_unique<NiceWebViewMock>();
+  WebViewMock* web_view_ = owned_view_.get();
 };
 
-WebViewFactoryMock::WebViewFactoryMock() : web_view_(new NiceWebViewMock()) {}
+// Developer mode on, with a Tellurium nub of the test's choosing: the real
+// configuration reads both from the device's file system.
+class DevModeConfig : public WebAppManagerConfig {
+ public:
+  explicit DevModeConfig(std::string tellurium_nub_path)
+      : tellurium_nub_path_(std::move(tellurium_nub_path)) {}
+  bool IsDevModeEnabled() const override { return true; }
+  std::string GetTelluriumNubPath() const override {
+    return tellurium_nub_path_;
+  }
 
-}  // namespace
+ private:
+  std::string tellurium_nub_path_;
+};
 
-namespace {
+class DevModeModules : public PlatformModuleFactoryImpl {
+ public:
+  explicit DevModeModules(std::string tellurium_nub_path)
+      : tellurium_nub_path_(std::move(tellurium_nub_path)) {}
+
+ protected:
+  std::unique_ptr<WebAppManagerConfig> CreateWebAppManagerConfig() override {
+    return std::make_unique<DevModeConfig>(tellurium_nub_path_);
+  }
+
+ private:
+  std::string tellurium_nub_path_;
+};
 
 class WebPageBlinkTestSuite : public ::testing::Test {
  public:
@@ -113,6 +140,10 @@ class WebPageBlinkTestSuite : public ::testing::Test {
   ~WebPageBlinkTestSuite() override;
   void SetUp() override;
 
+ protected:
+  // The application's folder: one of the test's own, with an entry page in
+  // it, instead of one that only exists on a device.
+  TempDir app_folder;
   std::shared_ptr<ApplicationDescription> description;
   std::unique_ptr<WebViewFactoryMock> factory;
 };
@@ -122,25 +153,27 @@ class WebPageBlinkTestSuite : public ::testing::Test {
 WebPageBlinkTestSuite::WebPageBlinkTestSuite() {
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
-  description = ApplicationDescription::FromJsonString(kAppDescString.c_str());
 }
 
 WebPageBlinkTestSuite::~WebPageBlinkTestSuite() = default;
 
 void WebPageBlinkTestSuite::SetUp() {
+  ASSERT_FALSE(app_folder.Path().empty());
+  ASSERT_TRUE(app_folder.WriteFile("index.html", "<html></html>"));
+  std::string desc = kAppDescString;
+  util::ReplaceSubstr(desc, "@FOLDER@", app_folder.Path());
+  description = ApplicationDescription::FromJsonString(desc.c_str());
   ASSERT_TRUE(description);
   factory = std::make_unique<WebViewFactoryMock>();
   EXPECT_CALL(*factory, CreateWebView())
-      .Times(1)
-      .WillRepeatedly(Return(factory->web_view_));
+      .WillOnce(Return(ByMove(std::move(factory->owned_view_))));
 }
 
 TEST_F(WebPageBlinkTestSuite, CheckWebViewInitializeCall) {
   description->SetDisplayAffinity(0);
 
   EXPECT_CALL(*factory->web_view_,
-              Initialize("com.webos.app.test.webrtc0",
-                         "/usr/palm/applications/com.webos.app.test.webrtc",
+              Initialize("com.webos.app.test.webrtc0", app_folder.Path(),
                          "default", "", "", false));
 
   WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
@@ -150,8 +183,7 @@ TEST_F(WebPageBlinkTestSuite, CheckWebViewInitializeCall) {
 
 TEST_F(WebPageBlinkTestSuite, CheckWebViewLoad) {
   EXPECT_CALL(*factory->web_view_,
-              LoadUrl("file:///usr/palm/applications/com.webos.app.test.webrtc/"
-                      "index.html"));
+              LoadUrl("file://" + app_folder.Path() + "/index.html"));
 
   WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
                         params.c_str(), std::move(factory));
@@ -160,11 +192,8 @@ TEST_F(WebPageBlinkTestSuite, CheckWebViewLoad) {
 }
 
 TEST_F(WebPageBlinkTestSuite, AddCustomPluginDir) {
-  // TODO: Rework this test. Avoid to create some folders on real FS
-  constexpr char path[] =
-      "/usr/palm/applications/com.webos.app.test.webrtc/plugins";
-  int result = mkdir(path, 0777);
-  ASSERT_FALSE(result != 0 && errno != EEXIST);
+  ASSERT_TRUE(app_folder.MakeDir("plugins"));
+  const std::string path = app_folder.Path() + "/plugins";
 
   EXPECT_CALL(*factory->web_view_, AddCustomPluginDir(path));
   EXPECT_CALL(*factory->web_view_, AddAvailablePluginDir(path));
@@ -172,17 +201,18 @@ TEST_F(WebPageBlinkTestSuite, AddCustomPluginDir) {
   WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
                         params.c_str(), std::move(factory));
   web_page.Init();
-
-  result = remove(path);
-  ASSERT_FALSE(result);
 }
 
 TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   constexpr char path[] = "/usr/palm/applications/com.webos.app.test.webrtc/";
   constexpr char var_name[] = "PRIVILEGED_PLUGIN_PATH";
-  auto actual_value = getenv(var_name);
+  // WebPageBlink reads PRIVILEGED_PLUGIN_PATH from the environment; the test
+  // runs on a single thread.
+  // NOLINTNEXTLINE(concurrency-mt-unsafe)
+  auto* const actual_value = getenv(var_name);  // Flawfinder: ignore
   std::string test_value(path);
   if (!actual_value) {
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
     int const result = setenv(var_name, path, false);
     ASSERT_FALSE(result);
   } else {
@@ -196,22 +226,15 @@ TEST_F(WebPageBlinkTestSuite, PriviledgetPluginPath) {
   web_page.Init();
 
   if (!actual_value) {
-    int const result = unsetenv(var_name);
+    int const result = unsetenv(var_name);  // NOLINT(concurrency-mt-unsafe)
     ASSERT_FALSE(result);
   }
 }
 
 TEST_F(WebPageBlinkTestSuite, addUserScript) {
-  constexpr char path[] = "/usr/palm/tellurium/telluriumnub.js";
-  constexpr char var_name[] = "TELLURIUM_NUB_PATH";
-  auto actual_value = getenv(var_name);
-  if (!actual_value) {
-    int const result = setenv(var_name, path, false);
-    ASSERT_FALSE(result);
-  }
-
+  ASSERT_TRUE(app_folder.WriteFile("telluriumnub.js", "/* @class Telluriumnub */"));
   WebAppManager::Instance()->SetPlatformModules(
-      std::make_unique<PlatformModuleFactoryImpl>());
+      std::make_unique<DevModeModules>(app_folder.Path() + "/telluriumnub.js"));
   ASSERT_TRUE(WebAppManager::Instance()->Config()->IsDevModeEnabled())
       << "Devmode should be enabled for this test";
 
@@ -221,9 +244,6 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
                         params.c_str(), std::move(factory));
   web_page.Init();
 
-  if (!actual_value) {
-    int const result = unsetenv(var_name);
-    ASSERT_FALSE(result);
-  }
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
 }
-

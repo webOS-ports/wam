@@ -19,9 +19,10 @@
 #include <algorithm>
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>
-#include <string>
 #include <fstream>
+#include <iterator>
+#include <string>
+#include <string_view>
 #include <vector>
 
 #include <glib.h>
@@ -95,6 +96,8 @@ class CapabilityBitmap {
     if (parsed.empty())
       return;
 
+    // The same on a 64-bit target, 64 or 32 on armv7.
+    // cppcheck-suppress duplicateValueTernary
     word_bits_ = widest > 8 ? 64 : static_cast<int>(sizeof(unsigned long) * 8);
 
     // Least significant word last in the text, first in the vector, so a code
@@ -117,12 +120,9 @@ class CapabilityBitmap {
   }
 
   int LetterCount() const {
-    int found = 0;
-    for (unsigned code : kLetterKeys) {
-      if (Advertises(code))
-        ++found;
-    }
-    return found;
+    return static_cast<int>(
+        std::count_if(std::begin(kLetterKeys), std::end(kLetterKeys),
+                      [this](unsigned code) { return Advertises(code); }));
   }
 
  private:
@@ -130,11 +130,10 @@ class CapabilityBitmap {
   int word_bits_ = 0;
 };
 
-std::string ValueAfter(const std::string& line, const char* prefix) {
-  const std::size_t length = std::strlen(prefix);
-  if (line.compare(0, length, prefix) != 0)
+std::string ValueAfter(const std::string& line, std::string_view prefix) {
+  if (line.compare(0, prefix.size(), prefix) != 0)
     return std::string();
-  return line.substr(length);
+  return line.substr(prefix.size());
 }
 
 struct KeyboardFacts {
@@ -267,9 +266,9 @@ void DeviceInfoImpl::Initialize() {
   std::string const smartservicecountry(
       locale_json["smartServiceCountryCode3"].asString());
 
-  SetSystemLanguage(language.c_str());
-  SetDeviceInfo("LocalCountry", localcountry.c_str());
-  SetDeviceInfo("SmartServiceCountry", smartservicecountry.c_str());
+  SetSystemLanguage(language);
+  SetDeviceInfo("LocalCountry", localcountry);
+  SetDeviceInfo("SmartServiceCountry", smartservicecountry);
   }
 
 }
@@ -279,10 +278,15 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   device_info_json["modelName"] = model_name_;
   device_info_json["platformVersion"] = platform_version_;
   {
-    int major = 0, minor = 0, dot = 0;
-    const int fields_count =
-        std::sscanf(platform_version_.c_str(), "%d.%d.%d", &major, &minor, &dot);
-    if (fields_count != 3) {
+    // "major.minor.dot". sscanf("%d") made a field out of int's range
+    // undefined behaviour; StrToInt() refuses it.
+    int major = -1;
+    int minor = -1;
+    int dot = -1;
+    const std::vector<std::string> fields =
+        util::SplitString(platform_version_, '.');
+    if (fields.size() < 3 || !util::StrToInt(fields[0], major) ||
+        !util::StrToInt(fields[1], minor) || !util::StrToInt(fields[2], dot)) {
       major = minor = dot = -1;
     }
 
@@ -340,7 +344,7 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
 //! Nothing declaring a layout is the normal case, not an error - most devices
 //! have no physical keyboard, and a USB or Bluetooth one carries its layout in
 //! the compositor's xkb keymap rather than anywhere this can see.
-std::string DeviceInfoImpl::ReadKeyboardType() const {
+std::string DeviceInfoImpl::ReadKeyboardType() {
   std::string value;
 
   if (GetInfoFromLunaPrefs("com.palm.properties.KEYoBRD", value))
@@ -380,18 +384,18 @@ void DeviceInfoImpl::SetHardwareKeyboard(bool present,
 
 void DeviceInfoImpl::SetDisplayWidth(int value) {
   DeviceInfo::SetDisplayWidth(value);
-  screen_width_ = static_cast<int>(value / screen_density_);
+  screen_width_ = static_cast<int>(static_cast<float>(value) / screen_density_);
   UpdateTvDeviceInfo();
 }
 
 void DeviceInfoImpl::SetDisplayHeight(int value) {
   DeviceInfo::SetDisplayHeight(value);
-  screen_height_ = static_cast<int>(value / screen_density_);
+  screen_height_ =
+      static_cast<int>(static_cast<float>(value) / screen_density_);
   UpdateTvDeviceInfo();
 }
 
-bool DeviceInfoImpl::GetInfoFromLunaPrefs(const char* key,
-                                          std::string& value) const {
+bool DeviceInfoImpl::GetInfoFromLunaPrefs(const char* key, std::string& value) {
   char* str = nullptr;
   if (LP_ERR_NONE == LPSystemCopyStringValue(key, &str) && str) {
     value = str;
@@ -423,8 +427,10 @@ void DeviceInfoImpl::InitDisplayInfo() {
     GetDisplayHeight(hardware_screen_height);
   }
 
-  screen_width_ = static_cast<int>(hardware_screen_width / screen_density_);
-  screen_height_ = static_cast<int>(hardware_screen_height / screen_density_);
+  screen_width_ = static_cast<int>(static_cast<float>(hardware_screen_width) /
+                                   screen_density_);
+  screen_height_ = static_cast<int>(static_cast<float>(hardware_screen_height) /
+                                    screen_density_);
 }
 
 void DeviceInfoImpl::InitPlatformInfo() {

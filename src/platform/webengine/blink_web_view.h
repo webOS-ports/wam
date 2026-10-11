@@ -36,7 +36,7 @@ class BlinkWebView : public webos::WebViewBase {
   void ExecuteUserScripts();
   void SetDelegate(WebPageBlinkDelegate* delegate);
   WebPageBlinkDelegate* Delegate() { return delegate_; }
-  int Progress() { return progress_; }
+  int Progress() const { return progress_; }
 
   // webos::WebViewBase (indirectly from neva_app_runtime::WebViewDelegate)
   void OnLoadProgressChanged(double progress) override;

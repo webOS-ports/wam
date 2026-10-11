@@ -14,8 +14,10 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <filesystem>
 #include <memory>
 #include <string>
+#include <system_error>
 #include <unordered_set>
 
 #include <gmock/gmock.h>
@@ -24,17 +26,36 @@
 #include "application_description.h"
 #include "plugin_lib_wrapper.h"
 #include "plugin_lib_wrapper_mock.h"
+#include "temp_dir.h"
 #include "web_app_base_mock.h"
 #include "web_app_factory_interface_mock.h"
 #include "web_app_factory_manager_impl.h"
 
+namespace {
+
+// What WebAppFactoryManagerImpl finds in the plugin directory decides what it
+// asks the loader for, so the tests give it a directory of their own with the
+// one file the device's /usr/lib/webappmanager/plugins would hold.
+constexpr char kPluginName[] = "libwebappmgr-default-plugin.so";
+
+struct PluginDir {
+  std::string Plugin() const { return dir.Path() + "/" + kPluginName; }
+
+  TempDir dir;
+  bool valid = !dir.Path().empty() && dir.WriteFile(kPluginName, "");
+};
+
+}  // namespace
+
 TEST(PluginLoadTest, Load) {
+  const PluginDir plugins;
+  ASSERT_TRUE(plugins.valid);
   std::string app_type = "default";
   void* fake_handle = &app_type;
   auto lib_wrapper = std::make_unique<PluginLibWrapperMock>();
   EXPECT_CALL(
       *lib_wrapper,
-      Load("/usr/lib/webappmanager/plugins/libwebappmgr-default-plugin.so"))
+      Load(plugins.Plugin()))
       .Times(1)
       .WillRepeatedly(::testing::Return(fake_handle));
   EXPECT_CALL(*lib_wrapper, GetAppType(fake_handle))
@@ -50,7 +71,7 @@ TEST(PluginLoadTest, Load) {
 
   bool const load_plugin_on_demand = false;
   WebAppFactoryManagerImpl::RemovableManagerPtr const factory_manager =
-      WebAppFactoryManagerImpl::TestInstance("/usr/lib/webappmanager/plugins",
+      WebAppFactoryManagerImpl::TestInstance(plugins.dir.Path(),
                                              "", load_plugin_on_demand,
                                              std::move(lib_wrapper));
   (void)factory_manager;
@@ -74,12 +95,14 @@ TEST(PluginLoadTest, LoadOnDemand) {
 }
 
 TEST(PluginLoadTest, DefaultWebApp) {
+  const PluginDir plugins;
+  ASSERT_TRUE(plugins.valid);
   std::string app_type = "default";
   void* fake_handle = &app_type;
   auto lib_wrapper = std::make_unique<PluginLibWrapperMock>();
   EXPECT_CALL(
       *lib_wrapper,
-      Load("/usr/lib/webappmanager/plugins/libwebappmgr-default-plugin.so"))
+      Load(plugins.Plugin()))
       .Times(1)
       .WillRepeatedly(::testing::Return(fake_handle));
   EXPECT_CALL(*lib_wrapper, GetAppType(fake_handle))
@@ -102,7 +125,7 @@ TEST(PluginLoadTest, DefaultWebApp) {
 
   bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
-      WebAppFactoryManagerImpl::TestInstance("/usr/lib/webappmanager/plugins",
+      WebAppFactoryManagerImpl::TestInstance(plugins.dir.Path(),
                                              "", load_plugin_on_demand,
                                              std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
@@ -112,12 +135,14 @@ TEST(PluginLoadTest, DefaultWebApp) {
 }
 
 TEST(PluginLoadTest, CustomWebApp) {
+  const PluginDir plugins;
+  ASSERT_TRUE(plugins.valid);
   std::string app_type = "custom";
   void* fake_handle = &app_type;
   auto lib_wrapper = std::make_unique<PluginLibWrapperMock>();
   EXPECT_CALL(
       *lib_wrapper,
-      Load("/usr/lib/webappmanager/plugins/libwebappmgr-default-plugin.so"))
+      Load(plugins.Plugin()))
       .Times(1)
       .WillRepeatedly(::testing::Return(fake_handle));
   EXPECT_CALL(*lib_wrapper, GetAppType(fake_handle))
@@ -140,8 +165,7 @@ TEST(PluginLoadTest, CustomWebApp) {
 
   bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
-      WebAppFactoryManagerImpl::TestInstance(
-          "/usr/lib/webappmanager/plugins", "extended:custom:minimal",
+      WebAppFactoryManagerImpl::TestInstance(plugins.dir.Path(), "extended:custom:minimal",
           load_plugin_on_demand, std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
   WebAppBase const* app_base =
@@ -168,14 +192,23 @@ TEST(PluginLoadTest, NotAllowedCustomWebApp) {
 }
 
 TEST(PluginLoadTest, LoadTestPlugin) {
+  // The test plugin as installed on the device, or as built next to this
+  // test on the build host.
+  std::string plugin_dir = "/usr/libexec/tests/webappmanager/plugins";
+  std::error_code error;
+  if (!std::filesystem::is_directory(plugin_dir, error)) {
+    plugin_dir = WAM_TEST_PLUGIN_BUILD_DIR;
+  }
   auto lib_wrapper = std::make_unique<PluginLibWrapper>();
   bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =
-      WebAppFactoryManagerImpl::TestInstance(
-          "/usr/libexec/tests/webappmanager/plugins", "testplugin",
-          load_plugin_on_demand, std::move(lib_wrapper));
+      WebAppFactoryManagerImpl::TestInstance(plugin_dir, "testplugin",
+                                             load_plugin_on_demand,
+                                             std::move(lib_wrapper));
   ASSERT_NE(factory_manager, nullptr);
-  WebAppBase const* app_base = factory_manager->CreateWebApp("", {}, "testplugin");
+  // Freed before the factory manager unloads the plugin that made it.
+  std::unique_ptr<const WebAppBase> const app_base(
+      factory_manager->CreateWebApp("", {}, "testplugin"));
   ASSERT_NE(app_base, nullptr);
   EXPECT_EQ(app_base->AppId(), "pluginTestID");
 }

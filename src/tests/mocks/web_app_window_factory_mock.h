@@ -17,6 +17,9 @@
 #ifndef TESTS_MOCKS_WEB_APP_WINDOW_FACTORY_MOCK_H_
 #define TESTS_MOCKS_WEB_APP_WINDOW_FACTORY_MOCK_H_
 
+#include <deque>
+#include <memory>
+
 #include "web_app_window_factory.h"
 
 class WebAppWindow;
@@ -29,12 +32,14 @@ class WebAppWindowFactoryMock : public WebAppWindowFactory {
   // How many exist: lets a test see that they are freed.
   static int Instances() { return instances_; }
 
-  WebAppWindow* CreateWindow() override;
-  void SetWebAppWindow(WebAppWindow* web_app_window);
+  // Hands out what SetWebAppWindow() was given, each once and in order: the caller
+  // takes it over. Two pages sharing one mock would both delete it.
+  std::unique_ptr<WebAppWindow> CreateWindow() override;
+  void SetWebAppWindow(std::unique_ptr<WebAppWindow> web_app_window);
 
  private:
   static int instances_;
-  WebAppWindow* web_app_window_ = nullptr;
+  std::deque<std::unique_ptr<WebAppWindow>> web_app_windows_;
 };
 
 #endif  // TESTS_MOCKS_WEB_APP_WINDOW_FACTORY_MOCK_H_

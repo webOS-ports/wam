@@ -25,6 +25,8 @@ class DeviceInfoTest : public ::testing::Test {
   DeviceInfoTest() = default;
   ~DeviceInfoTest() override = default;
 
+  // Used by the TEST_F bodies, which cppcheck does not see as members.
+  // cppcheck-suppress unusedStructMember
   DeviceInfo device_info_;
 };
 

@@ -17,6 +17,8 @@
 #ifndef PLATFORM_WEB_APP_WINDOW_FACTORY_H_
 #define PLATFORM_WEB_APP_WINDOW_FACTORY_H_
 
+#include <memory>
+
 class WebAppWindow;
 
 class WebAppWindowFactory {
@@ -24,7 +26,7 @@ class WebAppWindowFactory {
   WebAppWindowFactory() = default;
   virtual ~WebAppWindowFactory() = default;
 
-  virtual WebAppWindow* CreateWindow() = 0;
+  virtual std::unique_ptr<WebAppWindow> CreateWindow() = 0;
 };
 
 #endif  // PLATFORM_WEB_APP_WINDOW_FACTORY_H_

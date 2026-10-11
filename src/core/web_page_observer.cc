@@ -34,7 +34,7 @@ void WebPageObserver::Observe(WebPageBase* page) {
   }
 }
 
-void WebPageObserver::Unobserve(WebPageBase* page) {
+void WebPageObserver::Unobserve(const WebPageBase* page) {
   if (page_ != page) {
     return;
   }

@@ -82,8 +82,7 @@ void WebAppManagerServiceLunaImpl::DidConnect() {
 //! procfs on a timer.
 void WebAppManagerServiceLunaImpl::ImeServiceConnectCallback(
     const Json::Value& reply) {
-  if (!reply.isObject() || !reply.isMember("connected") ||
-      !reply["connected"].asBool()) {
+  if (!reply.isObject() || !util::JsonAsBool(reply["connected"])) {
     return;
   }
 
@@ -96,7 +95,7 @@ void WebAppManagerServiceLunaImpl::ImeServiceConnectCallback(
 
 void WebAppManagerServiceLunaImpl::GetKeyboardStatusCallback(
     const Json::Value& reply) {
-  if (!reply.isObject() || !reply["returnValue"].asBool() ||
+  if (!reply.isObject() || !util::JsonAsBool(reply["returnValue"]) ||
       !reply["hardwareKeyboard"].isObject()) {
     return;
   }
@@ -116,15 +115,16 @@ void WebAppManagerServiceLunaImpl::GetKeyboardStatusCallback(
   LOG_INFO(MSGID_WAM_DEBUG, 0,
            "input method reports a keyboard: present=%d usable=%d slider=%d"
            " layout=%s",
-           keyboard["present"].asBool() ? 1 : 0,
-           keyboard["usable"].asBool() ? 1 : 0,
-           keyboard["slider"].asBool() ? 1 : 0, layout.c_str());
+           util::JsonAsBool(keyboard["present"]) ? 1 : 0,
+           util::JsonAsBool(keyboard["usable"]) ? 1 : 0,
+           util::JsonAsBool(keyboard["slider"]) ? 1 : 0, layout.c_str());
 
   // "present" is the physical fact - a keyboard is attached - and not whether
   // the on-screen keyboard is currently suppressed, which is what "usable"
   // carries. Applications want to know a keyboard exists.
   WebAppManager::Instance()->SetHardwareKeyboard(
-      keyboard["present"].asBool(), keyboard["slider"].asBool(), layout);
+      util::JsonAsBool(keyboard["present"]),
+      util::JsonAsBool(keyboard["slider"]), layout);
 }
 
 Json::Value WebAppManagerServiceLunaImpl::setInspectorEnable(
@@ -134,7 +134,6 @@ Json::Value WebAppManagerServiceLunaImpl::setInspectorEnable(
 
 void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
     const Json::Value& reply) {
-  const Json::Value& settings = reply["settings"];
   // The settings is empty when service is crashed
   // The right value will be notified again when service is restarted
   if (!reply.isObject() || !reply["settings"].isObject() ||
@@ -146,19 +145,20 @@ void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
   LOG_INFO(MSGID_SETTING_SERVICE, 0,
            "Notified from settingsservice/getSystemSettings");
 
-  std::string const country = reply["settings"]["country"].isString()
-                            ? settings["country"].asString()
-                            : "";
+  // Each value is taken when it is a string. All four used to be read only
+  // when "country" was one, and then without a check of their own, so a
+  // reply without a country lost the other three and a non-string value
+  // among them aborted WebAppMgr.
+  const Json::Value& settings = reply["settings"];
+  const auto string_setting = [&settings](const char* key) {
+    const Json::Value& value = settings[key];
+    return value.isString() ? value.asString() : std::string();
+  };
+  std::string const country = string_setting("country");
   std::string const smart_service_country =
-      reply["settings"]["country"].isString()
-          ? settings["smartServiceCountryCode3"].asString()
-          : "";
-  std::string const audio_guidance = reply["settings"]["country"].isString()
-                                   ? settings["audioGuidance"].asString()
-                                   : "";
-  std::string const screen_rotation = reply["settings"]["country"].isString()
-                                    ? settings["screenRotation"].asString()
-                                    : "";
+      string_setting("smartServiceCountryCode3");
+  std::string const audio_guidance = string_setting("audioGuidance");
+  std::string const screen_rotation = string_setting("screenRotation");
 
   LOG_INFO(
       MSGID_SETTING_SERVICE, 1,
@@ -178,17 +178,16 @@ void WebAppManagerServiceLunaImpl::GetSystemOptionCallback(
                    screen_rotation.empty() ? "Empty" : screen_rotation.c_str()),
            "");
   if (!country.empty()) {
-    WebAppManagerService::SetDeviceInfo("LocalCountry", country.c_str());
+    WebAppManagerService::SetDeviceInfo("LocalCountry", country);
   }
   if (!smart_service_country.empty()) {
     WebAppManagerService::SetDeviceInfo("SmartServiceCountry",
-                                        smart_service_country.c_str());
+                                        smart_service_country);
   }
   if (!audio_guidance.empty()) {
     WebAppManagerService::SetAccessibilityEnabled(audio_guidance == "on");
   }
   if (!screen_rotation.empty()) {
-    WebAppManagerService::SetDeviceInfo("ScreenRotation",
-                                        screen_rotation.c_str());
+    WebAppManagerService::SetDeviceInfo("ScreenRotation", screen_rotation);
   }
 }

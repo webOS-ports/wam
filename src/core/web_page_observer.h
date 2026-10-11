@@ -40,7 +40,7 @@ class WebPageObserver {
   virtual ~WebPageObserver() = default;
 
   void Observe(WebPageBase* page);
-  void Unobserve(WebPageBase* page);
+  void Unobserve(const WebPageBase* page);
 
  private:
   WebPageBase* page_ = nullptr;

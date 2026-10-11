@@ -14,7 +14,9 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <memory>
 #include <string>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -165,19 +167,27 @@ class AppTestContext {
   WebViewMock* GetView() { return web_view_; }
   WebAppWindowMock* GetWindow() { return web_app_window_; }
 
- private:
-  WebViewMock* CreateView();
-  WebAppWindowMock* CreateWindow();
+  // For the factories: the page and the app take them over.
+  std::unique_ptr<WebViewMock> TakeView() { return std::move(owned_view_); }
+  std::unique_ptr<WebAppWindowMock> TakeWindow() {
+    return std::move(owned_window_);
+  }
 
-  WebViewMock* web_view_ = CreateView();
-  WebAppWindowMock* web_app_window_ = CreateWindow();
+ private:
+  std::unique_ptr<WebViewMock> CreateView();
+  std::unique_ptr<WebAppWindowMock> CreateWindow();
+
+  std::unique_ptr<WebViewMock> owned_view_ = CreateView();
+  std::unique_ptr<WebAppWindowMock> owned_window_ = CreateWindow();
+  WebViewMock* web_view_ = owned_view_.get();
+  WebAppWindowMock* web_app_window_ = owned_window_.get();
   WebPageBlinkDelegate* page_delegate_ = nullptr;
   WebAppWayland* web_app_ = nullptr;
   std::string url_ = "";
 };
 
-WebViewMock* AppTestContext::CreateView() {
-  WebViewMock* view = new NiceWebViewMock();
+std::unique_ptr<WebViewMock> AppTestContext::CreateView() {
+  auto view = std::make_unique<NiceWebViewMock>();
 
   ON_CALL(*view, GetUrl()).WillByDefault(ReturnRef(url_));
   ON_CALL(*view, SetDelegate(_))
@@ -197,8 +207,8 @@ WebViewMock* AppTestContext::CreateView() {
   return view;
 }
 
-WebAppWindowMock* AppTestContext::CreateWindow() {
-  WebAppWindowMock* window = new NiceWebAppWindowMock();
+std::unique_ptr<WebAppWindowMock> AppTestContext::CreateWindow() {
+  auto window = std::make_unique<NiceWebAppWindowMock>();
   ON_CALL(*window, SetWebApp(_))
       .WillByDefault(
           Invoke([&](WebAppWayland* web_app) { web_app_ = web_app; }));
@@ -213,8 +223,8 @@ void AttachContext(WebAppFactoryManagerMock* web_app_factory,
 
   auto web_app_window_factory = std::make_unique<WebAppWindowFactoryMock>();
   auto web_view_factory = std::make_unique<WebViewFactoryMock>();
-  web_app_window_factory->SetWebAppWindow(context->GetWindow());
-  web_view_factory->SetWebView(context->GetView());
+  web_app_window_factory->SetWebAppWindow(context->TakeWindow());
+  web_view_factory->SetWebView(context->TakeView());
   web_app_factory->SetWebViewFactory(std::move(web_view_factory));
   web_app_factory->SetWebAppWindowFactory(std::move(web_app_window_factory));
 }
@@ -238,14 +248,16 @@ TEST(CloseAllApps, CloseAllApps) {
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
 
+  auto owned_web_app_factory_manager =
+      std::make_unique<WebAppFactoryManagerMock>();
   WebAppFactoryManagerMock* web_app_factory_manager =
-      new WebAppFactoryManagerMock();
+      owned_web_app_factory_manager.get();
 
   AppTestContext first_app;
   AppTestContext second_app;
 
   WebAppManager::Instance()->SetWebAppFactory(
-      std::unique_ptr<WebAppFactoryManagerMock>(web_app_factory_manager));
+      std::move(owned_web_app_factory_manager));
 
   {
     AttachContext(web_app_factory_manager, &first_app);

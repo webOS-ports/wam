@@ -26,16 +26,13 @@ class WebAppManagerConfig;
 
 class PlatformModuleFactoryImpl : public PlatformModuleFactory {
  public:
-  PlatformModuleFactoryImpl();
+  PlatformModuleFactoryImpl() = default;
 
  protected:
   std::unique_ptr<ServiceSender> CreateServiceSender() override;
   std::unique_ptr<WebProcessManager> CreateWebProcessManager() override;
   std::unique_ptr<DeviceInfo> CreateDeviceInfo() override;
   std::unique_ptr<WebAppManagerConfig> CreateWebAppManagerConfig() override;
-
- private:
-  void PrepareRenderingContext();
 };
 
 #endif  // WEBOS_PLATFORM_MODULE_FACTORY_IMPL_H_

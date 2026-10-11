@@ -17,11 +17,13 @@
 #ifndef PLATFORM_WEBENGINE_WEB_VIEW_FACTORY_H_
 #define PLATFORM_WEBENGINE_WEB_VIEW_FACTORY_H_
 
+#include <memory>
+
 class WebView;
 
 class WebViewFactory {
  public:
-  virtual WebView* CreateWebView() = 0;
+  virtual std::unique_ptr<WebView> CreateWebView() = 0;
   WebViewFactory() = default;
   virtual ~WebViewFactory() = default;
 };

@@ -32,34 +32,37 @@ void NetworkStatusManager::UpdateNetworkStatus(const NetworkStatus& status) {
 }
 
 void NetworkStatusManager::CheckInformationChange(
-    const NetworkStatus::Information& info) {
-  if (current_.GetInformation().IpAddress() != info.IpAddress()) {
+    const NetworkStatus::Information& information) {
+  if (current_.GetInformation().IpAddress() != information.IpAddress()) {
     AppendLogList("ipAddress", current_.GetInformation().IpAddress(),
-                  info.IpAddress());
+                  information.IpAddress());
   }
-  if (current_.GetInformation().Dns1() != info.Dns1()) {
-    AppendLogList("dns1", current_.GetInformation().Dns1(), info.Dns1());
+  if (current_.GetInformation().Dns1() != information.Dns1()) {
+    AppendLogList("dns1", current_.GetInformation().Dns1(), information.Dns1());
   }
-  if (current_.GetInformation().Dns2() != info.Dns2()) {
-    AppendLogList("dns2", current_.GetInformation().Dns2(), info.Dns2());
+  if (current_.GetInformation().Dns2() != information.Dns2()) {
+    AppendLogList("dns2", current_.GetInformation().Dns2(), information.Dns2());
   }
-  if (current_.GetInformation().Method() != info.Method()) {
-    AppendLogList("method", current_.GetInformation().Method(), info.Method());
+  if (current_.GetInformation().Method() != information.Method()) {
+    AppendLogList("method", current_.GetInformation().Method(),
+                  information.Method());
   }
-  if (current_.GetInformation().State() != info.State()) {
-    AppendLogList("state", current_.GetInformation().State(), info.State());
+  if (current_.GetInformation().State() != information.State()) {
+    AppendLogList("state", current_.GetInformation().State(),
+                  information.State());
   }
-  if (current_.GetInformation().Gateway() != info.Gateway()) {
+  if (current_.GetInformation().Gateway() != information.Gateway()) {
     AppendLogList("gateway", current_.GetInformation().Gateway(),
-                  info.Gateway());
+                  information.Gateway());
   }
-  if (current_.GetInformation().InterfaceName() != info.InterfaceName()) {
+  if (current_.GetInformation().InterfaceName() !=
+      information.InterfaceName()) {
     AppendLogList("interfaceName", current_.GetInformation().InterfaceName(),
-                  info.InterfaceName());
+                  information.InterfaceName());
   }
-  if (current_.GetInformation().OnInternet() != info.OnInternet()) {
+  if (current_.GetInformation().OnInternet() != information.OnInternet()) {
     AppendLogList("onInternet", current_.GetInformation().OnInternet(),
-                  info.OnInternet());
+                  information.OnInternet());
   }
 }
 

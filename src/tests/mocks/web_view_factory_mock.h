@@ -17,6 +17,9 @@
 #ifndef TESTS_MOCKS_WEB_VIEW_FACTORY_MOCK_H_
 #define TESTS_MOCKS_WEB_VIEW_FACTORY_MOCK_H_
 
+#include <deque>
+#include <memory>
+
 #include "web_view_factory.h"
 
 class WebView;
@@ -29,12 +32,14 @@ class WebViewFactoryMock : public WebViewFactory {
   // How many exist: lets a test see that they are freed.
   static int Instances() { return instances_; }
 
-  WebView* CreateWebView() override;
-  void SetWebView(WebView* web_view);
+  // Hands out what SetWebView() was given, each once and in order: the caller
+  // takes it over. Two pages sharing one mock would both delete it.
+  std::unique_ptr<WebView> CreateWebView() override;
+  void SetWebView(std::unique_ptr<WebView> web_view);
 
  private:
   static int instances_;
-  WebView* web_view_ = nullptr;
+  std::deque<std::unique_ptr<WebView>> web_views_;
 };
 
 #endif  // TESTS_MOCKS_WEB_VIEW_FACTORY_MOCK_H_

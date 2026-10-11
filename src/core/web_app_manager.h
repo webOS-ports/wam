@@ -144,11 +144,13 @@ class WebAppManager {
   void WebPageAdded(WebPageBase* page);
   void WebPageRemoved(WebPageBase* page);
 
+  // Creates the app for a page a running app opened. The app takes the page;
+  // if no app can be made (null is returned), the page is freed.
   WebAppBase* CreateWindowForAppPage(const std::string& win_type,
                               std::unique_ptr<ApplicationDescription> app_desc,
                               const std::string& args,
                               const std::string& launching_app_id,
-                              WebPageBase* page);
+                              std::unique_ptr<WebPageBase> new_page);
 
   void AppDeleted(WebAppBase* app);
   void PostRunningAppList();

@@ -16,6 +16,9 @@
 
 #include "web_app_factory_manager_mock.h"
 
+#include <memory>
+#include <utility>
+
 #include <gtest/gtest.h>
 
 #include "application_description.h"
@@ -24,6 +27,31 @@
 #include "web_app_window_factory.h"
 #include "web_page_blink.h"
 #include "web_view_factory.h"
+
+namespace {
+
+class SharedWebViewFactory : public WebViewFactory {
+ public:
+  explicit SharedWebViewFactory(std::shared_ptr<WebViewFactory> factory)
+      : factory_(std::move(factory)) {}
+  WebView* CreateWebView() override { return factory_->CreateWebView(); }
+
+ private:
+  std::shared_ptr<WebViewFactory> factory_;
+};
+
+class SharedWebAppWindowFactory : public WebAppWindowFactory {
+ public:
+  explicit SharedWebAppWindowFactory(
+      std::shared_ptr<WebAppWindowFactory> factory)
+      : factory_(std::move(factory)) {}
+  WebAppWindow* CreateWindow() override { return factory_->CreateWindow(); }
+
+ private:
+  std::shared_ptr<WebAppWindowFactory> factory_;
+};
+
+}  // namespace
 
 WebAppFactoryManagerMock::WebAppFactoryManagerMock() = default;
 
@@ -35,7 +63,7 @@ WebAppBase* WebAppFactoryManagerMock::CreateWebApp(
     const std::string& /*app_type*/) {
   if (window_factory_) {
     return new WebAppWayland(
-        win_type, std::unique_ptr<WebAppWindowFactory>(window_factory_),
+        win_type, std::make_unique<SharedWebAppWindowFactory>(window_factory_),
         desc.WidthOverride(), desc.HeightOverride(), desc.GetDisplayAffinity(),
         desc.LocationHint());
   }
@@ -66,17 +94,19 @@ WebPageBase* WebAppFactoryManagerMock::CreateWebPage(
               << '\n';
     return nullptr;
   }
-  auto page = new WebPageBlink(url, desc, launch_params,
-                               std::unique_ptr<WebViewFactory>(view_factory_));
+  auto page =
+      new WebPageBlink(url, desc, launch_params,
+                       std::make_unique<SharedWebViewFactory>(view_factory_));
   page->Init();
   return page;
 }
 
-void WebAppFactoryManagerMock::SetWebViewFactory(WebViewFactory* view_factory) {
-  view_factory_ = view_factory;
+void WebAppFactoryManagerMock::SetWebViewFactory(
+    std::unique_ptr<WebViewFactory> view_factory) {
+  view_factory_ = std::move(view_factory);
 }
 
 void WebAppFactoryManagerMock::SetWebAppWindowFactory(
-    WebAppWindowFactory* window_factory) {
-  window_factory_ = window_factory;
+    std::unique_ptr<WebAppWindowFactory> window_factory) {
+  window_factory_ = std::move(window_factory);
 }

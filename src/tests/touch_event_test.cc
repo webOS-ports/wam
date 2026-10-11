@@ -126,8 +126,10 @@ void TouchEventTestSuite::SetUp() {
   web_app_window_ = new NiceWebAppWindowMock();
 
   auto web_app_factory_manager = std::make_unique<WebAppFactoryManagerMock>();
-  web_app_factory_manager->SetWebViewFactory(web_view_factory_);
-  web_app_factory_manager->SetWebAppWindowFactory(web_app_window_factory_);
+  web_app_factory_manager->SetWebViewFactory(
+      std::unique_ptr<WebViewFactory>(web_view_factory_));
+  web_app_factory_manager->SetWebAppWindowFactory(
+      std::unique_ptr<WebAppWindowFactory>(web_app_window_factory_));
 
   web_view_factory_->SetWebView(web_view_);
   web_app_window_factory_->SetWebAppWindow(web_app_window_);

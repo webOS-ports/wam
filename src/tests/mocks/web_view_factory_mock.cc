@@ -20,9 +20,15 @@
 
 #include "web_view.h"
 
-WebViewFactoryMock::WebViewFactoryMock() = default;
+int WebViewFactoryMock::instances_ = 0;
 
-WebViewFactoryMock::~WebViewFactoryMock() = default;
+WebViewFactoryMock::WebViewFactoryMock() {
+  ++instances_;
+}
+
+WebViewFactoryMock::~WebViewFactoryMock() {
+  --instances_;
+}
 
 WebView* WebViewFactoryMock::CreateWebView() {
   if (web_view_) {

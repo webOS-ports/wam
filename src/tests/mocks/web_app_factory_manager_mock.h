@@ -44,12 +44,17 @@ class WebAppFactoryManagerMock : public WebAppFactoryManager {
                              const std::string& app_type,
                              const std::string& launch_params) override;
 
-  void SetWebViewFactory(WebViewFactory* view_factory);
-  void SetWebAppWindowFactory(WebAppWindowFactory* window_factory);
+  // The factories the pages and apps created from here use. Each page or app
+  // is given its own factory that forwards to these, so one of them can serve
+  // several launches and is freed with the last user, whether or not anything
+  // was launched.
+  void SetWebViewFactory(std::unique_ptr<WebViewFactory> view_factory);
+  void SetWebAppWindowFactory(
+      std::unique_ptr<WebAppWindowFactory> window_factory);
 
  private:
-  WebViewFactory* view_factory_ = nullptr;
-  WebAppWindowFactory* window_factory_ = nullptr;
+  std::shared_ptr<WebViewFactory> view_factory_;
+  std::shared_ptr<WebAppWindowFactory> window_factory_;
 };
 
 #endif  // TESTS_MOCKS_WEB_APP_FACTORY_MANAGER_MOCK_H_

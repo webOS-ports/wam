@@ -26,10 +26,14 @@ class WebViewFactoryMock : public WebViewFactory {
   WebViewFactoryMock();
   ~WebViewFactoryMock() override;
 
+  // How many exist: lets a test see that they are freed.
+  static int Instances() { return instances_; }
+
   WebView* CreateWebView() override;
   void SetWebView(WebView* web_view);
 
  private:
+  static int instances_;
   WebView* web_view_ = nullptr;
 };
 

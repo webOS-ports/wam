@@ -20,8 +20,15 @@
 
 #include "web_app_window.h"
 
-WebAppWindowFactoryMock::WebAppWindowFactoryMock() = default;
-WebAppWindowFactoryMock::~WebAppWindowFactoryMock() = default;
+int WebAppWindowFactoryMock::instances_ = 0;
+
+WebAppWindowFactoryMock::WebAppWindowFactoryMock() {
+  ++instances_;
+}
+
+WebAppWindowFactoryMock::~WebAppWindowFactoryMock() {
+  --instances_;
+}
 
 WebAppWindow* WebAppWindowFactoryMock::CreateWindow() {
   if (web_app_window_) {

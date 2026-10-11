@@ -99,6 +99,42 @@ double LegacyUiZoomFactor() {
   return factor;
 }
 
+// The webOS window attributes of a window.open() call: the JSON value of its
+// "attributes=" feature, e.g. window.open(url, "", 'attributes={"window":
+// "popupalert"}'). Blink hands features over as "key=value" strings.
+//
+// Only an object is used; anything else counts as no attributes, as JSON that
+// does not parse already did. The strict parser accepts an array as a whole
+// document ("attributes=[]"), and jsoncpp asserts - taking WebAppMgr down -
+// when a member is looked up on one.
+constexpr char kAttributesFeature[] = "attributes=";
+constexpr size_t kAttributesFeatureLength = sizeof(kAttributesFeature) - 1;
+
+Json::Value WindowAttributesFromFeatures(
+    const std::vector<std::string>& additional_features) {
+  Json::Value window_attributes(Json::objectValue);
+  for (const std::string& feature : additional_features) {
+    if (feature.compare(0, kAttributesFeatureLength, kAttributesFeature) != 0) {
+      continue;
+    }
+    Json::Value value;
+    if (util::StringToJson(feature.substr(kAttributesFeatureLength), value) &&
+        value.isObject()) {
+      window_attributes = std::move(value);
+    } else {
+      window_attributes = Json::Value(Json::objectValue);
+    }
+  }
+  return window_attributes;
+}
+
+// An attribute value as a string, or empty for one that has none: asString()
+// asserts on an array or object.
+std::string AttributeString(const Json::Value& value) {
+  return value.isConvertibleTo(Json::stringValue) ? value.asString()
+                                                  : std::string();
+}
+
 }  // namespace
 
 class WebPageBlinkPrivate {
@@ -1413,28 +1449,22 @@ WebView* WebPageBlink::CreateWindow(
     std::vector<std::string> additional_features) {
   auto new_app_desc = std::make_unique<ApplicationDescription>(app_desc_);
 
-  Json::Value window_attributes;
-  // Explore additional_features to determine our window type. Reminder: the
-  // features are a list of "key=value" strings, where value can also be a json
-  // string.
-  for (const std::string& feature : additional_features) {
-    if (feature.find("attributes=") != std::string::npos) {
-      // For the webOS attributes, the value is a json string.
-      window_attributes = util::StringToJson(feature.substr(11));
-    }
-  }
+  const Json::Value window_attributes =
+      WindowAttributesFromFeatures(additional_features);
+  const std::string window = AttributeString(window_attributes["window"]);
 
-  if (window_attributes["window"].asString() == "dashboard") {
+  if (window == "dashboard") {
     new_app_desc->SetDefaultWindowType("floating");
-  } else if (window_attributes["window"].asString() == "popupalert") {
+  } else if (window == "popupalert") {
     new_app_desc->SetDefaultWindowType("system_ui");
   }
 
   // Create a new page, with a factory associated with the new content.
   wam::Url const new_wam_url(new_url);
-  WebPageBlink* new_page = new WebPageBlink(new_wam_url, *new_app_desc, "{}",
-                                            std::move(dedicated_factory));
+  auto new_page = std::make_unique<WebPageBlink>(
+      new_wam_url, *new_app_desc, "{}", std::move(dedicated_factory));
   new_page->Init();
+  const WebPageBlink* page = new_page.get();
 
   // Create a new webApp instance for this page.
   WebAppManager* web_app_mgr = WebAppManager::Instance();
@@ -1450,7 +1480,7 @@ WebView* WebPageBlink::CreateWindow(
   // into system_ui windows the shell never lists in the notification area.
   std::string child_win_type =
       web_app_mgr->WindowTypeFromString(new_app_desc->DefaultWindowType());
-  if (window_attributes["window"].asString().empty()) {
+  if (window.empty()) {
     const WebAppBase* parent_app = web_app_mgr->FindAppById(app_id_);
     if (parent_app && !parent_app->WindowType().empty()) {
       child_win_type = parent_app->WindowType();
@@ -1458,23 +1488,30 @@ WebView* WebPageBlink::CreateWindow(
   }
 
   WebAppBase* new_web_app = web_app_mgr->CreateWindowForAppPage(
-      child_win_type, std::move(new_app_desc), "{}", app_id_, new_page);
+      child_win_type, std::move(new_app_desc), "{}", app_id_,
+      std::move(new_page));
+  if (!new_web_app) {
+    // The page went with it. No view tells the engine that no window was
+    // made, rather than handing it one that nothing owns.
+    LOG_WARNING(MSGID_BAD_WINDOW_TYPE, 1,
+                PMLOGKS("WINDOW_TYPE", child_win_type.c_str()),
+                "No app for a window this page opened");
+    return nullptr;
+  }
 
-  if (new_web_app && height > 0) {
+  if (height > 0) {
     new_web_app->Resize(CurrentUiWidth(), height);
   }
 
-  if (new_web_app) {
-    for (auto attr = window_attributes.begin(); attr != window_attributes.end();
-         ++attr) {
-      std::string const attr_key = attr.name();
-      std::string const attr_value = attr->asString();
+  for (auto attr = window_attributes.begin(); attr != window_attributes.end();
+       ++attr) {
+    std::string const attr_key = attr.name();
+    std::string const attr_value = AttributeString(*attr);
 
-      if (!attr_key.empty() && !attr_value.empty()) {
-        new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);
-      }
+    if (!attr_key.empty() && !attr_value.empty()) {
+      new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);
     }
   }
 
-  return new_page->PageView();
+  return page->PageView();
 }

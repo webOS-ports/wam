@@ -26,10 +26,14 @@ class WebAppWindowFactoryMock : public WebAppWindowFactory {
   WebAppWindowFactoryMock();
   ~WebAppWindowFactoryMock() override;
 
+  // How many exist: lets a test see that they are freed.
+  static int Instances() { return instances_; }
+
   WebAppWindow* CreateWindow() override;
   void SetWebAppWindow(WebAppWindow* web_app_window);
 
  private:
+  static int instances_;
   WebAppWindow* web_app_window_ = nullptr;
 };
 

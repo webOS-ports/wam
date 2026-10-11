@@ -77,21 +77,28 @@ class CountedViewFactory : public WebViewFactory {
 
 using Properties = std::vector<std::pair<std::string, std::string>>;
 
-// The application the window is created for. It keeps the page, as the real
-// one does, and records the window properties set on it.
+// The application the window is created for. It takes the page and the
+// description the page refers to as the real one does (WebAppBase), and
+// records the window properties set on it.
+// WebAppBaseMock makes both no-ops; the calls go past it on purpose.
 class WindowAppMock : public WebAppBaseMock {
  public:
-  void Attach(WebPageBase* page) override { page_.reset(page); }
+  void Attach(WebPageBase* page) override {
+    WebAppBase::Attach(page);  // NOLINT(bugprone-parent-virtual-call)
+  }
+  void SetAppDescription(std::unique_ptr<ApplicationDescription> desc) override {
+    // NOLINTNEXTLINE(bugprone-parent-virtual-call)
+    WebAppBase::SetAppDescription(std::move(desc));
+  }
   void SetWindowProperty(const std::string& name,
                          const std::string& value) override {
     properties_.emplace_back(name, value);
   }
 
-  WebPageBase* AttachedPage() const { return page_.get(); }
+  WebPageBase* AttachedPage() const { return Page(); }
   const Properties& WindowProperties() const { return properties_; }
 
  private:
-  std::unique_ptr<WebPageBase> page_;
   Properties properties_;
 };
 
@@ -266,4 +273,31 @@ TEST_F(CreateWindowTest, NoAppForTheWindow) {
   EXPECT_EQ(view, nullptr);
   EXPECT_EQ(app_, nullptr);
   EXPECT_EQ(CountedViewMock::instances, views);
+}
+
+TEST_F(CreateWindowTest, PageCarriesTheInstanceIdOfItsApp) {
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  const WebPageBase* page = app_->AttachedPage();
+  ASSERT_NE(page, nullptr);
+
+  // A launched page has the instance id from its launch parameters; this one
+  // is given its app's. A renderer crash looks the app up by it.
+  EXPECT_FALSE(app_->InstanceId().empty());
+  EXPECT_EQ(page->InstanceId(), app_->InstanceId());
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(page->InstanceId()),
+            app_);
+}
+
+TEST_F(CreateWindowTest, RendererCrashLeavesThePageToItsApp) {
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  auto* page = static_cast<WebPageBlink*>(app_->AttachedPage());
+  ASSERT_NE(page, nullptr);
+
+  // The window shares its opener's renderer. When that one crashed as the
+  // opener closed, the page did not find its app, deleted itself and left the
+  // app owning freed memory: WebAppMgr crashed on the window's next focus
+  // change. The app has to keep a live page, which CloseWindow() frees.
+  page->RenderProcessCrashed();
+  EXPECT_EQ(app_->AttachedPage(), page);
+  EXPECT_EQ(page->InstanceId(), app_->InstanceId());
 }

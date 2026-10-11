@@ -389,6 +389,11 @@ WebAppBase* WebAppManager::CreateWindowForAppPage(const std::string& win_type,
     app->SetAppDescription(std::move(app_desc));
     app->SetAppProperties(args);
     app->SetInstanceId(instance_id);
+    // A launched page takes its instance id from the launch parameters; this
+    // one was made with none ("{}"). Without it the page is not found as the
+    // app's after a renderer crash (ProcessCrashed()), and deletes itself
+    // while the app still owns it.
+    page->SetInstanceId(instance_id);
     app->SetLaunchingAppId(launching_app_id);
     if (web_app_manager_config_->IsCheckLaunchTimeEnabled())
       app->StartLaunchTimer();

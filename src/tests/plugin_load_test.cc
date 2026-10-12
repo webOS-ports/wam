@@ -45,6 +45,19 @@ struct PluginDir {
   bool valid = !dir.Path().empty() && dir.WriteFile(kPluginName, "");
 };
 
+// Where the build puts the test plugin, seen from this test: CMake builds the
+// test in <build>/src/tests and the plugin in <build>/src/testplugin. Empty
+// when the executable's own path cannot be read.
+std::string BuildTreePluginDir() {
+  std::error_code error;
+  const std::filesystem::path exe =
+      std::filesystem::read_symlink("/proc/self/exe", error);
+  if (error) {
+    return {};
+  }
+  return (exe.parent_path().parent_path() / "testplugin").string();
+}
+
 }  // namespace
 
 TEST(PluginLoadTest, Load) {
@@ -197,8 +210,9 @@ TEST(PluginLoadTest, LoadTestPlugin) {
   std::string plugin_dir = "/usr/libexec/tests/webappmanager/plugins";
   std::error_code error;
   if (!std::filesystem::is_directory(plugin_dir, error)) {
-    plugin_dir = WAM_TEST_PLUGIN_BUILD_DIR;
+    plugin_dir = BuildTreePluginDir();
   }
+  ASSERT_FALSE(plugin_dir.empty());
   auto lib_wrapper = std::make_unique<PluginLibWrapper>();
   bool const load_plugin_on_demand = true;
   WebAppFactoryManagerImpl::RemovableManagerPtr factory_manager =

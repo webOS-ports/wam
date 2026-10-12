@@ -100,8 +100,7 @@ add_executable(${PROJECT_NAME} ${HEADERS} ${SOURCES})
 target_include_directories(${PROJECT_NAME} PRIVATE ${TEST_BIN_INCLUDE_DIRS})
 target_link_libraries(${PROJECT_NAME} PRIVATE ${TEST_BIN_LIBS})
 # PluginLoadTest.LoadTestPlugin falls back on the test plugin built here when
-# the installed one is not there, as on the build host.
+# the installed one is not there, as on the build host. It finds it relative
+# to its own executable, so no build path is compiled in.
 add_dependencies(${PROJECT_NAME} webappmgr-test-plugin)
-target_compile_definitions(${PROJECT_NAME} PRIVATE
-    WAM_TEST_PLUGIN_BUILD_DIR="${CMAKE_BINARY_DIR}/src/testplugin")
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/opt/webos/tests)

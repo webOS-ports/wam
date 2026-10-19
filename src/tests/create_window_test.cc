@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include <glib.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -39,7 +40,12 @@
 
 namespace {
 
+using ::testing::_;
+using ::testing::AllOf;
+using ::testing::AnyNumber;
+using ::testing::HasSubstr;
 using ::testing::IsEmpty;
+using ::testing::Not;
 using ::testing::Pair;
 using ::testing::UnorderedElementsAre;
 
@@ -73,6 +79,37 @@ class CountedViewFactory : public WebViewFactory {
   std::unique_ptr<WebView> CreateWebView() override {
     return std::make_unique<::testing::NiceMock<CountedViewMock>>();
   }
+};
+
+// window.open() features of a sign-in window watched for its redirect.
+constexpr char kWatch[] =
+    R"(attributes={"redirectPrefix":"https://example.com/cb"})";
+
+// Hands out a view and remembers which, so a test can expect calls on it.
+class RecordingViewFactory : public WebViewFactory {
+ public:
+  explicit RecordingViewFactory(WebViewMock** view) : view_(view) {}
+  std::unique_ptr<WebView> CreateWebView() override {
+    auto view = std::make_unique<NiceWebViewMock>();
+    *view_ = view.get();
+    return view;
+  }
+
+ private:
+  WebViewMock** view_;
+};
+
+// What WAM leaves to the main loop (the window stopped and closed after a
+// redirect) happens here.
+void RunPending() {
+  while (g_main_context_iteration(nullptr, FALSE)) {
+  }
+}
+
+class CloseRequestCounter : public WebPageObserver {
+ public:
+  void WebPageClosePageRequested() override { ++requests; }
+  int requests = 0;
 };
 
 using Properties = std::vector<std::pair<std::string, std::string>>;
@@ -181,6 +218,26 @@ class CreateWindowTest : public ::testing::Test {
     ASSERT_NE(app_, nullptr);
   }
 
+  // An opener whose view the test can watch, and a window from it whose view
+  // it can watch too.
+  void OpenWatched(const std::vector<std::string>& features) {
+    opener_ = std::make_unique<WebPageBlink>(
+        wam::Url("file:///index.html"), *desc_, "{}",
+        std::make_unique<RecordingViewFactory>(&opener_view_));
+    opener_->Init();
+    // Whatever else the page runs in its frames is of no interest here.
+    EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+    const WebView* view = opener_->CreateWindow(
+        "about:blank", std::make_unique<RecordingViewFactory>(&window_view_), 0,
+        features);
+    EXPECT_NE(view, nullptr);
+    ASSERT_NE(app_, nullptr);
+  }
+
+  WebPageBlink* Window() const {
+    return static_cast<WebPageBlink*>(app_->AttachedPage());
+  }
+
   // What the opener's appinfo.json asks for: the window type when the
   // attributes name none.
   static std::string DefaultType() {
@@ -191,6 +248,8 @@ class CreateWindowTest : public ::testing::Test {
   std::unique_ptr<WebPageBlink> opener_;
   std::string win_type_;
   WindowAppMock* app_ = nullptr;
+  WebViewMock* opener_view_ = nullptr;
+  WebViewMock* window_view_ = nullptr;
 };
 
 }  // namespace
@@ -300,4 +359,154 @@ TEST_F(CreateWindowTest, RendererCrashLeavesThePageToItsApp) {
   page->RenderProcessCrashed();
   EXPECT_EQ(app_->AttachedPage(), page);
   EXPECT_EQ(page->InstanceId(), app_->InstanceId());
+}
+
+// A sign-in window: the opener cannot see it reach its redirect (another
+// origin, and providers' Cross-Origin-Opener-Policy cuts it off), so WAM
+// tells it, and the window goes before the redirect page can run.
+TEST_F(CreateWindowTest, RedirectReachesTheOpener) {
+  // Told at once that the window is watched: how a page knows this WAM does it.
+  WebViewMock* opener_view = nullptr;
+  opener_ = std::make_unique<WebPageBlink>(
+      wam::Url("file:///index.html"), *desc_, "{}",
+      std::make_unique<RecordingViewFactory>(&opener_view));
+  opener_->Init();
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(AllOf(HasSubstr("webOSOAuthWindow"),
+                                                HasSubstr(R"(state:"watching")"))))
+      .Times(1);
+  const WebView* view = opener_->CreateWindow(
+      "about:blank", std::make_unique<RecordingViewFactory>(&window_view_), 0,
+      {kWatch});
+  ASSERT_NE(view, nullptr);
+  ASSERT_NE(app_, nullptr);
+  // The prefix is for WAM, not a window property.
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+  ::testing::Mock::VerifyAndClearExpectations(opener_view);
+
+  WebPageBlink* window = Window();
+  CloseRequestCounter closes;
+  window->AddObserver(&closes);
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(HasSubstr("webOSOAuthWindow"))).Times(0);
+  EXPECT_CALL(*window_view_, StopLoading()).Times(0);
+
+  // The login pages, and a frame inside one going to the prefix: not it.
+  window->DidStartNavigation("https://login.example.com/authorize?x=1", true);
+  window->DidStartNavigation("https://example.com/other", true);
+  window->DidStartNavigation("https://example.com/cb?code=frame", false);
+  EXPECT_EQ(closes.requests, 0);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view);
+  ::testing::Mock::VerifyAndClearExpectations(window_view_);
+
+  // The redirect, with what would break out of the script string.
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view,
+              RunJavaScriptInAllFrames(AllOf(HasSubstr(R"(state:"redirect")"),
+                                  HasSubstr(R"(url:"https://example.com/cb?code=a\"b\\c\n")"),
+                                  Not(HasSubstr("\n")))))
+      .Times(1);
+  // The opener is told at once; the window is stopped and closed only after
+  // the engine's callback has returned (stopping it inside deletes the
+  // navigation the engine is in the middle of, which aborts WebAppMgr).
+  EXPECT_CALL(*window_view_, StopLoading()).Times(0);
+  window->DidStartNavigation("https://example.com/cb?code=a\"b\\c\n", true);
+  EXPECT_EQ(closes.requests, 0);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view);
+  ::testing::Mock::VerifyAndClearExpectations(window_view_);
+  EXPECT_CALL(*window_view_, StopLoading()).Times(::testing::AtLeast(1));
+  RunPending();
+  EXPECT_EQ(closes.requests, 1);
+
+  // Once only, and going after the redirect is no "closed".
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view, RunJavaScriptInAllFrames(HasSubstr("webOSOAuthWindow"))).Times(0);
+  window->DidStartNavigation("https://example.com/cb?code=again", true);
+  RunPending();
+  EXPECT_EQ(closes.requests, 1);
+  window->RemoveObserver(&closes);
+  CloseWindow();
+}
+
+// What the engine hands over: it lowercases the whole features string, so
+// the key and the prefix arrive lowercased (seen on a device). The redirect
+// is still caught, and handed on with its code as it was.
+TEST_F(CreateWindowTest, FeaturesAsTheEngineLowercasesThem) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched(
+      {R"(attributes={"redirectprefix":"https://tidal.com/login/auth"})"}));
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(AllOf(
+                                 HasSubstr(R"(state:"redirect")"),
+                                 HasSubstr(R"(url:"https://Tidal.com/Login/auth?code=AbC")"))))
+      .Times(1);
+  Window()->DidStartNavigation("https://Tidal.com/Login/auth?code=AbC", true);
+  CloseWindow();
+}
+
+// An HTTP redirect (30x) to the prefix starts no navigation of its own; the
+// url it commits to is the redirect.
+TEST_F(CreateWindowTest, RedirectSeenWhenItCommits) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kWatch}));
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(AllOf(
+                                 HasSubstr(R"(state:"redirect")"),
+                                 HasSubstr(R"(url:"https://example.com/cb?code=c")"))))
+      .Times(1);
+  Window()->DidFinishNavigation("https://example.com/other", true);
+  Window()->DidFinishNavigation("https://example.com/cb?code=f", false);
+  Window()->DidFinishNavigation("https://example.com/cb?code=c", true);
+  CloseWindow();
+}
+
+// A redirect to an address nothing listens on (http://localhost/...) fails to
+// load: it is still the redirect.
+TEST_F(CreateWindowTest, RedirectSeenWhenItFailsToLoad) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched(
+      {R"(attributes={"redirectPrefix":"http://localhost/cb"})"}));
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(AllOf(
+                                 HasSubstr(R"(state:"redirect")"),
+                                 HasSubstr(R"(url:"http://localhost/cb?code=l")"))))
+      .Times(1);
+  Window()->LoadFailed("http://localhost/elsewhere", -102);
+  // Not stopped inside the engine's failed-load callback: the device aborted.
+  EXPECT_CALL(*window_view_, StopLoading()).Times(0);
+  Window()->LoadFailed("http://localhost/cb?code=l", -102);
+  ::testing::Mock::VerifyAndClearExpectations(window_view_);
+  EXPECT_CALL(*window_view_, StopLoading()).Times(::testing::AtLeast(1));
+  RunPending();
+  CloseWindow();
+}
+
+TEST_F(CreateWindowTest, WindowClosedWithoutRedirect) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kWatch}));
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(AllOf(HasSubstr("webOSOAuthWindow"),
+                                                 HasSubstr(R"(state:"closed")"))))
+      .Times(1);
+  CloseWindow();
+}
+
+TEST_F(CreateWindowTest, OpenerGoesFirst) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kWatch}));
+  WebPageBlink* window = Window();
+  // The page that waited for the redirect is gone: nothing to tell, and
+  // nothing of it may be reached (ASan in run-sanitizers.sh).
+  opener_.reset();
+  opener_view_ = nullptr;
+  window->DidStartNavigation("https://example.com/cb?code=x", true);
+  CloseWindow();
+}
+
+TEST_F(CreateWindowTest, OnlyAnHttpUrlIsWatched) {
+  for (const char* prefix :
+       {"", "javascript:alert(1)", "file:///usr/palm", "https://", "https:///x",
+        "http://", "about:blank", "msauth.x://auth"}) {
+    SCOPED_TRACE(prefix);
+    ASSERT_NO_FATAL_FAILURE(OpenWatched(
+        {std::string("attributes={\"redirectPrefix\":\"") + prefix + "\"}"}));
+    // Neither watched nor a window property.
+    EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr("webOSOAuthWindow"))).Times(0);
+    EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+    Window()->DidStartNavigation(prefix, true);
+    CloseWindow();
+    ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+  }
 }

@@ -121,6 +121,9 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void LoadStopped() override;
   void LoadAborted(const std::string& url) override;
   void NotifyExternalProtocolNavigation(const std::string& url);
+  // A window this page opened for a sign-in, to watch for its redirect: see
+  // WatchRedirectFor().
+  void WatchRedirectFor(WebPageBlink* opener, const std::string& prefix);
   void LoadProgressChanged(double progress) override;
   void DidStartNavigation(const std::string& url,
                           bool is_in_main_frame) override;
@@ -201,6 +204,13 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void ApplyPageZoomFactor();
   std::vector<std::string> GetErrorPagePath(const std::string& error_page);
   void ReloadFailedUrl();
+  // Tells this page, as a 'webOSOAuthWindow' DOM event, what became of a
+  // sign-in window it opened: "watching", "redirect" (with the url) or
+  // "closed".
+  void NotifyOAuthWindow(const std::string& state, const std::string& url);
+  void ForgetWatchedWindow(const WebPageBlink* window);
+  bool CatchOAuthRedirect(const std::string& url);
+  void CloseAfterOAuthRedirect();
 
   std::unique_ptr<WebPageBlinkPrivate> page_private_;
 
@@ -219,6 +229,17 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   RepeatingTimer<WebPageBlink> net_error_reload_timer_;
 
   WebPageBlinkObserver* observer_ = nullptr;
+
+  // A sign-in window: the page that opened it and the url its redirect starts
+  // with. The two pages know each other until either goes.
+  WebPageBlink* oauth_opener_ = nullptr;
+  std::string oauth_redirect_prefix_;
+  bool oauth_redirected_ = false;
+  // Stops and closes the window once the engine's callback that caught the
+  // redirect has returned.
+  OneShotTimer<WebPageBlink> oauth_close_timer_;
+  // The sign-in windows this page opened.
+  std::vector<WebPageBlink*> oauth_windows_;
 
   std::unique_ptr<WebViewFactory> factory_;
 };

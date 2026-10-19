@@ -17,6 +17,7 @@
 #include "web_page_blink.h"
 
 #include <algorithm>
+#include <cctype>
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
@@ -110,6 +111,39 @@ double LegacyUiZoomFactor() {
 // does not parse already did. The strict parser accepts an array as a whole
 // document ("attributes=[]"), and jsoncpp asserts - taking WebAppMgr down -
 // when a member is looked up on one.
+// |text| as the contents of a JavaScript string literal in double quotes.
+std::string JsStringContents(const std::string& text) {
+  std::string escaped;
+  escaped.reserve(text.size() + 16);
+  for (const char c : text) {
+    switch (c) {
+      case '\\': escaped += "\\\\"; break;
+      case '"': escaped += "\\\""; break;
+      case '\n': escaped += "\\n"; break;
+      case '\r': escaped += "\\r"; break;
+      default:
+        // Drop control characters rather than emit a raw byte the parser may choke on.
+        if (static_cast<unsigned char>(c) >= 0x20)
+          escaped += c;
+        break;
+    }
+  }
+  return escaped;
+}
+
+// The prefix a sign-in window's redirect is watched for must be an http(s)
+// url with a host: anything else is no watch at all.
+bool IsWatchableRedirectPrefix(const std::string& prefix) {
+  for (const char* scheme : {"https://", "http://"}) {
+    const size_t length = std::char_traits<char>::length(scheme);
+    if (prefix.size() > length && prefix.compare(0, length, scheme) == 0 &&
+        prefix[length] != '/') {
+      return true;
+    }
+  }
+  return false;
+}
+
 constexpr char kAttributesFeature[] = "attributes=";
 constexpr size_t kAttributesFeatureLength = sizeof(kAttributesFeature) - 1;
 
@@ -161,6 +195,16 @@ WebPageBlink::WebPageBlink(const wam::Url& url,
 WebPageBlink::~WebPageBlink() {
   if (dom_suspend_timer_.IsRunning()) {
     dom_suspend_timer_.Stop();
+  }
+  if (oauth_opener_) {
+    // Closed by the user, or by its own script, before any redirect.
+    if (!oauth_redirected_) {
+      oauth_opener_->NotifyOAuthWindow("closed", "");
+    }
+    oauth_opener_->ForgetWatchedWindow(this);
+  }
+  for (WebPageBlink* window : oauth_windows_) {
+    window->oauth_opener_ = nullptr;
   }
 }
 
@@ -779,6 +823,10 @@ void WebPageBlink::DidStartNavigation(const std::string& url,
                                       bool is_in_main_frame) {
   loading_url_ = url;
 
+  if (is_in_main_frame && CatchOAuthRedirect(url)) {
+    return;
+  }
+
   // moved from loadStarted
   has_close_callback_ = false;
   HandleLoadStarted();
@@ -791,6 +839,10 @@ void WebPageBlink::DidStartNavigation(const std::string& url,
 
 void WebPageBlink::DidFinishNavigation(const std::string& url,
                                        bool is_in_main_frame) {
+  // The url committed: where an HTTP redirect (30x) to the prefix shows.
+  if (is_in_main_frame && CatchOAuthRedirect(url)) {
+    return;
+  }
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[CONNECT]%s",
@@ -867,21 +919,7 @@ void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
   }
 
   // The URL becomes a JavaScript string literal, so escape what would break out of it.
-  std::string escaped;
-  escaped.reserve(url.size() + 16);
-  for (const char c : url) {
-    switch (c) {
-      case '\\': escaped += "\\\\"; break;
-      case '"': escaped += "\\\""; break;
-      case '\n': escaped += "\\n"; break;
-      case '\r': escaped += "\\r"; break;
-      default:
-        // Drop control characters rather than emit a raw byte the parser may choke on.
-        if (static_cast<unsigned char>(c) >= 0x20)
-          escaped += c;
-        break;
-    }
-  }
+  const std::string escaped = JsStringContents(url);
 
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
@@ -896,7 +934,99 @@ void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
       "f(window);if(window.opener){f(window.opener);}})();");
 }
 
+// A sign-in page opens its provider's login with window.open() and waits for the redirect
+// back with the authorization code. The page cannot see it there: the window is another
+// origin, which the same-origin policy keeps the opener's script out of, and providers
+// such as Tidal send Cross-Origin-Opener-Policy, which cuts the window off from its
+// opener altogether (window.closed turns true while it is still open). Legacy webOS
+// hosted the login in a BrowserServer view that reported every navigation to the app;
+// this is the LuneOS equivalent. A window opened with
+//   window.open(url, name, 'attributes={"redirectPrefix":"https://example.com/cb"}')
+// is watched from here, outside both pages: once it starts loading a url beginning with
+// the prefix, the opener gets a 'webOSOAuthWindow' event with detail
+// {state: "redirect", url} and the window closes. The opener is told "watching" when the
+// window is made and "closed" when it goes without a redirect.
+void WebPageBlink::WatchRedirectFor(WebPageBlink* opener,
+                                    const std::string& prefix) {
+  if (!opener || opener == this || !IsWatchableRedirectPrefix(prefix)) {
+    return;
+  }
+  if (oauth_opener_) {
+    oauth_opener_->ForgetWatchedWindow(this);
+  }
+  oauth_opener_ = opener;
+  oauth_redirect_prefix_ = prefix;
+  oauth_redirected_ = false;
+  opener->oauth_windows_.push_back(this);
+  opener->NotifyOAuthWindow("watching", "");
+}
+
+// A sign-in window reaching its redirect, in its main frame - starting to load it, or
+// having committed or failed to load it: the opener gets the url and the window goes
+// before the redirect page can run (a provider's own web app would spend the
+// authorization code on its own account). Once only.
+//
+// The window is stopped and closed only after the engine's callback this is called from
+// has returned: stopping it there deletes the navigation the engine is still in the
+// middle of, which it does not allow ("Check failed: is_safe_to_delete_" in
+// navigation_request.cc, from LoadFailed on a device - WebAppMgr aborted).
+bool WebPageBlink::CatchOAuthRedirect(const std::string& url) {
+  // Without regard to case: the prefix came through the lowercased features.
+  // The url handed on is the one loaded, its code as it was.
+  if (!oauth_opener_ || oauth_redirected_ ||
+      url.size() < oauth_redirect_prefix_.size() ||
+      !std::equal(oauth_redirect_prefix_.begin(), oauth_redirect_prefix_.end(),
+                  url.begin(), [](char a, char b) {
+                    return std::tolower(static_cast<unsigned char>(a)) ==
+                           std::tolower(static_cast<unsigned char>(b));
+                  })) {
+    return false;
+  }
+  oauth_redirected_ = true;
+  LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
+           PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
+           PMLOGKFV("PID", "%d", GetWebProcessPID()), "[REDIRECT]%s",
+           WebAppManagerUtils::TruncateURL(url).c_str());
+  oauth_opener_->NotifyOAuthWindow("redirect", url);
+  oauth_close_timer_.StartWithReceiver(0, this,
+                                       &WebPageBlink::CloseAfterOAuthRedirect);
+  return true;
+}
+
+void WebPageBlink::CloseAfterOAuthRedirect() {
+  page_private_->page_view_->StopLoading();
+  Close();
+}
+
+void WebPageBlink::ForgetWatchedWindow(const WebPageBlink* window) {
+  oauth_windows_.erase(
+      std::remove(oauth_windows_.begin(), oauth_windows_.end(), window),
+      oauth_windows_.end());
+}
+
+void WebPageBlink::NotifyOAuthWindow(const std::string& state,
+                                     const std::string& url) {
+  if (!page_private_->page_view_) {
+    return;
+  }
+  // To every frame of the page: the window may have been opened from an
+  // iframe - Accounts loads a sign-in page (cloud-auth, musicauth) in one -
+  // and it is that frame that waits for the event.
+  EvaluateJavaScriptInAllFrames(
+      "(function(){var d={state:\"" + JsStringContents(state) + "\",url:\"" +
+      JsStringContents(url) +
+      "\"};try{if(d.state===\"redirect\"){window.webOSOAuthRedirectUrl=d.url;}"
+      "window.dispatchEvent(new CustomEvent('webOSOAuthWindow',{detail:d}));"
+      "}catch(e){}})();",
+      "NotifyOAuthWindow");
+}
+
 void WebPageBlink::LoadFailed(const std::string& url, int err_code) {
+  // A redirect to an address nothing answers on (http://localhost/... for some
+  // providers) fails to load; it is the redirect all the same.
+  if (CatchOAuthRedirect(url)) {
+    return;
+  }
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[FAILED ][%d]%s",
@@ -1485,11 +1615,27 @@ WebView* WebPageBlink::CreateWindow(
     new_web_app->Resize(CurrentUiWidth(), height);
   }
 
+  // A sign-in window: its redirect is watched for (WatchRedirectFor), and the
+  // prefix is no window property. The engine lowercases the whole features
+  // string before it gets here, so "redirectPrefix" arrives as
+  // "redirectprefix" (and the url in it lowercased).
+  std::string redirect_prefix =
+      util::JsonAsString(window_attributes["redirectPrefix"]);
+  if (redirect_prefix.empty()) {
+    redirect_prefix = util::JsonAsString(window_attributes["redirectprefix"]);
+  }
+  if (!redirect_prefix.empty()) {
+    const_cast<WebPageBlink*>(page)->WatchRedirectFor(this, redirect_prefix);
+  }
+
   for (auto attr = window_attributes.begin(); attr != window_attributes.end();
        ++attr) {
     std::string const attr_key = attr.name();
     std::string const attr_value = util::JsonAsString(*attr);
 
+    if (attr_key == "redirectPrefix" || attr_key == "redirectprefix") {
+      continue;
+    }
     if (!attr_key.empty() && !attr_value.empty()) {
       new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);
     }

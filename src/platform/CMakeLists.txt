@@ -21,6 +21,7 @@ set(SOURCES
     palm_system_webos.cc
     permission_prompt.cc
     platform_factory.cc
+    stage_transitions.cc
     web_app_wayland.cc
     web_app_wayland_window.cc
     web_app_window_impl.cc
@@ -45,6 +46,7 @@ set(HEADERS
     palm_system_webos.h
     permission_prompt.h
     platform_factory.h
+    stage_transitions.h
     web_app_wayland.h
     web_app_wayland_window.h
     web_app_window.h

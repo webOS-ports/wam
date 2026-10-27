@@ -26,6 +26,7 @@
 #include "webos/webos_platform.h"
 
 #include "display_id.h"
+#include "stage_transitions.h"
 #include "timer.h"
 #include "web_app_base.h"
 #include "web_app_window.h"
@@ -148,25 +149,34 @@ class WebAppWayland : public WebAppBase, WebPageBlinkObserver {
 
   void NotifyStageChange(const char* callback);
   void ApplyStateChange(webos::NativeWindowState new_state);
+  void DoStageActivated();
+  void DoStageDeactivated();
 
-  // A stage transition is not re-entrant.
+  // A stage transition is not re-entrant - see StageTransitions.
   //
   // Resuming the page, changing its visibility, showing the window and running
   // script all reach into the runtime and turn the message loop, so a Wayland
   // event queued behind the one being handled is delivered from inside the
-  // transition and arrives back through StateChanged(). The second entry runs
-  // against half-applied state - the first has not reached SetActiveInstanceId()
-  // or Show() yet - and the process goes down inside the runtime. Four cores on
-  // sargo, all the same:
+  // transition and arrives back through StateChanged(). Four cores on sargo,
+  // all the same:
   //
   //   OnStageActivated -> ... -> HandleWebOSEvent -> StateChanged
   //                           -> OnStageActivated -> SIGSEGV
   //
-  // A state that arrives during a transition is remembered and applied after
-  // it, rather than dropped: it is the newer truth about the window.
-  bool in_stage_transition_ = false;
-  bool has_pending_state_ = false;
-  webos::NativeWindowState pending_state_ = webos::NATIVE_WINDOW_DEFAULT;
+  // StateChanged() is not the only way in. ShowWindow(), Raise(),
+  // ResumeAppRendering(), Hide(), the first frame and closing call
+  // OnStageActivated() or OnStageDeactivated() directly, so every one of them
+  // goes through stage_transitions_. The relaunch of a keepAlive app whose
+  // window was hidden crashed that way on qemux86-64: Show() rebuilds the
+  // native window, the new toplevel reports its state while the widget is
+  // still being initialised, and the nested activation activated a widget with
+  // no platform window yet:
+  //
+  //   ShowWindow -> OnStageActivated -> Show -> ... -> HandleWebOSEvent
+  //              -> StateChanged -> OnStageActivated -> Show -> SIGSEGV
+  StageTransitions stage_transitions_{
+      [this](webos::NativeWindowState state) { ApplyStateChange(state); },
+      [this]() { return IsClosing(); }};
 
   // from WebPageBlinkObserver
   void DidSwapPageCompositorFrame() override;

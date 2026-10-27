@@ -332,7 +332,25 @@ void WebAppWayland::NotifyStageChange(const char* callback) {
   Page()->CallLegacyMojoCallback(callback);
 }
 
+// Every stage transition goes through stage_transitions_, so none starts on top
+// of another; one asked for meanwhile is applied as the state it stands for.
 void WebAppWayland::OnStageActivated() {
+  if (!stage_transitions_.Run(webos::NATIVE_WINDOW_DEFAULT,
+                              [this]() { DoStageActivated(); })) {
+    LOG_INFO(MSGID_WAM_DEBUG, 1, PMLOGKS("APP_ID", AppId().c_str()),
+             "Stage activation during a stage transition; deferred");
+  }
+}
+
+void WebAppWayland::OnStageDeactivated() {
+  if (!stage_transitions_.Run(webos::NATIVE_WINDOW_MINIMIZED,
+                              [this]() { DoStageDeactivated(); })) {
+    LOG_INFO(MSGID_WAM_DEBUG, 1, PMLOGKS("APP_ID", AppId().c_str()),
+             "Stage deactivation during a stage transition; deferred");
+  }
+}
+
+void WebAppWayland::DoStageActivated() {
   if (GetCrashState()) {
     LOG_INFO(MSGID_WEBAPP_STAGE_ACITVATED, 4,
              PMLOGKS("APP_ID", AppId().c_str()),
@@ -366,7 +384,7 @@ void WebAppWayland::OnStageActivated() {
   NotifyStageChange("stageActivated");
 }
 
-void WebAppWayland::OnStageDeactivated() {
+void WebAppWayland::DoStageDeactivated() {
   // enyo.windows.events.handleDeactivated() -> ApplicationEvents
   // onWindowDeactivated. Sent before anything below suspends the page: script
   // evaluated after that does not run, and the application would never hear
@@ -765,30 +783,13 @@ void WebAppWayland::StateChanged(webos::NativeWindowState new_state) {
   }
 
   // Delivered from inside a transition that is still running - see
-  // in_stage_transition_. Remember it and let the outer call apply it once it
-  // has finished, instead of starting a second transition on top of a
-  // half-applied one.
-  if (in_stage_transition_) {
+  // stage_transitions_. The outer call applies it once it has finished,
+  // instead of starting a second transition on top of a half-applied one.
+  if (!stage_transitions_.Run(
+          new_state, [this, new_state]() { ApplyStateChange(new_state); })) {
     LOG_INFO(MSGID_WINDOW_STATE_CHANGED, 2, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKFV("HOST_STATE", "%d", new_state),
              "Arrived during a stage transition; deferred");
-    pending_state_ = new_state;
-    has_pending_state_ = true;
-    return;
-  }
-
-  in_stage_transition_ = true;
-  ApplyStateChange(new_state);
-  in_stage_transition_ = false;
-
-  // Anything that arrived while we were busy is the newer truth about this
-  // window; apply it now, iteratively so a chain of them cannot recurse.
-  while (has_pending_state_) {
-    const webos::NativeWindowState state = pending_state_;
-    has_pending_state_ = false;
-    in_stage_transition_ = true;
-    ApplyStateChange(state);
-    in_stage_transition_ = false;
   }
 }
 
@@ -801,13 +802,13 @@ void WebAppWayland::ApplyStateChange(webos::NativeWindowState new_state) {
                PMLOGKS("APP_ID", AppId().c_str()),
                "To FullScreen; call onStageActivated");
       ApplyInputRegion();
-      OnStageActivated();
+      DoStageActivated();
       break;
     case webos::NATIVE_WINDOW_MINIMIZED:
       LOG_INFO(MSGID_WINDOW_STATE_CHANGED, 1,
                PMLOGKS("APP_ID", AppId().c_str()),
                "To Minimized; call onStageDeactivated");
-      OnStageDeactivated();
+      DoStageDeactivated();
       break;
     default:
       LOG_INFO(MSGID_WINDOW_STATE_CHANGED, 2,

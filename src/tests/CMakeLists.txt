@@ -43,6 +43,7 @@ set(SOURCES
     plugin_load_test.cc
     plugin_loader_test.cc
     set_inspector_enable_test.cc
+    stage_transitions_test.cc
     string_utils_test.cc
     touch_event_test.cc
     untrusted_json_test.cc

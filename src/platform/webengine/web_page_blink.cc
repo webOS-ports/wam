@@ -21,6 +21,7 @@
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
+#include <iterator>
 #include <limits>
 #include <sstream>
 #include <string>
@@ -132,16 +133,38 @@ std::string JsStringContents(const std::string& text) {
 }
 
 // The prefix a sign-in window's redirect is watched for must be an http(s)
-// url with a host: anything else is no watch at all.
+// url with a host, or a url of an app's own scheme with something after the
+// "://" (Teams: msauth.com.microsoft.teams://auth). Anything else - the
+// engine's other schemes, javascript:, a bare scheme - is no watch at all.
 bool IsWatchableRedirectPrefix(const std::string& prefix) {
   for (const char* scheme : {"https://", "http://"}) {
     const size_t length = std::char_traits<char>::length(scheme);
-    if (prefix.size() > length && prefix.compare(0, length, scheme) == 0 &&
-        prefix[length] != '/') {
-      return true;
+    if (prefix.compare(0, length, scheme) == 0) {
+      return prefix.size() > length && prefix[length] != '/';
     }
   }
-  return false;
+  // An app's own scheme: RFC 3986 scheme characters, then "://" and more.
+  const size_t separator = prefix.find("://");
+  if (separator == std::string::npos || separator == 0 ||
+      prefix.size() <= separator + 3 || prefix[separator + 3] == '/' ||
+      !std::isalpha(static_cast<unsigned char>(prefix[0]))) {
+    return false;
+  }
+  std::string scheme = prefix.substr(0, separator);
+  if (!std::all_of(std::next(scheme.begin()), scheme.end(), [](unsigned char c) {
+        return std::isalnum(c) || c == '+' || c == '-' || c == '.';
+      })) {
+    return false;
+  }
+  std::transform(scheme.begin(), scheme.end(), scheme.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  static const char* const engine_schemes[] = {
+      "file", "about", "data", "blob", "javascript", "ws", "wss", "chrome",
+      "filesystem", "view-source"};
+  return std::none_of(std::begin(engine_schemes), std::end(engine_schemes),
+                      [&scheme](const char* engine_scheme) {
+                        return scheme == engine_scheme;
+                      });
 }
 
 constexpr char kAttributesFeature[] = "attributes=";
@@ -896,6 +919,12 @@ void WebPageBlink::LoadAborted(const std::string& url) {
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[ABORTED]%s",
            WebAppManagerUtils::TruncateURL(url).c_str());
 
+  // A sign-in window's redirect to an app's own scheme (msauth.<client>://
+  // auth?code=...) is never loaded: the engine aborts it, and this is the only
+  // place it is seen.
+  if (CatchOAuthRedirect(url)) {
+    return;
+  }
   NotifyExternalProtocolNavigation(url);
 }
 
@@ -907,6 +936,11 @@ void WebPageBlink::LoadAborted(const std::string& url) {
 // actionData("oauthRedirect"); this is the LuneOS equivalent. Hand the URL to the page as a
 // DOM event, and to its opener as well, since the window that started the sign-in is the
 // one waiting for the code.
+//
+// Reaching the opener from here only works while both share a renderer: a provider's login
+// page is another site, so the window usually runs in a process of its own and the opener's
+// event and property are out of its reach (SecurityError). A sign-in window should therefore
+// ask for its redirect to be watched (WatchRedirectFor), which tells the opener from WAM.
 void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
   static const char* engine_schemes[] = {
       "http:", "https:", "file:", "about:", "data:",
@@ -943,7 +977,8 @@ void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
 // this is the LuneOS equivalent. A window opened with
 //   window.open(url, name, 'attributes={"redirectPrefix":"https://example.com/cb"}')
 // is watched from here, outside both pages: once it starts loading a url beginning with
-// the prefix, the opener gets a 'webOSOAuthWindow' event with detail
+// the prefix - or, for an app's own scheme such as msauth.<client>://auth, which the engine
+// cannot load, has that load aborted - the opener gets a 'webOSOAuthWindow' event with detail
 // {state: "redirect", url} and the window closes. The opener is told "watching" when the
 // window is made and "closed" when it goes without a redirect.
 void WebPageBlink::WatchRedirectFor(WebPageBlink* opener,

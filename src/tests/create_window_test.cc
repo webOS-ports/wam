@@ -495,10 +495,37 @@ TEST_F(CreateWindowTest, OpenerGoesFirst) {
   CloseWindow();
 }
 
-TEST_F(CreateWindowTest, OnlyAnHttpUrlIsWatched) {
+// A redirect to an app's own scheme (Teams' msauth.<client>://auth) is never
+// loaded: the engine aborts it, and that is where it is caught. The opener is
+// told from WAM, so it does not matter that the window runs in a renderer of
+// its own, out of the opener's reach.
+TEST_F(CreateWindowTest, NativeSchemeRedirectSeenWhenAborted) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched(
+      {R"(attributes={"redirectprefix":"msauth.com.microsoft.teams://auth"})"}));
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_,
+              RunJavaScriptInAllFrames(AllOf(
+                  HasSubstr(R"(state:"redirect")"),
+                  HasSubstr(R"(url:"msauth.com.microsoft.teams://auth/?code=M.C5_Ab")"))))
+      .Times(1);
+  // Not the redirect: another app's scheme, and the login page itself.
+  Window()->LoadAborted("msauth.other://auth/?code=no");
+  Window()->LoadAborted("https://login.live.com/oauth20_authorize.srf");
+  EXPECT_CALL(*window_view_, StopLoading()).Times(0);
+  Window()->LoadAborted("msauth.com.microsoft.teams://auth/?code=M.C5_Ab");
+  ::testing::Mock::VerifyAndClearExpectations(window_view_);
+  EXPECT_CALL(*window_view_, StopLoading()).Times(::testing::AtLeast(1));
+  RunPending();
+  CloseWindow();
+}
+
+TEST_F(CreateWindowTest, OnlyAnHttpUrlOrAnAppSchemeIsWatched) {
   for (const char* prefix :
        {"", "javascript:alert(1)", "file:///usr/palm", "https://", "https:///x",
-        "http://", "about:blank", "msauth.x://auth"}) {
+        "http://", "about:blank", "msauth.x://", "msauth.x:///auth", "://auth",
+        "1app://auth", "my app://auth", "JavaScript://x", "FILE://x/y",
+        "data://x", "blob://x", "chrome://settings", "view-source://x"}) {
     SCOPED_TRACE(prefix);
     ASSERT_NO_FATAL_FAILURE(OpenWatched(
         {std::string("attributes={\"redirectPrefix\":\"") + prefix + "\"}"}));

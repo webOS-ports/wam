@@ -156,7 +156,7 @@ class WindowAppFactoryManager : public WebAppFactoryManager {
       return nullptr;
     }
     // WebAppFactoryManager hands apps over as raw pointers; the test deletes
-    // the app it gets back (CloseWindow()).
+    // the app it gets back (CloseApp()).
     *app_ = new WindowAppMock();  // NOLINT(cppcoreguidelines-owning-memory)
     return *app_;
   }
@@ -197,16 +197,40 @@ class CreateWindowTest : public ::testing::Test {
 
   void TearDown() override {
     CloseWindow();
+    for (WindowAppMock*& app : kept_) {
+      CloseApp(app);
+    }
     opener_.reset();
   }
 
-  void CloseWindow() {
-    if (app_) {
-      WebAppManager::Instance()->WebPageRemoved(app_->AttachedPage());
-      WebAppManager::Instance()->AppDeleted(app_);
-      delete app_;
-      app_ = nullptr;
+  void CloseWindow() { CloseApp(app_); }
+
+  static void CloseApp(WindowAppMock*& app) {
+    if (app) {
+      WebAppManager::Instance()->WebPageRemoved(app->AttachedPage());
+      WebAppManager::Instance()->AppDeleted(app);
+      delete app;  // NOLINT(cppcoreguidelines-owning-memory): made by the factory above
+      app = nullptr;
     }
+  }
+
+  // Keeps the window open now aside, so that another can be opened (from it):
+  // the factory only ever hands back the last. Closed with the test, or by
+  // CloseApp(kept_[i]).
+  WebPageBlink* KeepWindow() {
+    kept_.push_back(app_);
+    app_ = nullptr;
+    return static_cast<WebPageBlink*>(kept_.back()->AttachedPage());
+  }
+
+  // window.open() from a page that is itself a window, as a login page does.
+  void OpenFrom(WebPageBlink* page, WebViewMock** view,
+                const std::vector<std::string>& features = {}) {
+    const WebView* made = page->CreateWindow(
+        "about:blank", std::make_unique<RecordingViewFactory>(view), 0,
+        features);
+    EXPECT_NE(made, nullptr);
+    ASSERT_NE(app_, nullptr);
   }
 
   // window.open() with these features. The new window has to be created
@@ -248,6 +272,7 @@ class CreateWindowTest : public ::testing::Test {
   std::unique_ptr<WebPageBlink> opener_;
   std::string win_type_;
   WindowAppMock* app_ = nullptr;
+  std::vector<WindowAppMock*> kept_;
   WebViewMock* opener_view_ = nullptr;
   WebViewMock* window_view_ = nullptr;
 };
@@ -536,4 +561,124 @@ TEST_F(CreateWindowTest, OnlyAnHttpUrlOrAnAppSchemeIsWatched) {
     CloseWindow();
     ::testing::Mock::VerifyAndClearExpectations(opener_view_);
   }
+}
+
+// Box's login opens each step of its sign-in in a new window of its own, and
+// the redirect comes in the last (seen on a VM: windows 1001 and 1002 came
+// from taps in the login, and the redirect failed to load in 1002, unseen).
+// Such a window is watched for the same sign-in, for the page that started it.
+TEST_F(CreateWindowTest, RedirectInAWindowTheLoginOpened) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched(
+      {R"(attributes={"redirectPrefix":"http://localhost/boxnet/oauth2callback"})"}));
+  WebViewMock* first_view = window_view_;
+  WebPageBlink* first = KeepWindow();
+  CloseRequestCounter first_closes;
+  first->AddObserver(&first_closes);
+  WebViewMock* second_view = nullptr;
+  ASSERT_NO_FATAL_FAILURE(OpenFrom(first, &second_view));
+  WebPageBlink* second = KeepWindow();
+  WebViewMock* third_view = nullptr;
+  ASSERT_NO_FATAL_FAILURE(OpenFrom(second, &third_view));
+  // The window the login opened is no window property of anything either.
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+
+  WebPageBlink* third = Window();
+  CloseRequestCounter third_closes;
+  third->AddObserver(&third_closes);
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"closed")")))
+      .Times(0);
+  EXPECT_CALL(*opener_view_,
+              RunJavaScriptInAllFrames(AllOf(
+                  HasSubstr(R"(state:"redirect")"),
+                  HasSubstr(R"(url:"http://localhost/boxnet/oauth2callback?state=cloud&code=X")"))))
+      .Times(1);
+  third->LoadFailed("http://localhost/boxnet/oauth2callback?state=cloud&code=X", -102);
+  // The sign-in is over: every window of it goes, after the engine's callback.
+  EXPECT_CALL(*first_view, StopLoading()).Times(::testing::AtLeast(1));
+  EXPECT_CALL(*second_view, StopLoading()).Times(::testing::AtLeast(1));
+  EXPECT_CALL(*third_view, StopLoading()).Times(::testing::AtLeast(1));
+  RunPending();
+  EXPECT_EQ(first_closes.requests, 1);
+  EXPECT_EQ(third_closes.requests, 1);
+
+  // Once only: another window of it reaching the redirect is not told again.
+  first->DidStartNavigation("http://localhost/boxnet/oauth2callback?code=Y", true);
+  RunPending();
+  first->RemoveObserver(&first_closes);
+  third->RemoveObserver(&third_closes);
+  // Going after the redirect is no "closed", for any of them.
+  CloseWindow();
+  CloseApp(kept_[1]);
+  CloseApp(kept_[0]);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+}
+
+// Closing the first window - the one the sign-in page opened, which the user
+// may well swipe away - is no cancelled sign-in while the login goes on in
+// another; the last one going without a redirect is.
+TEST_F(CreateWindowTest, ClosedWhenTheLastWindowOfTheSignInGoes) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kWatch}));
+  WebPageBlink* first = KeepWindow();
+  WebViewMock* second_view = nullptr;
+  ASSERT_NO_FATAL_FAILURE(OpenFrom(first, &second_view));
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"closed")")))
+      .Times(0);
+  CloseApp(kept_[0]);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+
+  // The window outlives the one it came from, and still reports.
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"redirect")")))
+      .Times(0);
+  Window()->DidStartNavigation("https://example.com/elsewhere", true);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"closed")")))
+      .Times(1);
+  CloseWindow();
+}
+
+// Two sign-ins of one page (a second try while the first window is still
+// open) are kept apart: each ends on its own.
+TEST_F(CreateWindowTest, SignInsOfOnePageKeptApart) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kWatch}));
+  KeepWindow();
+  WebViewMock* second_view = nullptr;
+  ASSERT_NO_FATAL_FAILURE(OpenFrom(opener_.get(), &second_view, {kWatch}));
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+
+  // The first going, while the second is still open, is its own sign-in
+  // cancelled.
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"closed")")))
+      .Times(1);
+  CloseApp(kept_[0]);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+
+  // The second carries on, and its redirect still comes through.
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(AllOf(
+                                 HasSubstr(R"(state:"redirect")"),
+                                 HasSubstr(R"(url:"https://example.com/cb?code=2")"))))
+      .Times(1);
+  Window()->DidStartNavigation("https://example.com/cb?code=2", true);
+  RunPending();
+  CloseWindow();
+}
+
+// A window from a page that is no sign-in window is no sign-in window.
+TEST_F(CreateWindowTest, WindowOfAnUnwatchedWindowIsNotWatched) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({}));
+  WebPageBlink* first = KeepWindow();
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr("webOSOAuthWindow"))).Times(0);
+  WebViewMock* second_view = nullptr;
+  ASSERT_NO_FATAL_FAILURE(OpenFrom(first, &second_view));
+  Window()->DidStartNavigation("https://example.com/cb?code=x", true);
+  RunPending();
+  CloseWindow();
 }

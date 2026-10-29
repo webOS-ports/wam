@@ -211,6 +211,12 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void ForgetWatchedWindow(const WebPageBlink* window);
   bool CatchOAuthRedirect(const std::string& url);
   void CloseAfterOAuthRedirect();
+  // A window a sign-in window opened itself: watched for the same sign-in.
+  void WatchRedirectAs(const WebPageBlink& window);
+  void StartWatching(WebPageBlink* opener, const std::string& prefix,
+                     int sign_in);
+  // Whether a window of this sign-in of this page's is still open.
+  bool SignInOpen(int sign_in) const;
 
   std::unique_ptr<WebPageBlinkPrivate> page_private_;
 
@@ -235,6 +241,12 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   WebPageBlink* oauth_opener_ = nullptr;
   std::string oauth_redirect_prefix_;
   bool oauth_redirected_ = false;
+  // Which of the opener's sign-ins this window is part of. A provider's login
+  // can open windows of its own (Box does, for each step), which are watched
+  // for the same sign-in; the redirect may come in any of them.
+  int oauth_sign_in_ = 0;
+  // On the opener: the last sign-in it started.
+  int oauth_last_sign_in_ = 0;
   // Stops and closes the window once the engine's callback that caught the
   // redirect has returned.
   OneShotTimer<WebPageBlink> oauth_close_timer_;

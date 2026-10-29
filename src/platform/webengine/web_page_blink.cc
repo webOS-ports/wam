@@ -220,11 +220,13 @@ WebPageBlink::~WebPageBlink() {
     dom_suspend_timer_.Stop();
   }
   if (oauth_opener_) {
-    // Closed by the user, or by its own script, before any redirect.
-    if (!oauth_redirected_) {
-      oauth_opener_->NotifyOAuthWindow("closed", "");
+    WebPageBlink* opener = oauth_opener_;
+    opener->ForgetWatchedWindow(this);
+    // Closed by the user, or by its own script, before any redirect - and the
+    // last window of its sign-in: the login may carry on in another one.
+    if (!oauth_redirected_ && !opener->SignInOpen(oauth_sign_in_)) {
+      opener->NotifyOAuthWindow("closed", "");
     }
-    oauth_opener_->ForgetWatchedWindow(this);
   }
   for (WebPageBlink* window : oauth_windows_) {
     window->oauth_opener_ = nullptr;
@@ -980,20 +982,49 @@ void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
 // the prefix - or, for an app's own scheme such as msauth.<client>://auth, which the engine
 // cannot load, has that load aborted - the opener gets a 'webOSOAuthWindow' event with detail
 // {state: "redirect", url} and the window closes. The opener is told "watching" when the
-// window is made and "closed" when it goes without a redirect.
+// window is made and "closed" when it goes without a redirect. Windows the login opens
+// from there are part of the same sign-in (WatchRedirectAs): "closed" comes when the last
+// of them goes, and when one reaches the redirect, the others close with it.
 void WebPageBlink::WatchRedirectFor(WebPageBlink* opener,
                                     const std::string& prefix) {
   if (!opener || opener == this || !IsWatchableRedirectPrefix(prefix)) {
     return;
   }
+  StartWatching(opener, prefix, ++opener->oauth_last_sign_in_);
+}
+
+// A provider's login page can go on in a window of its own: Box's opens each
+// step of its sign-in in a new window, and its redirect comes in the last one.
+// That window is out of the opener's sight as much as the first was, so it is
+// watched as well, for the same sign-in and on behalf of the same page.
+void WebPageBlink::WatchRedirectAs(const WebPageBlink& window) {
+  if (!window.oauth_opener_ || window.oauth_redirected_ ||
+      window.oauth_opener_ == this) {
+    return;
+  }
+  StartWatching(window.oauth_opener_, window.oauth_redirect_prefix_,
+                window.oauth_sign_in_);
+}
+
+void WebPageBlink::StartWatching(WebPageBlink* opener,
+                                 const std::string& prefix,
+                                 int sign_in) {
   if (oauth_opener_) {
     oauth_opener_->ForgetWatchedWindow(this);
   }
   oauth_opener_ = opener;
   oauth_redirect_prefix_ = prefix;
   oauth_redirected_ = false;
+  oauth_sign_in_ = sign_in;
   opener->oauth_windows_.push_back(this);
   opener->NotifyOAuthWindow("watching", "");
+}
+
+bool WebPageBlink::SignInOpen(int sign_in) const {
+  return std::any_of(oauth_windows_.begin(), oauth_windows_.end(),
+                     [sign_in](const WebPageBlink* window) {
+                       return window->oauth_sign_in_ == sign_in;
+                     });
 }
 
 // A sign-in window reaching its redirect, in its main frame - starting to load it, or
@@ -1023,6 +1054,15 @@ bool WebPageBlink::CatchOAuthRedirect(const std::string& url) {
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[REDIRECT]%s",
            WebAppManagerUtils::TruncateURL(url).c_str());
   oauth_opener_->NotifyOAuthWindow("redirect", url);
+  // The sign-in is over: its other windows go too, and are not "closed".
+  for (WebPageBlink* window : oauth_opener_->oauth_windows_) {
+    if (window != this && window->oauth_sign_in_ == oauth_sign_in_ &&
+        !window->oauth_redirected_) {
+      window->oauth_redirected_ = true;
+      window->oauth_close_timer_.StartWithReceiver(
+          0, window, &WebPageBlink::CloseAfterOAuthRedirect);
+    }
+  }
   oauth_close_timer_.StartWithReceiver(0, this,
                                        &WebPageBlink::CloseAfterOAuthRedirect);
   return true;
@@ -1661,6 +1701,9 @@ WebView* WebPageBlink::CreateWindow(
   }
   if (!redirect_prefix.empty()) {
     const_cast<WebPageBlink*>(page)->WatchRedirectFor(this, redirect_prefix);
+  } else if (oauth_opener_) {
+    // A sign-in window opening one of its own (see WatchRedirectAs).
+    const_cast<WebPageBlink*>(page)->WatchRedirectAs(*this);
   }
 
   for (auto attr = window_attributes.begin(); attr != window_attributes.end();

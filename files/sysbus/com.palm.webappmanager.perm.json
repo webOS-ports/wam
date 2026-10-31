@@ -7,6 +7,7 @@
         "networkconnection.query",
         "notification.operation",
         "notification.management",
+        "settings.private.query",
         "settings.query",
         "systemconfig.query",
         "systemsettings.query"

@@ -29,6 +29,7 @@ set(SOURCES
     webengine/blink_web_view.cc
     webengine/blink_web_view_profile_helper.cc
     webengine/palm_system_blink.cc
+    webengine/sound_notification.cc
     webengine/web_page_blink.cc
     webengine/web_view_impl.cc
     ${WAM_ROOT_SOURCE_DIR}/webos/device_info_impl.cc
@@ -56,6 +57,7 @@ set(HEADERS
     webengine/blink_web_view.h
     webengine/blink_web_view_profile_helper.h
     webengine/palm_system_blink.h
+    webengine/sound_notification.h
     webengine/web_page_blink.h
     webengine/web_page_blink_delegate.h
     webengine/web_page_blink_observer.h

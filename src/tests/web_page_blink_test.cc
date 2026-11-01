@@ -35,6 +35,8 @@
 
 namespace {
 
+using ::testing::_;
+using ::testing::AnyNumber;
 using ::testing::ByMove;
 using ::testing::HasSubstr;
 using ::testing::Return;
@@ -238,6 +240,7 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
   ASSERT_TRUE(WebAppManager::Instance()->Config()->IsDevModeEnabled())
       << "Devmode should be enabled for this test";
 
+  EXPECT_CALL(*factory->web_view_, AddUserScript(_)).Times(AnyNumber());
   EXPECT_CALL(*factory->web_view_,
               AddUserScript(HasSubstr("@class Telluriumnub")));
   WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
@@ -246,4 +249,13 @@ TEST_F(WebPageBlinkTestSuite, addUserScript) {
 
   WebAppManager::Instance()->SetPlatformModules(
       std::make_unique<PlatformModuleFactoryImpl>());
+}
+
+TEST_F(WebPageBlinkTestSuite, EveryPageGetsTheSoundShim) {
+  EXPECT_CALL(*factory->web_view_, AddUserScript(_)).Times(AnyNumber());
+  EXPECT_CALL(*factory->web_view_,
+              AddUserScript(HasSubstr("playSoundNotification")));
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
 }

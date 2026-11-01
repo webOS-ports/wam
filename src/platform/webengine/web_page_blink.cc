@@ -34,6 +34,7 @@
 #include "blink_web_view.h"
 #include "log_manager.h"
 #include "palm_system_blink.h"
+#include "sound_notification.h"
 #include "url.h"
 #include "utils.h"
 #include "window_types.h"
@@ -1286,6 +1287,9 @@ void WebPageBlink::AddUserScriptUrl(const wam::Url& url) {
 void WebPageBlink::SetupStaticUserScripts() {
   page_private_->page_view_->ClearUserScripts();
 
+  // PalmSystem's sound calls: webOSSystem comes with the web engine.
+  page_private_->page_view_->AddUserScript(sound_notification::PageShim());
+
   // Load Tellurium test framework if available, as a UserScript
   const std::string& tellurium_nub_path = TelluriumNubPath();
   if (!tellurium_nub_path.empty()) {
@@ -1709,10 +1713,14 @@ WebView* WebPageBlink::CreateWindow(
   for (auto attr = window_attributes.begin(); attr != window_attributes.end();
        ++attr) {
     std::string const attr_key = attr.name();
-    std::string const attr_value = util::JsonAsString(*attr);
+    std::string attr_value = util::JsonAsString(*attr);
 
     if (attr_key == "redirectPrefix" || attr_key == "redirectprefix") {
       continue;
+    }
+    // Lowercased with the rest of the features: the shell needs the real name.
+    if (attr_key == "sound") {
+      attr_value = sound_notification::ResolvePath(attr_value, app_desc_.FolderPath());
     }
     if (!attr_key.empty() && !attr_value.empty()) {
       new_web_app->SetWindowProperty("LuneOS_" + attr_key, attr_value);

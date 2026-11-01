@@ -18,6 +18,8 @@
 // webOS "attributes=" feature is page-controlled JSON and must not be able to
 // take WebAppMgr down, whatever it holds.
 
+#include <algorithm>
+#include <cctype>
 #include <memory>
 #include <string>
 #include <utility>
@@ -28,8 +30,13 @@
 #include <gtest/gtest.h>
 
 #include "application_description.h"
+#include "mocks/temp_dir.h"
+#include "palm_system_blink.h"
 #include "platform_module_factory_impl.h"
+#include "service_sender.h"
+#include "sound_notification.h"
 #include "url.h"
+#include "utils.h"
 #include "web_app_base_mock.h"
 #include "web_app_factory_manager.h"
 #include "web_app_manager.h"
@@ -277,7 +284,151 @@ class CreateWindowTest : public ::testing::Test {
   WebViewMock* window_view_ = nullptr;
 };
 
+struct ServiceCallRecord {
+  std::string url;
+  std::string payload;
+  std::string app_id;
+};
+
+// The bus calls an app makes, in place of the bus.
+class RecordingServiceSender : public ServiceSender {
+ public:
+  explicit RecordingServiceSender(std::vector<ServiceCallRecord>* calls)
+      : calls_(calls) {}
+  void PostlistRunningApps(std::vector<ApplicationInfo>& /*apps*/) override {}
+  void PostWebProcessCreated(const std::string& /*app_id*/,
+                             const std::string& /*instance_id*/,
+                             uint32_t /*pid*/) override {}
+  void ServiceCall(const std::string& url,
+                   const std::string& payload,
+                   const std::string& app_id) override {
+    calls_->push_back({url, payload, app_id});
+  }
+  void CloseApp(const std::string& /*id*/) override {}
+
+ private:
+  std::vector<ServiceCallRecord>* calls_;
+};
+
+class RecordingModules : public PlatformModuleFactoryImpl {
+ public:
+  explicit RecordingModules(std::vector<ServiceCallRecord>* calls)
+      : calls_(calls) {}
+
+ protected:
+  std::unique_ptr<ServiceSender> CreateServiceSender() override {
+    return std::make_unique<RecordingServiceSender>(calls_);
+  }
+
+ private:
+  std::vector<ServiceCallRecord>* calls_;
+};
+
+// PalmSystem.playSoundNotification and setAlertSound from a page's window, as
+// the page's shim sends them: anything may arrive here, as any page can call
+// setWindowProperty itself.
+class PalmSystemSoundTest : public CreateWindowTest {
+ protected:
+  void SetUp() override {
+    CreateWindowTest::SetUp();
+    WebAppManager::Instance()->SetPlatformModules(
+        std::make_unique<RecordingModules>(&calls_));
+    ASSERT_NO_FATAL_FAILURE(Open({}));
+    app_->SetAppId("com.example.app");
+    palm_system_ = std::make_unique<PalmSystemBlink>(app_);
+  }
+
+  void TearDown() override {
+    palm_system_.reset();
+    CreateWindowTest::TearDown();
+    WebAppManager::Instance()->SetPlatformModules(
+        std::make_unique<PlatformModuleFactoryImpl>());
+  }
+
+  void SetProperty(const std::vector<std::string>& arguments) {
+    palm_system_->HandleBrowserControlMessage("setWindowProperty", arguments);
+  }
+
+  std::vector<ServiceCallRecord> calls_;
+  std::unique_ptr<PalmSystemBlink> palm_system_;
+};
+
 }  // namespace
+
+TEST_F(PalmSystemSoundTest, PlayGoesToTheShell) {
+  SetProperty({sound_notification::kPlayProperty,
+               R"({"soundClass":"alerts","soundFile":"/a/b.mp3","duration":3000})"});
+
+  ASSERT_EQ(calls_.size(), 1U);
+  EXPECT_EQ(calls_[0].url, sound_notification::kPlayUrl);
+  EXPECT_EQ(calls_[0].app_id, "com.example.app");
+  Json::Value payload;
+  ASSERT_TRUE(util::StringToJson(calls_[0].payload, payload));
+  EXPECT_EQ(payload["appId"].asString(), "com.example.app");
+  EXPECT_EQ(payload["soundClass"].asString(), "alerts");
+  EXPECT_EQ(payload["soundFile"].asString(), "/a/b.mp3");
+  EXPECT_EQ(payload["duration"].asInt(), 3000);
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+}
+
+// A page says nothing about who it is.
+TEST_F(PalmSystemSoundTest, ThePageDoesNotNameTheApp) {
+  SetProperty({sound_notification::kPlayProperty,
+               R"({"soundClass":"alerts","appId":"com.other"})"});
+
+  ASSERT_EQ(calls_.size(), 1U);
+  EXPECT_EQ(calls_[0].app_id, "com.example.app");
+  Json::Value payload;
+  ASSERT_TRUE(util::StringToJson(calls_[0].payload, payload));
+  EXPECT_EQ(payload["appId"].asString(), "com.example.app");
+}
+
+TEST_F(PalmSystemSoundTest, BadRequestsComeToNothing) {
+  for (const char* payload :
+       {"", "[]", "null", "{", "1", R"({"soundClass":1})",
+        R"({"soundClass":"a","soundFile":"../x"})",
+        R"({"soundClass":"a","soundFile":"http://x/y.mp3"})"}) {
+    SetProperty({sound_notification::kPlayProperty, payload});
+  }
+  EXPECT_TRUE(calls_.empty());
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+}
+
+// What Messaging asks for on every message: no such file, so no tone either.
+TEST_F(PalmSystemSoundTest, RelativeFileNowhereIsSilent) {
+  SetProperty({sound_notification::kPlayProperty,
+               R"({"soundClass":"alerts","soundFile":"audios/sent.mp3"})"});
+  EXPECT_TRUE(calls_.empty());
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+}
+
+TEST_F(PalmSystemSoundTest, MissingArgument) {
+  SetProperty({sound_notification::kPlayProperty});
+  SetProperty({});
+  EXPECT_TRUE(calls_.empty());
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+}
+
+TEST_F(PalmSystemSoundTest, SetAlertSoundSetsTheProperty) {
+  SetProperty({"LuneOS_soundclass", "calendar"});
+  SetProperty({sound_notification::kSoundProperty, "/usr/palm/sounds/a.mp3"});
+  EXPECT_TRUE(calls_.empty());
+  EXPECT_THAT(app_->WindowProperties(),
+              UnorderedElementsAre(Pair("LuneOS_soundclass", "calendar"),
+                                   Pair("LuneOS_sound", "/usr/palm/sounds/a.mp3")));
+}
+
+TEST_F(PalmSystemSoundTest, SetAlertSoundBadPathIsNoSoundFile) {
+  SetProperty({sound_notification::kSoundProperty, "../../etc/shadow"});
+  EXPECT_THAT(app_->WindowProperties(),
+              UnorderedElementsAre(Pair("LuneOS_sound", "")));
+}
+
+TEST_F(PalmSystemSoundTest, OtherPropertiesAreNotTouched) {
+  SetProperty({"LuneOS_other", "../x"});
+  EXPECT_THAT(app_->WindowProperties(),
+              UnorderedElementsAre(Pair("LuneOS_other", "../x")));
+}
 
 TEST_F(CreateWindowTest, NoAttributes) {
   ASSERT_NO_FATAL_FAILURE(Open({}));
@@ -288,6 +439,32 @@ TEST_F(CreateWindowTest, NoAttributes) {
 TEST_F(CreateWindowTest, PopupAlert) {
   ASSERT_NO_FATAL_FAILURE(Open({R"(attributes={"window":"popupalert"})"}));
   EXPECT_EQ(win_type_, kWtSystemUi);
+  EXPECT_THAT(app_->WindowProperties(),
+              UnorderedElementsAre(Pair("LuneOS_window", "popupalert")));
+}
+
+// Calendar's reminder and a battery alert: the engine lowercases the features,
+// so the file name has to come back from the disk.
+TEST_F(CreateWindowTest, PopupSoundGetsItsCaseBack) {
+  TempDir tones;
+  ASSERT_FALSE(tones.Path().empty());
+  ASSERT_TRUE(tones.WriteFile("Flurry.MP3", "x"));
+  std::string lowered = tones.Path() + "/flurry.mp3";
+  std::transform(lowered.begin(), lowered.end(), lowered.begin(),
+                 [](unsigned char c) { return std::tolower(c); });
+  ASSERT_NO_FATAL_FAILURE(
+      Open({R"(attributes={"window":"popupalert","soundclass":"calendar",)"
+            R"("sound":")" + lowered + R"("})"}));
+
+  EXPECT_THAT(app_->WindowProperties(),
+              UnorderedElementsAre(Pair("LuneOS_window", "popupalert"),
+                                   Pair("LuneOS_soundclass", "calendar"),
+                                   Pair("LuneOS_sound", tones.Path() + "/Flurry.MP3")));
+}
+
+TEST_F(CreateWindowTest, PopupSoundNotAFileNameIsDropped) {
+  ASSERT_NO_FATAL_FAILURE(
+      Open({R"(attributes={"window":"popupalert","sound":"../../etc/shadow"})"}));
   EXPECT_THAT(app_->WindowProperties(),
               UnorderedElementsAre(Pair("LuneOS_window", "popupalert")));
 }

@@ -32,7 +32,8 @@
           "com.palm.applicationManager-webappmgr",
           "com.webos.notification",
           "com.webos.lunasend-*",
-          "com.webos.service.ime"
+          "com.webos.service.ime",
+          "org.webosports.notifications"
         ]
       },
       {

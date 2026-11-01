@@ -19,6 +19,7 @@
 #include "application_description.h"
 #include "log_manager.h"
 #include "palm_system_blink.h"
+#include "sound_notification.h"
 #include "utils.h"
 #include "web_app_base.h"
 #include "web_app_wayland.h"
@@ -110,13 +111,25 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
       }
     }
   } else if (command == "setWindowProperty") {
-    if (arguments.size() > 1) {
+    if (arguments.size() > 1 &&
+        arguments[0] == sound_notification::kPlayProperty) {
+      PlaySoundNotification(arguments[1]);
+    } else if (arguments.size() > 1) {
       LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
                PMLOGKS("INSTANCE_ID", app_->InstanceId().c_str()),
                PMLOGKFV("PID", "%d", app_->Page()->GetWebProcessPID()),
                "webOSSystem.window.setProperty('%s', '%s')",
                arguments[0].c_str(), arguments[1].c_str());
-      app_->SetWindowProperty(arguments[0], arguments[1]);
+      if (arguments[0] == sound_notification::kSoundProperty) {
+        // setAlertSound(): the app's own name for the file, as with a popup's
+        // "sound" attribute.
+        app_->SetWindowProperty(
+            arguments[0],
+            sound_notification::ResolvePath(
+                arguments[1], app_->GetAppDescription()->FolderPath()));
+      } else {
+        app_->SetWindowProperty(arguments[0], arguments[1]);
+      }
     }
   } else if (command == "platformBack") {
     LOG_INFO(MSGID_PALMSYSTEM, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
@@ -318,6 +331,21 @@ int PalmSystemBlink::AddBannerMessage(const std::string& msg_title,
       app_->AppId().c_str(), &banner_contexts.at(banner_id));
 
   return banner_id;
+}
+
+// PalmSystem.playSoundNotification, through the page's shim. The shell plays it;
+// the caller is the app this page belongs to, whatever |payload| says.
+void PalmSystemBlink::PlaySoundNotification(const std::string& payload) {
+  const auto request = sound_notification::ParseRequest(
+      payload, app_->GetAppDescription()->FolderPath());
+  if (!request) {
+    LOG_WARNING(MSGID_PALMSYSTEM, 1, PMLOGKS("APP_ID", app_->AppId().c_str()),
+                "Bad playSoundNotification request");
+    return;
+  }
+  app_->ServiceCall(sound_notification::kPlayUrl,
+                    sound_notification::ToServicePayload(*request, app_->AppId()),
+                    app_->AppId());
 }
 
 void PalmSystemBlink::RemoveBannerMessage(const std::string& id) {

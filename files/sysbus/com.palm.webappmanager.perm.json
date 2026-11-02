@@ -9,6 +9,7 @@
         "notification.management",
         "settings.private.query",
         "settings.query",
+        "surfacemanager.sound",
         "systemconfig.query",
         "systemsettings.query"
     ],

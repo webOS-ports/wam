@@ -39,7 +39,7 @@ inline constexpr char kSoundProperty[] = "LuneOS_sound";
 
 // The service in the shell that plays them.
 inline constexpr char kPlayUrl[] =
-    "luna://org.webosports.notifications/playSoundNotification";
+    "luna://com.webos.surfacemanager.sound/playSoundNotification";
 
 // Where a relative name not in the app is looked for.
 inline constexpr char kSystemSounds[] = "/usr/palm/sounds";

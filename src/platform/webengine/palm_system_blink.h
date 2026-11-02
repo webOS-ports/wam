@@ -56,6 +56,7 @@ class PalmSystemBlink : public PalmSystemWebOS {
   virtual std::string TrustLevel() const;
   virtual void OnCloseNotify(const std::string& params);
 
+  void PlaySoundNotification(const std::string& payload);
   int AddBannerMessage(const std::string& msg_title,
                        const std::string& launch_params,
                        const std::string& msg_icon_url,

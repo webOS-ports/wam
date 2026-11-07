@@ -50,7 +50,7 @@
         "application.launcher",
         "application.operation"
     ],
-    "com.webos.surfacemanager-cardshell": [
+    "com.webos.surfacemanager.cardshell": [
         "webapplication.management"
     ],
     "com.webos.surfacemanager": [

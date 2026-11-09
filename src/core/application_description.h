@@ -47,6 +47,7 @@ class ApplicationDescription {
   const std::string& Icon() const { return icon_; }
 
   bool IsTransparent() const { return transparency_; }
+  void SetTransparent(bool transparent) { transparency_ = transparent; }
 
   bool HandlesDeeplinking() const { return !deep_linking_params_.empty(); }
 

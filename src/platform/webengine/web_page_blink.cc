@@ -1707,6 +1707,12 @@ WebView* WebPageBlink::CreateWindow(
 
   if (window == "dashboard") {
     new_app_desc->SetDefaultWindowType("floating");
+    // The shell draws the entry behind a dashboard - webOS 2.2.4's pill on a
+    // phone, a row of the drop-down on a tablet - as it does behind a toast,
+    // and legacy dashboards are written for that, with a transparent body.
+    // The opener's description says opaque for nearly every application, and
+    // the page then sits on WAM's #1D1D1D (Init), a dark slab over the bar.
+    new_app_desc->SetTransparent(true);
   } else if (window == "popupalert") {
     new_app_desc->SetDefaultWindowType("system_ui");
   }

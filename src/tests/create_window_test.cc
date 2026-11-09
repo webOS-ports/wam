@@ -484,6 +484,30 @@ TEST_F(CreateWindowTest, AttributesBecomeWindowProperties) {
                                    Pair("LuneOS_height", "5")));
 }
 
+// A dashboard is drawn over the shell's bar, so its page has no background of
+// its own, whatever the application's appinfo.json says; other windows keep
+// the opener's.
+TEST_F(CreateWindowTest, DashboardIsTransparent) {
+  ASSERT_FALSE(desc_->IsTransparent());
+
+  ASSERT_NO_FATAL_FAILURE(Open({R"(attributes={"window":"dashboard"})"}));
+  ASSERT_NE(app_->AttachedPage(), nullptr);
+  EXPECT_TRUE(app_->AttachedPage()->GetAppDescription().IsTransparent());
+  EXPECT_TRUE(app_->GetAppDescription()->IsTransparent());
+  CloseWindow();
+
+  for (const char* feature :
+       {R"(attributes={"window":"popupalert"})", R"(attributes={"window":"card"})",
+        R"(attributes={"name":"x"})"}) {
+    SCOPED_TRACE(feature);
+    ASSERT_NO_FATAL_FAILURE(Open({feature}));
+    EXPECT_FALSE(app_->AttachedPage()->GetAppDescription().IsTransparent());
+    CloseWindow();
+  }
+  // The opener's own description is left as it was.
+  EXPECT_FALSE(opener_->GetAppDescription().IsTransparent());
+}
+
 TEST_F(CreateWindowTest, AttributesThatAreNotAnObject) {
   // Anything but an object is no attributes. An array parsed and then aborted
   // WebAppMgr inside jsoncpp, on the lookup of "window"; the scalars are

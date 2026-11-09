@@ -26,6 +26,7 @@
 #include <vector>
 
 #include <glib.h>
+#include <json/json.h>
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
@@ -738,6 +739,111 @@ TEST_F(CreateWindowTest, OnlyAnHttpUrlOrAnAppSchemeIsWatched) {
     CloseWindow();
     ::testing::Mock::VerifyAndClearExpectations(opener_view_);
   }
+}
+
+// Spotify's developer dashboard: the page of an app just made is
+// /dashboard/<its client id>, after /dashboard/create, and no prefix tells the
+// two apart. A pattern does, matched from the start of the url; the features
+// come lowercased, the url as it was.
+constexpr char kDashboardPattern[] =
+    R"json(attributes={"redirectpattern":"https://developer[.]spotify[.]com/dashboard/[0-9a-f]{32}([/?#]|$)"})json";
+
+TEST_F(CreateWindowTest, RedirectPatternTellsTheRedirectFromThePagesBefore) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kDashboardPattern}));
+  // The pattern is for WAM, not a window property.
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr("webOSOAuthWindow"))).Times(0);
+  for (const char* url :
+       {"https://developer.spotify.com/dashboard",
+        "https://developer.spotify.com/dashboard/create",
+        "https://developer.spotify.com/dashboard/0123456789abcdef0123456789abcde",
+        "https://developer.spotify.com/dashboard/0123456789abcdef0123456789abcdef0",
+        "https://developer.spotify.com/dashboard/0123456789abcdef0123456789abcdeg",
+        "https://accounts.spotify.com/login?continue=https://developer.spotify.com/"
+        "dashboard/0123456789abcdef0123456789abcdef",
+        "https://evil.example/https://developer.spotify.com/dashboard/"
+        "0123456789abcdef0123456789abcdef",
+        "https://developer.spotify.com.evil.example/dashboard/"
+        "0123456789abcdef0123456789abcdef"}) {
+    SCOPED_TRACE(url);
+    Window()->DidStartNavigation(url, true);
+  }
+  // A frame reaching it is not the window reaching it.
+  Window()->DidStartNavigation(
+      "https://developer.spotify.com/dashboard/0123456789abcdef0123456789abcdef",
+      false);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_,
+              RunJavaScriptInAllFrames(AllOf(
+                  HasSubstr(R"(state:"redirect")"),
+                  HasSubstr(R"(url:"https://developer.spotify.com/dashboard/8441944613A24CA4874B640499FCA35E/settings")"))))
+      .Times(1);
+  EXPECT_CALL(*window_view_, StopLoading()).Times(0);
+  Window()->DidStartNavigation(
+      "https://developer.spotify.com/dashboard/8441944613A24CA4874B640499FCA35E/settings",
+      true);
+  ::testing::Mock::VerifyAndClearExpectations(window_view_);
+  EXPECT_CALL(*window_view_, StopLoading()).Times(::testing::AtLeast(1));
+  RunPending();
+  CloseWindow();
+}
+
+TEST_F(CreateWindowTest, RedirectPatternAndPrefixBothHold) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched(
+      {R"(attributes={"redirectPrefix":"https://example.com/cb","redirectPattern":"[^?]*[?]code[^&]")"
+       R"(})"}));
+  EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_,
+              RunJavaScriptInAllFrames(AllOf(HasSubstr(R"(state:"redirect")"),
+                                             HasSubstr(R"(url:"https://example.com/cb?code=1")"))))
+      .Times(1);
+  Window()->DidStartNavigation("https://example.com/cb?state=x", true);  // prefix only
+  Window()->DidStartNavigation("https://other.example/cb?code=2", true); // pattern only
+  Window()->DidStartNavigation("https://example.com/cb?code=1", true);
+  CloseWindow();
+}
+
+// The pattern is the page's: one that does not compile, or is too long, is no
+// watch and no window property; one that backtracks without end gives up at
+// PCRE2's match limit instead of taking WebAppMgr with it.
+TEST_F(CreateWindowTest, RedirectPatternsThatAreNoWatch) {
+  for (const std::string& pattern :
+       {std::string("https://x/("), std::string("https://x/[a-"),
+        std::string("https://x/(?<"), std::string("https://x/\\"),
+        std::string("https://x/") + std::string(600, 'a')}) {
+    SCOPED_TRACE(pattern.substr(0, 40));
+    Json::Value attributes;
+    attributes["redirectPattern"] = pattern;
+    Json::StreamWriterBuilder writer;
+    writer["indentation"] = "";
+    ASSERT_NO_FATAL_FAILURE(
+        OpenWatched({"attributes=" + Json::writeString(writer, attributes)}));
+    EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr("webOSOAuthWindow"))).Times(0);
+    EXPECT_THAT(app_->WindowProperties(), IsEmpty());
+    Window()->DidStartNavigation("https://x/" + std::string(600, 'a'), true);
+    CloseWindow();
+    ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+  }
+}
+
+TEST_F(CreateWindowTest, RedirectPatternThatBacktracksGivesUp) {
+  ASSERT_NO_FATAL_FAILURE(
+      OpenWatched({R"(attributes={"redirectPattern":"https://x/(a|aa)+$"})"}));
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"redirect")"))).Times(0);
+  // Exponential in the a's before the "!", which fails it at the end.
+  Window()->DidStartNavigation("https://x/" + std::string(60, 'a') + "!", true);
+  // Longer than any redirect: not tried.
+  Window()->DidStartNavigation("https://x/" + std::string(9000, 'a'), true);
+  ::testing::Mock::VerifyAndClearExpectations(opener_view_);
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(_)).Times(AnyNumber());
+  EXPECT_CALL(*opener_view_, RunJavaScriptInAllFrames(HasSubstr(R"(state:"redirect")"))).Times(1);
+  Window()->DidStartNavigation("https://x/aaaa", true);
+  CloseWindow();
 }
 
 // Box's login opens each step of its sign-in in a new window of its own, and

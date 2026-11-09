@@ -27,6 +27,8 @@
 #include "web_page_base.h"
 #include "web_page_blink_delegate.h"
 
+typedef struct _GRegex GRegex;
+
 namespace wam {
 class Url;
 }
@@ -122,8 +124,9 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void LoadAborted(const std::string& url) override;
   void NotifyExternalProtocolNavigation(const std::string& url);
   // A window this page opened for a sign-in, to watch for its redirect: see
-  // WatchRedirectFor().
-  void WatchRedirectFor(WebPageBlink* opener, const std::string& prefix);
+  // WatchRedirectFor(). Either may be empty, not both.
+  void WatchRedirectFor(WebPageBlink* opener, const std::string& prefix,
+                        const std::string& pattern = std::string());
   void LoadProgressChanged(double progress) override;
   void DidStartNavigation(const std::string& url,
                           bool is_in_main_frame) override;
@@ -214,7 +217,7 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   // A window a sign-in window opened itself: watched for the same sign-in.
   void WatchRedirectAs(const WebPageBlink& window);
   void StartWatching(WebPageBlink* opener, const std::string& prefix,
-                     int sign_in);
+                     std::shared_ptr<GRegex> pattern, int sign_in);
   // Whether a window of this sign-in of this page's is still open.
   bool SignInOpen(int sign_in) const;
 
@@ -236,10 +239,12 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
 
   WebPageBlinkObserver* observer_ = nullptr;
 
-  // A sign-in window: the page that opened it and the url its redirect starts
-  // with. The two pages know each other until either goes.
+  // A sign-in window: the page that opened it, the url its redirect starts
+  // with and the pattern it matches from its start; a sign-in gives either or
+  // both. The two pages know each other until either goes.
   WebPageBlink* oauth_opener_ = nullptr;
   std::string oauth_redirect_prefix_;
+  std::shared_ptr<GRegex> oauth_redirect_pattern_;
   bool oauth_redirected_ = false;
   // Which of the opener's sign-ins this window is part of. A provider's login
   // can open windows of its own (Box does, for each step), which are watched

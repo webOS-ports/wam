@@ -27,6 +27,7 @@
 #include <string>
 #include <system_error>
 
+#include <glib.h>
 #include <json/json.h>
 
 #include "application_description.h"
@@ -131,6 +132,47 @@ std::string JsStringContents(const std::string& text) {
     }
   }
   return escaped;
+}
+
+// A redirect pattern is the page's own: it is kept short, and a url longer
+// than any redirect is not tried against it. PCRE2 (under GRegex) keeps its
+// backtracking off the stack and gives up at its match limit, so a pattern
+// that backtracks badly fails to match rather than taking WebAppMgr down.
+constexpr size_t kMaxRedirectPatternLength = 512;
+constexpr size_t kMaxWatchedUrlLength = 8192;
+
+// A redirect pattern, compiled to match from the start of a url without regard
+// to case (it came through the lowercased features too); null if it is no
+// pattern or too long to be one.
+std::shared_ptr<GRegex> CompileRedirectPattern(const std::string& pattern) {
+  if (pattern.empty() || pattern.size() > kMaxRedirectPatternLength ||
+      pattern.find('\0') != std::string::npos) {
+    return nullptr;
+  }
+  GError* error = nullptr;
+  GRegex* regex = g_regex_new(
+      pattern.c_str(),
+      static_cast<GRegexCompileFlags>(G_REGEX_CASELESS | G_REGEX_ANCHORED |
+                                      G_REGEX_RAW),
+      static_cast<GRegexMatchFlags>(0), &error);
+  if (!regex) {
+    g_clear_error(&error);
+    return nullptr;
+  }
+  return std::shared_ptr<GRegex>(regex, g_regex_unref);
+}
+
+bool MatchesRedirectPattern(GRegex* regex, const std::string& url) {
+  if (url.size() > kMaxWatchedUrlLength) {
+    return false;
+  }
+  GError* error = nullptr;
+  const gboolean matched =
+      g_regex_match_full(regex, url.data(), static_cast<gssize>(url.size()), 0,
+                         static_cast<GRegexMatchFlags>(0), nullptr, &error);
+  // The match limit reached is an error, and no match.
+  g_clear_error(&error);
+  return matched && !error;
 }
 
 // The prefix a sign-in window's redirect is watched for must be an http(s)
@@ -986,12 +1028,27 @@ void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
 // window is made and "closed" when it goes without a redirect. Windows the login opens
 // from there are part of the same sign-in (WatchRedirectAs): "closed" comes when the last
 // of them goes, and when one reaches the redirect, the others close with it.
+//
+// Where no prefix can tell the redirect from the pages before it, the window is
+// opened with a "redirectPattern" instead or as well: a PCRE pattern the url
+// must match from its start. Spotify's developer dashboard is one: the page of
+// an app just made is /dashboard/<its client id>, after /dashboard/create, and
+// the dashboard goes there inside the page, which starts a navigation as well:
+//   'attributes={"redirectPattern":"https://developer[.]spotify[.]com/dashboard/[0-9a-f]{32}([/?#]|$)"}'
+// Window features are split at commas, spaces and "=", so a pattern has none.
+// A pattern that does not compile is no watch, as an unwatchable prefix is.
 void WebPageBlink::WatchRedirectFor(WebPageBlink* opener,
-                                    const std::string& prefix) {
-  if (!opener || opener == this || !IsWatchableRedirectPrefix(prefix)) {
+                                    const std::string& prefix,
+                                    const std::string& pattern) {
+  if (!opener || opener == this || (prefix.empty() && pattern.empty()) ||
+      (!prefix.empty() && !IsWatchableRedirectPrefix(prefix))) {
     return;
   }
-  StartWatching(opener, prefix, ++opener->oauth_last_sign_in_);
+  std::shared_ptr<GRegex> regex;
+  if (!pattern.empty() && !(regex = CompileRedirectPattern(pattern))) {
+    return;
+  }
+  StartWatching(opener, prefix, std::move(regex), ++opener->oauth_last_sign_in_);
 }
 
 // A provider's login page can go on in a window of its own: Box's opens each
@@ -1004,17 +1061,19 @@ void WebPageBlink::WatchRedirectAs(const WebPageBlink& window) {
     return;
   }
   StartWatching(window.oauth_opener_, window.oauth_redirect_prefix_,
-                window.oauth_sign_in_);
+                window.oauth_redirect_pattern_, window.oauth_sign_in_);
 }
 
 void WebPageBlink::StartWatching(WebPageBlink* opener,
                                  const std::string& prefix,
+                                 std::shared_ptr<GRegex> pattern,
                                  int sign_in) {
   if (oauth_opener_) {
     oauth_opener_->ForgetWatchedWindow(this);
   }
   oauth_opener_ = opener;
   oauth_redirect_prefix_ = prefix;
+  oauth_redirect_pattern_ = std::move(pattern);
   oauth_redirected_ = false;
   oauth_sign_in_ = sign_in;
   opener->oauth_windows_.push_back(this);
@@ -1046,7 +1105,9 @@ bool WebPageBlink::CatchOAuthRedirect(const std::string& url) {
                   url.begin(), [](char a, char b) {
                     return std::tolower(static_cast<unsigned char>(a)) ==
                            std::tolower(static_cast<unsigned char>(b));
-                  })) {
+                  }) ||
+      (oauth_redirect_pattern_ &&
+       !MatchesRedirectPattern(oauth_redirect_pattern_.get(), url))) {
     return false;
   }
   oauth_redirected_ = true;
@@ -1703,8 +1764,14 @@ WebView* WebPageBlink::CreateWindow(
   if (redirect_prefix.empty()) {
     redirect_prefix = util::JsonAsString(window_attributes["redirectprefix"]);
   }
-  if (!redirect_prefix.empty()) {
-    const_cast<WebPageBlink*>(page)->WatchRedirectFor(this, redirect_prefix);
+  std::string redirect_pattern =
+      util::JsonAsString(window_attributes["redirectPattern"]);
+  if (redirect_pattern.empty()) {
+    redirect_pattern = util::JsonAsString(window_attributes["redirectpattern"]);
+  }
+  if (!redirect_prefix.empty() || !redirect_pattern.empty()) {
+    const_cast<WebPageBlink*>(page)->WatchRedirectFor(this, redirect_prefix,
+                                                      redirect_pattern);
   } else if (oauth_opener_) {
     // A sign-in window opening one of its own (see WatchRedirectAs).
     const_cast<WebPageBlink*>(page)->WatchRedirectAs(*this);
@@ -1715,7 +1782,8 @@ WebView* WebPageBlink::CreateWindow(
     std::string const attr_key = attr.name();
     std::string attr_value = util::JsonAsString(*attr);
 
-    if (attr_key == "redirectPrefix" || attr_key == "redirectprefix") {
+    if (attr_key == "redirectPrefix" || attr_key == "redirectprefix" ||
+        attr_key == "redirectPattern" || attr_key == "redirectpattern") {
       continue;
     }
     // Lowercased with the rest of the features: the shell needs the real name.

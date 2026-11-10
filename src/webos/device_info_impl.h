@@ -45,12 +45,18 @@ class DeviceInfoImpl : public DeviceInfo {
   static int ReadDashboardHeight(const std::vector<std::string>& conf_files,
                                  const std::string& ui_scale_file);
 
+  //! \brief Whether the shell is the tablet's: the last [UI] TabletUi among
+  //! |conf_files|, as luna-sysmgr-common's Settings reads it, false if none
+  //! sets it.
+  static bool ReadTabletUi(const std::vector<std::string>& conf_files);
+
  private:
   void UpdateTvDeviceInfo();
 
   int screen_width_ = 0;
   int screen_height_ = 0;
   int dashboard_height_ = 0;
+  bool tablet_ui_ = false;
 
   float screen_density_ = 1.0f;
 

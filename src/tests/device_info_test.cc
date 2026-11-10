@@ -14,6 +14,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -113,14 +114,23 @@ namespace {
 // Conf files and a ui-scale file of the test's own, read as the device's.
 class DashboardHeightTest : public ::testing::Test {
  protected:
+  std::vector<std::string> Paths(const std::vector<std::string>& names) const {
+    std::vector<std::string> paths(names.size());
+    std::transform(names.begin(), names.end(), paths.begin(),
+                   [this](const std::string& name) {
+                     return dir_.Path() + "/" + name;
+                   });
+    return paths;
+  }
+
   int Read(const std::vector<std::string>& names,
            const std::string& ui_scale_name = "ui-scale") const {
-    std::vector<std::string> paths;
-    paths.reserve(names.size());
-    for (const std::string& name : names)
-      paths.push_back(dir_.Path() + "/" + name);
-    return DeviceInfoImpl::ReadDashboardHeight(paths,
+    return DeviceInfoImpl::ReadDashboardHeight(Paths(names),
                                                dir_.Path() + "/" + ui_scale_name);
+  }
+
+  bool ReadTabletUi(const std::vector<std::string>& names) const {
+    return DeviceInfoImpl::ReadTabletUi(Paths(names));
   }
 
   // cppcheck-suppress unusedStructMember
@@ -195,4 +205,33 @@ TEST_F(DashboardHeightTest, aUserScaleThatIsNoNumberIsOne) {
   EXPECT_EQ(Read({"luna.conf"}, "nan"), 90);
   EXPECT_EQ(Read({"luna.conf"}, "partial"), 90);
   EXPECT_EQ(Read({"luna.conf"}, "missing"), 90);
+}
+
+TEST_F(DashboardHeightTest, theLastFileThatSetsTabletUiWins) {
+  ASSERT_FALSE(dir_.Path().empty());
+  // The q25's: on in luna.conf, off again in luna-platform.conf.
+  ASSERT_TRUE(dir_.WriteFile("luna.conf", "[UI]\nTabletUi=true\n"));
+  ASSERT_TRUE(dir_.WriteFile("luna-platform.conf", "[UI]\nTabletUi=false\n"));
+  ASSERT_TRUE(dir_.WriteFile("luna-hw.conf", "[UI]\nGridUnit=16\n"));
+
+  EXPECT_FALSE(ReadTabletUi({"luna.conf", "luna-platform.conf", "luna-hw.conf",
+                             "missing.conf"}));
+  EXPECT_TRUE(ReadTabletUi({"luna-platform.conf", "luna.conf"}));
+}
+
+TEST_F(DashboardHeightTest, noTabletUiAnywhereIsAPhone) {
+  ASSERT_FALSE(dir_.Path().empty());
+  ASSERT_TRUE(dir_.WriteFile("luna.conf", "[UI]\nGridUnit=16\n"));
+
+  EXPECT_FALSE(ReadTabletUi({"luna.conf", "missing.conf"}));
+  EXPECT_FALSE(ReadTabletUi({}));
+}
+
+TEST_F(DashboardHeightTest, aTabletUiThatIsNoBooleanIsNotTaken) {
+  ASSERT_FALSE(dir_.Path().empty());
+  ASSERT_TRUE(dir_.WriteFile("a.conf", "[UI]\nTabletUi=true\n"));
+  ASSERT_TRUE(dir_.WriteFile("b.conf", "[UI]\nTabletUi=maybe\n"));
+  ASSERT_TRUE(dir_.WriteFile("c.conf", "[General]\nTabletUi=false\n"));
+
+  EXPECT_TRUE(ReadTabletUi({"a.conf", "b.conf", "c.conf"}));
 }

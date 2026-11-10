@@ -325,6 +325,28 @@ int DeviceInfoImpl::ReadDashboardHeight(
       std::lround(kDashboardHeightGridUnits * (grid_unit * ui_scale)));
 }
 
+bool DeviceInfoImpl::ReadTabletUi(const std::vector<std::string>& conf_files) {
+  bool tablet_ui = false;
+
+  for (const std::string& file : conf_files) {
+    GKeyFile* keyfile = g_key_file_new();
+    if (g_key_file_load_from_file(keyfile, file.c_str(), G_KEY_FILE_NONE,
+                                  nullptr)) {
+      GError* error = nullptr;
+      const gboolean value =
+          g_key_file_get_boolean(keyfile, "UI", "TabletUi", &error);
+      // As Settings' KEY_BOOLEAN: a value that is no boolean is skipped.
+      if (error)
+        g_error_free(error);
+      else
+        tablet_ui = value != FALSE;
+    }
+    g_key_file_free(keyfile);
+  }
+
+  return tablet_ui;
+}
+
 void DeviceInfoImpl::Initialize() {
   GatherInfo();
 
@@ -407,6 +429,12 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   // out a standard entry, and needs that entry's height to do so - the window
   // it is given is the whole dashboard.
   device_info_json["dashboardHeight"] = dashboard_height_;
+
+  // Nor this. luna-next-cardshell draws its notification entries as webOS
+  // 2.2.4 did on a phone or as 3.0 did on the TouchPad, by TabletUi unless
+  // the user chose otherwise, and Enyo's dashboard window draws its own
+  // entry to match.
+  device_info_json["tabletUi"] = tablet_ui_;
 
   // Also reported by LunaSysMgr, and read by legacy applications. Both were
   // hardcoded false, so every device with a physical keyboard told its
@@ -616,5 +644,7 @@ void DeviceInfoImpl::InitPlatformInfo() {
 void DeviceInfoImpl::GatherInfo() {
   InitDisplayInfo();
   InitPlatformInfo();
-  dashboard_height_ = ReadDashboardHeight(LunaSettingsFiles(), kUiScaleFile);
+  const std::vector<std::string> settings_files = LunaSettingsFiles();
+  dashboard_height_ = ReadDashboardHeight(settings_files, kUiScaleFile);
+  tablet_ui_ = ReadTabletUi(settings_files);
 }

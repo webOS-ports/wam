@@ -39,3 +39,5 @@ CRASH(134) SetInspectorEnableTest.checkCaseApplicationNotExists
 CRASH(134) TouchEventTestSuite.EnterEventTest
 CRASH(134) TouchEventTestSuite.LeaveEventTest
 CRASH(134) WebProcessCreatedTest.WebProcessCreated
+CRASH(134) ZoomedPalmSystemBlinkTestSuite.dashboardHeightIsInThePagesPixels
+CRASH(134) ZoomedPalmSystemBlinkTestSuite.noDashboardHeightIsLeftOut

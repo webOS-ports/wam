@@ -433,3 +433,10 @@ gcc-O2	src/webos/device_info_impl.cc	-Wanalyzer-too-complex	terminating analysis
 gcc-O2	src/webos/device_info_impl.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  Json::Value::Value (&D.N, &D.N);EN: N-N
 gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [(SN: N -> SN: N in bus_callback_json<WebAppManagerServiceLuna, &WebAppManagerServiceLuna::getApp
 gcc-O2	src/webos/web_app_manager_service_luna.cc	-Wanalyzer-too-complex	terminating analysis for this program point: callstring: [] before (SN: N stmt: N):  // predicted unlikely by continue predictor.EN: N, EN: N, EN: N
+
+## gcc -fanalyzer takes std::string::data() for a pointer that may be NULL. It never is: a std::string's buffer always exists, if only for its terminating NUL.
+gcc-O2	src/tests/mocks/temp_dir.h	-Wanalyzer-possible-null-argument	use of possibly-NULL ‘<unknown>’ where non-null expected [CWE-N]
+
+## gcc -fanalyzer does not finish device_info_test (gtest, glib's GKeyFile and DeviceInfoImpl's headers): at -O0 not within the gate's 30 minutes, at -O2 not within its 20G. ReadDashboardHeight() and ReadTabletUi(), the code it tests, are analysed in device_info_impl.cc on their own, and the test runs clean under ASan, UBSan, TSan and valgrind.
+gcc-O0	src/tests/device_info_test.cc	analysis-error	timed out after Ns
+gcc-O2	src/tests/device_info_test.cc	analysis-error	analyzer ran out of memory (cap NG)

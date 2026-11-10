@@ -17,6 +17,9 @@
 #ifndef WEBOS_DEVICE_INFO_IMPL_H_
 #define WEBOS_DEVICE_INFO_IMPL_H_
 
+#include <string>
+#include <vector>
+
 #include "device_info.h"
 
 class DeviceInfoImpl : public DeviceInfo {
@@ -31,11 +34,29 @@ class DeviceInfoImpl : public DeviceInfo {
                            bool slider,
                            const std::string& layout) override;
 
+  //! \brief The height of a standard entry in the shell's notification area,
+  //! in panel pixels.
+  //!
+  //! The shell makes that entry Units.gu(5.6) high. The grid unit is the last
+  //! [UI] GridUnit among |conf_files|, as luna-sysmgr-common's Settings reads
+  //! them, times the scale the user picked in |ui_scale_file|, as
+  //! luneos-components' Units applies it. Parameters so a test can point them
+  //! at files of its own.
+  static int ReadDashboardHeight(const std::vector<std::string>& conf_files,
+                                 const std::string& ui_scale_file);
+
+  //! \brief Whether the shell is the tablet's: the last [UI] TabletUi among
+  //! |conf_files|, as luna-sysmgr-common's Settings reads it, false if none
+  //! sets it.
+  static bool ReadTabletUi(const std::vector<std::string>& conf_files);
+
  private:
   void UpdateTvDeviceInfo();
 
   int screen_width_ = 0;
   int screen_height_ = 0;
+  int dashboard_height_ = 0;
+  bool tablet_ui_ = false;
 
   float screen_density_ = 1.0f;
 

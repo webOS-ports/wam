@@ -17,6 +17,8 @@
 #include "device_info_impl.h"
 
 #include <algorithm>
+#include <cctype>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 #include <fstream>
@@ -222,9 +224,106 @@ std::string LayoutFromKeyoBrdToken(const std::string& token) {
   return kUnknownKeyboardType;
 }
 
+// The shell's standard notification-area entry: luna-next-cardshell's
+// NotificationsMergedModel makes it Units.gu(5.6) high, toasts and dashboards
+// alike.
+constexpr float kDashboardHeightGridUnits = 5.6f;
+
+// What luna-sysmgr-common's Settings starts from, before any file sets one.
+constexpr float kDefaultGridUnit = 8.0f;
+
+// luneos-components' Units: the scale the user picked, and the range it is
+// clamped to.
+constexpr char kUiScaleFile[] = "/var/luna/preferences/ui-scale";
+constexpr float kMinUiScale = 0.75f;
+constexpr float kMaxUiScale = 1.5f;
+
+// The whole of |text| as a finite number, or nothing.
+bool ParseFloat(const std::string& text, float& value) {
+  const std::string trimmed = util::TrimString(text);
+  if (trimmed.empty())
+    return false;
+
+  char* end = nullptr;
+  const float parsed = std::strtof(trimmed.c_str(), &end);
+  if (end == trimmed.c_str() || *end != '\0' || !std::isfinite(parsed))
+    return false;
+
+  value = parsed;
+  return true;
+}
+
+// The files Settings reads, in its order: each overrides what came before.
+// The last is named after the hardware line of /proc/cpuinfo, as
+// Settings::identifyHardware() names it.
+std::vector<std::string> LunaSettingsFiles() {
+  std::vector<std::string> files = {"/etc/palm/luna.conf",
+                                    "/etc/palm/luna-platform.conf"};
+
+  std::string hardware = "unknown";
+  std::ifstream cpuinfo("/proc/cpuinfo");
+  std::string line;
+  while (std::getline(cpuinfo, line)) {
+    if (line.compare(0, 8, "Hardware") != 0 &&
+        line.compare(0, 9, "vendor_id") != 0) {
+      continue;
+    }
+
+    const std::size_t colon = line.find(':');
+    // Settings keeps "unknown" unless the line splits in exactly two.
+    if (colon != std::string::npos &&
+        line.find(':', colon + 1) == std::string::npos) {
+      hardware.clear();
+      for (const char c : line.substr(colon + 1)) {
+        if (c != ' ' && c != '\n')
+          hardware += static_cast<char>(
+              std::tolower(static_cast<unsigned char>(c)));
+      }
+    }
+    break;
+  }
+
+  files.push_back("/etc/palm/luna-" + hardware + ".conf");
+  return files;
+}
+
 }  // namespace
 
 DeviceInfoImpl::DeviceInfoImpl() = default;
+
+int DeviceInfoImpl::ReadDashboardHeight(
+    const std::vector<std::string>& conf_files,
+    const std::string& ui_scale_file) {
+  float grid_unit = kDefaultGridUnit;
+
+  for (const std::string& file : conf_files) {
+    GKeyFile* keyfile = g_key_file_new();
+    if (g_key_file_load_from_file(keyfile, file.c_str(), G_KEY_FILE_NONE,
+                                  nullptr)) {
+      GError* error = nullptr;
+      const double value =
+          g_key_file_get_double(keyfile, "UI", "GridUnit", &error);
+      // Settings takes whatever parses. A grid unit that is no size at all
+      // would leave the entry no height, which says nothing a page can use.
+      if (error)
+        g_error_free(error);
+      else if (std::isfinite(value) && value > 0.0)
+        grid_unit = static_cast<float>(value);
+    }
+    g_key_file_free(keyfile);
+  }
+
+  float ui_scale = 1.0f;
+  std::ifstream scale_file(ui_scale_file);
+  std::string line;
+  if (std::getline(scale_file, line))
+    ParseFloat(line, ui_scale);
+  ui_scale = std::clamp(ui_scale, kMinUiScale, kMaxUiScale);
+
+  // Units.gu() rounds, in float, as here.
+  return static_cast<int>(
+      std::lround(kDashboardHeightGridUnits * (grid_unit * ui_scale)));
+}
 
 void DeviceInfoImpl::Initialize() {
   GatherInfo();
@@ -302,6 +401,12 @@ void DeviceInfoImpl::UpdateTvDeviceInfo() {
   // the shell takes its own system UI out of that.
   device_info_json["maximumCardWidth"] = screen_width_;
   device_info_json["maximumCardHeight"] = screen_height_;
+
+  // Not something legacy reported: its rows were a fixed 52 pixels. A
+  // dashboard taller than one entry lays its first row out as the shell lays
+  // out a standard entry, and needs that entry's height to do so - the window
+  // it is given is the whole dashboard.
+  device_info_json["dashboardHeight"] = dashboard_height_;
 
   // Also reported by LunaSysMgr, and read by legacy applications. Both were
   // hardcoded false, so every device with a physical keyboard told its
@@ -511,4 +616,5 @@ void DeviceInfoImpl::InitPlatformInfo() {
 void DeviceInfoImpl::GatherInfo() {
   InitDisplayInfo();
   InitPlatformInfo();
+  dashboard_height_ = ReadDashboardHeight(LunaSettingsFiles(), kUiScaleFile);
 }

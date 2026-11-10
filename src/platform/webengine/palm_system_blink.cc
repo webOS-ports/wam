@@ -408,6 +408,12 @@ std::string PalmSystemBlink::ScaledDeviceInfo() const {
       json[key] = static_cast<int>(json[key].asDouble() / scale);
   }
 
+  // Not cut to a whole number: the shell's entry is a whole number of panel
+  // pixels, and a page that lays a row out at exactly this many of its own
+  // pixels lands on it (90 / 1.6 = 56.25 on a GridUnit 16 panel).
+  if (json.isMember("dashboardHeight") && json["dashboardHeight"].isNumeric())
+    json["dashboardHeight"] = json["dashboardHeight"].asDouble() / scale;
+
   return util::JsonToString(json);
 }
 

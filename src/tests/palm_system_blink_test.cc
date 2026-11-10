@@ -146,6 +146,12 @@ class PalmSystemBlinkTestSuite : public ::testing::Test {
   void SetUp() override;
   void TearDown() override;
 
+ protected:
+  // What a fixture changes about the application before it is launched.
+  virtual void AdjustLaunch(Json::Value& /*request*/) {}
+
+ public:
+
   WebAppWindowFactoryMock* web_app_window_factory_ = nullptr;
   WebAppWindowMock* web_app_window_ = nullptr;
   WebViewFactoryMock* web_view_factory_ = nullptr;
@@ -206,6 +212,7 @@ void PalmSystemBlinkTestSuite::SetUp() {
 
   request.clear();
   ASSERT_TRUE(util::StringToJson(kLaunchBareAppJsonBody, request));
+  AdjustLaunch(request);
 
   const auto& result = WebAppManagerServiceLuna::Instance()->launchApp(request);
 
@@ -241,6 +248,58 @@ TEST_F(PalmSystemBlinkTestSuite, handleBrowserControlMessage_initialize) {
   ASSERT_TRUE(init_value.isMember("locale"));
   EXPECT_TRUE(init_value["locale"].asString().find("en-US") !=
               std::string::npos);
+}
+
+namespace {
+
+// The application laid out at 1.6 times, as a legacy one is on a q25.
+class ZoomedPalmSystemBlinkTestSuite : public PalmSystemBlinkTestSuite {
+ protected:
+  void AdjustLaunch(Json::Value& request) override {
+    request["appDesc"]["uiScale"] = 1.6;
+  }
+
+  Json::Value DeviceInfoOnInitialize() {
+    std::string return_value;
+    web_view_delegate_->HandleBrowserControlFunction(
+        "initialize", std::vector<std::string>(), &return_value);
+
+    Json::Value init_value;
+    Json::Value device_info;
+    if (!util::StringToJson(return_value, init_value) ||
+        !init_value["deviceInfo"].isString() ||
+        !util::StringToJson(init_value["deviceInfo"].asString(), device_info)) {
+      return Json::Value();
+    }
+    return device_info;
+  }
+};
+
+}  // namespace
+
+TEST_F(ZoomedPalmSystemBlinkTestSuite, dashboardHeightIsInThePagesPixels) {
+  // A GridUnit 16 panel: the shell's entry is gu(5.6), 90 panel pixels.
+  WebAppManager::Instance()->SetDeviceInfo(
+      "TvDeviceInfo", R"({"screenWidth":720,"dashboardHeight":90})");
+
+  const Json::Value device_info = DeviceInfoOnInitialize();
+  ASSERT_TRUE(device_info.isObject());
+
+  // Not cut to 56: at 56 pixels a row would end short of the entry.
+  ASSERT_TRUE(device_info["dashboardHeight"].isNumeric());
+  EXPECT_DOUBLE_EQ(device_info["dashboardHeight"].asDouble(), 56.25);
+
+  // The screen is still cut to whole pixels, as it was.
+  EXPECT_EQ(device_info["screenWidth"].asInt(), 450);
+}
+
+TEST_F(ZoomedPalmSystemBlinkTestSuite, noDashboardHeightIsLeftOut) {
+  WebAppManager::Instance()->SetDeviceInfo("TvDeviceInfo",
+                                           R"({"screenWidth":720})");
+
+  const Json::Value device_info = DeviceInfoOnInitialize();
+  ASSERT_TRUE(device_info.isObject());
+  EXPECT_FALSE(device_info.isMember("dashboardHeight"));
 }
 
 TEST_F(PalmSystemBlinkTestSuite,

@@ -21,6 +21,17 @@ namespace {
 constexpr std::string::size_type kUrlSizeLimit = 824;
 }  // namespace
 
-std::string WebAppManagerUtils::TruncateURL(const std::string& url) {
-  return url.substr(0, kUrlSizeLimit);
+std::string WebAppManagerUtils::UrlForLog(const std::string& url) {
+  std::string result = url.substr(0, url.find_first_of("?#"));
+
+  const std::string::size_type scheme_end = result.find("://");
+  if (scheme_end != std::string::npos) {
+    const std::string::size_type authority = scheme_end + 3;
+    const std::string::size_type at =
+        result.rfind('@', result.find('/', authority));
+    if (at != std::string::npos && at >= authority) {
+      result.erase(authority, at + 1 - authority);
+    }
+  }
+  return result.substr(0, kUrlSizeLimit);
 }

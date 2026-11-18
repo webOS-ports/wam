@@ -39,6 +39,7 @@
 #include "service_sender.h"
 #include "util/url.h"
 #include "utils.h"
+#include "web_app_manager_utils.h"
 #include "web_app_base.h"
 #include "web_app_factory_manager_impl.h"
 #include "web_app_manager_config.h"
@@ -745,7 +746,7 @@ std::string WebAppManager::Launch(const std::string& app_desc_string,
     if (sw_clients_openwindow.isString()) {
       url = sw_clients_openwindow.asString();
       LOG_DEBUG("[%s] service worker clients.openWindow(%s)",
-                launching_app_id.c_str(), url.c_str());
+                launching_app_id.c_str(), WebAppManagerUtils::UrlForLog(url).c_str());
     }
   }
 
@@ -910,7 +911,7 @@ void WebAppManager::UpdateNetworkStatus(const Json::Value& object) {
                  PMLOGKS("APP_ID", page.second->AppId().c_str()),
                  PMLOGKS("INSTANCE_ID", page.second->InstanceId().c_str()),
                  "Reload failed URL '%s' on restore connection",
-                 page.second->FailedUrl().c_str());
+                 WebAppManagerUtils::UrlForLog(page.second->FailedUrl()).c_str());
         page.second->LoadUrl(page.second->FailedUrl());
       }
     }

@@ -25,6 +25,7 @@
 #include "application_description.h"
 #include "log_manager.h"
 #include "utils.h"
+#include "web_app_manager_utils.h"
 #include "web_app_manager.h"
 #include "web_app_manager_config.h"
 #include "web_page_observer.h"
@@ -146,7 +147,7 @@ bool WebPageBase::Relaunch(const std::string& launch_params,
   if (sw_clients_openwindow.isString()) {
     std::string const target_url = sw_clients_openwindow.asString();
     LOG_DEBUG("[%s] service worker clients.openWindow(%s) relaunch",
-              app_id_.c_str(), target_url.c_str());
+              app_id_.c_str(), WebAppManagerUtils::UrlForLog(target_url).c_str());
     LoadUrl(target_url);
     return true;
   }
@@ -221,7 +222,7 @@ bool WebPageBase::DoDeeplinking(const std::string& launch_params) {
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", GetWebProcessPID()),
              PMLOGKS("handledBy", handled_by.c_str()), "%s; load target URL:%s",
-             __func__, target_url.c_str());
+             __func__, WebAppManagerUtils::UrlForLog(target_url).c_str());
     // load the target URL directly
     LoadUrl(target_url);
     return true;
@@ -482,7 +483,7 @@ void WebPageBase::UpdateIsLoadErrorPageFinish() {
   if (url_dir_path.starts_with(err_dir_path) &&
       url_file_name == err_file_name) {
     LOG_DEBUG("[%s] This is WAM ErrorPage; URL: %s ", AppId().c_str(),
-              Url().ToString().c_str());
+              WebAppManagerUtils::UrlForLog(Url().ToString()).c_str());
     is_load_error_page_finish_ = true;
   }
 }

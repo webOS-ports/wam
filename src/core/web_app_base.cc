@@ -179,32 +179,55 @@ WebPageBase* WebAppBase::Detach() {
   return app_private_->page_.release();
 }
 
+void WebAppBase::ShowHiddenWindow() {
+  if (!GetHiddenWindow() || no_window_) {
+    return;
+  }
+
+  SetHiddenWindow(false);
+
+  ClearPreloadState();
+
+  if (WebAppManager::Instance()->Config()->IsCheckLaunchTimeEnabled()) {
+    StartLaunchTimer();
+  }
+
+  if (KeepAlive() && (Page()->Progress() != 100)) {
+    added_to_window_mgr_ = false;
+  }
+
+  // if we're already loaded, then show, else clear the hidden flag, and
+  // show as normal when loaded and ready to render
+  if (added_to_window_mgr_ ||
+      (Page()->Progress() == 100 && Page()->HasBeenShown())) {
+    ShowWindow();
+  }
+}
+
+bool WebAppBase::PrepareToActivate() {
+  // sam relaunches an app through the page it launched. With "noWindow" that
+  // page has no card of its own: it asks the window it opened to come forward,
+  // and nothing else will.
+  if (!WebAppManager::IsWindowOpenInstanceId(InstanceId())) {
+    const ApplicationDescription* desc = GetAppDescription();
+    return !desc || desc->HandlesRelaunch();
+  }
+
+  // As for a relaunch: a closed keepAlive window can be closed again.
+  if (KeepAlive()) {
+    SetClosePageRequested(false);
+  }
+  ShowHiddenWindow();
+  return true;
+}
+
 void WebAppBase::Relaunch(const std::string& args,
                           const std::string& launching_app_id) {
   LOG_INFO(MSGID_APP_RELAUNCH, 4, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", Page()->GetWebProcessPID()),
            PMLOGKS("LAUNCHING_APP_ID", launching_app_id.c_str()), "");
-  if (GetHiddenWindow() && !no_window_) {
-    SetHiddenWindow(false);
-
-    ClearPreloadState();
-
-    if (WebAppManager::Instance()->Config()->IsCheckLaunchTimeEnabled()) {
-      StartLaunchTimer();
-    }
-
-    if (KeepAlive() && (Page()->Progress() != 100)) {
-      added_to_window_mgr_ = false;
-    }
-
-    // if we're already loaded, then show, else clear the hidden flag, and
-    // show as normal when loaded and ready to render
-    if (added_to_window_mgr_ ||
-        (Page()->Progress() == 100 && Page()->HasBeenShown())) {
-      ShowWindow();
-    }
-  }
+  ShowHiddenWindow();
 
   if (GetCrashState()) {
     LOG_INFO(MSGID_APP_RELAUNCH, 3, PMLOGKS("APP_ID", AppId().c_str()),

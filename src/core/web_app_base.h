@@ -126,6 +126,11 @@ class WebAppBase : public WebPageObserver {
   bool GetCrashState() const;
   void SetCrashState(bool state);
   bool GetHiddenWindow() const;
+  // Brings back a window that was hidden, such as a closed keepAlive card.
+  void ShowHiddenWindow();
+  // For a page asking to come forward: false if the request is not for it to
+  // act on. Brings back the window if it is a closed keepAlive card.
+  bool PrepareToActivate();
   bool KeepAlive() const;
   void SetForceClose();
   bool ForceClose() const;

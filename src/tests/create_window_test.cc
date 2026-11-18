@@ -55,6 +55,7 @@ using ::testing::HasSubstr;
 using ::testing::IsEmpty;
 using ::testing::Not;
 using ::testing::Pair;
+using ::testing::Return;
 using ::testing::UnorderedElementsAre;
 
 constexpr char kAppDesc[] =
@@ -140,11 +141,24 @@ class WindowAppMock : public WebAppBaseMock {
     properties_.emplace_back(name, value);
   }
 
+  // Kept real: these tests are about a window being hidden and brought back.
+  void SetHiddenWindow(bool hidden) override {
+    WebAppBase::SetHiddenWindow(hidden);  // NOLINT(bugprone-parent-virtual-call)
+  }
+  void SetKeepAlive(bool keep_alive) override {
+    WebAppBase::SetKeepAlive(keep_alive);  // NOLINT(bugprone-parent-virtual-call)
+  }
+  void ShowWindow() override { ++show_window_calls_; }
+
+  void SetAddedToWindowManager() { added_to_window_mgr_ = true; }
+  int ShowWindowCalls() const { return show_window_calls_; }
+
   WebPageBase* AttachedPage() const { return Page(); }
   const Properties& WindowProperties() const { return properties_; }
 
  private:
   Properties properties_;
+  int show_window_calls_ = 0;
 };
 
 class WindowAppFactoryManager : public WebAppFactoryManager {
@@ -586,6 +600,40 @@ TEST_F(CreateWindowTest, RendererCrashLeavesThePageToItsApp) {
   page->RenderProcessCrashed();
   EXPECT_EQ(app_->AttachedPage(), page);
   EXPECT_EQ(page->InstanceId(), app_->InstanceId());
+}
+
+// Calendar: the card was closed, and the app's page, relaunched in the
+// background, asks for it again.
+TEST_F(CreateWindowTest, ActivateBringsBackAClosedKeepAliveWindow) {
+  WebViewMock* view = nullptr;
+  ASSERT_NO_FATAL_FAILURE(OpenFrom(opener_.get(), &view));
+  ASSERT_NE(view, nullptr);
+  EXPECT_CALL(*view, Progress()).WillRepeatedly(Return(100));
+  app_->SetKeepAlive(true);
+  app_->SetHiddenWindow(true);
+  app_->SetAddedToWindowManager();
+  app_->SetClosePageRequested(true);
+
+  EXPECT_TRUE(app_->PrepareToActivate());
+
+  EXPECT_FALSE(app_->GetHiddenWindow());
+  EXPECT_EQ(app_->ShowWindowCalls(), 1);
+  // Or its next window.close() would be taken for a duplicate.
+  EXPECT_FALSE(app_->ClosePageRequested());
+}
+
+// WAM raises a launched app itself when it is relaunched.
+TEST_F(CreateWindowTest, ActivateLeavesALaunchedAppThatDoesNotHandleRelaunch) {
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  app_->SetInstanceId("de90e74a-b86b-42c8-8785-3efd927a36430");
+  app_->SetKeepAlive(true);
+  app_->SetHiddenWindow(true);
+  app_->SetAddedToWindowManager();
+
+  EXPECT_FALSE(app_->PrepareToActivate());
+
+  EXPECT_TRUE(app_->GetHiddenWindow());
+  EXPECT_EQ(app_->ShowWindowCalls(), 0);
 }
 
 // A sign-in window: the opener cannot see it reach its redirect (another

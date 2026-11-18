@@ -78,8 +78,7 @@ int PalmSystemWebOS::ActivityId() const {
 }
 
 void PalmSystemWebOS::Activate() {
-  ApplicationDescription const* app_desc = app_->GetAppDescription();
-  if (app_desc && !app_desc->HandlesRelaunch()) {
+  if (!app_->PrepareToActivate()) {
     return;
   }
 

@@ -21,6 +21,7 @@
 #include "palm_system_blink.h"
 #include "sound_notification.h"
 #include "utils.h"
+#include "web_app_manager_utils.h"
 #include "web_app_base.h"
 #include "web_app_wayland.h"
 #include "web_page_blink.h"
@@ -195,7 +196,8 @@ std::string PalmSystemBlink::HandleBrowserControlMessage(
       LOG_WARNING(
           MSGID_SERVICE_CALL_FAIL, 3, PMLOGKS("APP_ID", app_->AppId().c_str()),
           PMLOGKS("INSTANCE_ID", app_->InstanceId().c_str()),
-          PMLOGKS("URL", arguments[0].c_str()), "Page is NOT in closing");
+          PMLOGKS("URL", WebAppManagerUtils::UrlForLog(arguments[0]).c_str()),
+          "Page is NOT in closing");
     }
   } else if (command == "getResource") {
     if (arguments.size() == 1) {

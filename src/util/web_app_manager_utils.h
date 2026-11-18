@@ -21,7 +21,9 @@
 
 class WebAppManagerUtils {
  public:
-  static std::string TruncateURL(const std::string& url);
+  // The url as it may appear in a log: no query or fragment (OAuth codes and
+  // tokens, launch parameters), no user:password@, and short enough for PmLog.
+  static std::string UrlForLog(const std::string& url);
 };
 
 #endif  // UTIL_WEB_APP_MANAGER_UTILS_H_

@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 #include "url.h"
+#include "web_app_manager_utils.h"
 
 namespace {
 
@@ -155,4 +156,35 @@ TEST(UrlTest, FileName) {
 
   wam::Url const file_with_host_url(kFileWithHost);
   EXPECT_EQ(file_with_host_url.FileName(), "foo.html");
+}
+
+TEST(UrlForLog, DropsQueryAndFragment) {
+  EXPECT_EQ("http://localhost/cb",
+            WebAppManagerUtils::UrlForLog(
+                "http://localhost/cb?state=s&code=secret"));
+  EXPECT_EQ("https://a.example/p",
+            WebAppManagerUtils::UrlForLog("https://a.example/p#token=secret"));
+  EXPECT_EQ("msauth.app://auth",
+            WebAppManagerUtils::UrlForLog("msauth.app://auth?code=secret"));
+  EXPECT_EQ("file:///usr/app/index.html",
+            WebAppManagerUtils::UrlForLog(
+                "file:///usr/app/index.html?enyoWindowParams=%7B%7D"));
+}
+
+TEST(UrlForLog, DropsCredentialsFromTheAuthorityOnly) {
+  EXPECT_EQ("https://host/p",
+            WebAppManagerUtils::UrlForLog("https://user:secret@host/p"));
+  EXPECT_EQ("https://host",
+            WebAppManagerUtils::UrlForLog("https://user:p@ss@host"));
+  EXPECT_EQ("https://host/a@b",
+            WebAppManagerUtils::UrlForLog("https://host/a@b"));
+  EXPECT_EQ("file:///a@b", WebAppManagerUtils::UrlForLog("file:///a@b"));
+}
+
+TEST(UrlForLog, KeepsOtherUrlsAndLimitsTheLength) {
+  EXPECT_EQ("about:blank", WebAppManagerUtils::UrlForLog("about:blank"));
+  EXPECT_EQ("", WebAppManagerUtils::UrlForLog(""));
+  EXPECT_EQ(824u, WebAppManagerUtils::UrlForLog(
+                      "https://h/" + std::string(2000, 'a'))
+                      .size());
 }

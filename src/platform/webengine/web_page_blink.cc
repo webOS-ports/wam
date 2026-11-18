@@ -509,7 +509,8 @@ std::vector<std::string> WebPageBlink::GetErrorPagePath(
 void WebPageBlink::ReloadFailedUrl() {
   LOG_INFO(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
-           "ReloadFailedUrl: '%s'", load_failed_url_.c_str());
+           "ReloadFailedUrl: '%s'",
+           WebAppManagerUtils::UrlForLog(load_failed_url_).c_str());
   page_private_->page_view_->LoadUrl(load_failed_url_);
 }
 
@@ -563,7 +564,7 @@ void WebPageBlink::LoadErrorPage(int error_code) {
       LOG_INFO(MSGID_WAM_DEBUG, 3, PMLOGKS("APP_ID", AppId().c_str()),
                PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
                PMLOGKFV("PID", "%d", GetWebProcessPID()), "LoadErrorPage : %s",
-               error_url.ToString().c_str());
+               WebAppManagerUtils::UrlForLog(error_url.ToString()).c_str());
       page_private_->page_view_->LoadUrl(error_url.ToString());
     } else {
       LOG_ERROR(MSGID_ERROR_ERROR, 1, PMLOGKS("PATH", errorpage.c_str()),
@@ -736,7 +737,7 @@ void WebPageBlink::SuspendWebPagePaintingAndJSExecution() {
     LOG_INFO(MSGID_SUSPEND_WEBPAGE, 4, PMLOGKS("APP_ID", AppId().c_str()),
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", GetWebProcessPID()),
-             PMLOGKS("URL", Url().ToString().c_str()),
+             PMLOGKS("URL", WebAppManagerUtils::UrlForLog(Url().ToString()).c_str()),
              "Currently loading, Do not suspend, return");
     suspend_at_load_ = true;
   } else {
@@ -869,7 +870,7 @@ void WebPageBlink::LoadFinished(const std::string& url) {
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[FINISH ]%s",
-           WebAppManagerUtils::TruncateURL(url).c_str());
+           WebAppManagerUtils::UrlForLog(url).c_str());
 
   if (CleaningResources()) {
     LOG_INFO(MSGID_WAM_DEBUG, 3, PMLOGKS("APP_ID", AppId().c_str()),
@@ -902,7 +903,7 @@ void WebPageBlink::DidStartNavigation(const std::string& url,
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[START %s]%s",
            is_in_main_frame ? "m" : "s",
-           WebAppManagerUtils::TruncateURL(url).c_str());
+           WebAppManagerUtils::UrlForLog(url).c_str());
 }
 
 void WebPageBlink::DidFinishNavigation(const std::string& url,
@@ -914,7 +915,7 @@ void WebPageBlink::DidFinishNavigation(const std::string& url,
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[CONNECT]%s",
-           WebAppManagerUtils::TruncateURL(url).c_str());
+           WebAppManagerUtils::UrlForLog(url).c_str());
 
   // The zoom set in Init() is recorded against whatever the main frame held at
   // the time, which is not yet the application's url - HostZoomMap keys a
@@ -954,7 +955,7 @@ void WebPageBlink::LoadProgressChanged(double progress) {
              PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
              PMLOGKFV("PID", "%d", GetWebProcessPID()), "[...%3d%%]%s",
              static_cast<int>(progress * 100.0),
-             WebAppManagerUtils::TruncateURL(loading_url_).c_str());
+             WebAppManagerUtils::UrlForLog(loading_url_).c_str());
   }
 }
 
@@ -962,7 +963,7 @@ void WebPageBlink::LoadAborted(const std::string& url) {
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[ABORTED]%s",
-           WebAppManagerUtils::TruncateURL(url).c_str());
+           WebAppManagerUtils::UrlForLog(url).c_str());
 
   // A sign-in window's redirect to an app's own scheme (msauth.<client>://
   // auth?code=...) is never loaded: the engine aborts it, and this is the only
@@ -1003,7 +1004,7 @@ void WebPageBlink::NotifyExternalProtocolNavigation(const std::string& url) {
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[EXTPROTO]%s",
-           WebAppManagerUtils::TruncateURL(url).c_str());
+           WebAppManagerUtils::UrlForLog(url).c_str());
 
   EvaluateJavaScript(
       "(function(){var u=\"" + escaped + "\";"
@@ -1114,7 +1115,7 @@ bool WebPageBlink::CatchOAuthRedirect(const std::string& url) {
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[REDIRECT]%s",
-           WebAppManagerUtils::TruncateURL(url).c_str());
+           WebAppManagerUtils::UrlForLog(url).c_str());
   oauth_opener_->NotifyOAuthWindow("redirect", url);
   // The sign-in is over: its other windows go too, and are not "closed".
   for (WebPageBlink* window : oauth_opener_->oauth_windows_) {
@@ -1167,7 +1168,7 @@ void WebPageBlink::LoadFailed(const std::string& url, int err_code) {
   LOG_INFO(MSGID_LOAD, 3, PMLOGKS("APP_ID", AppId().c_str()),
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()), "[FAILED ][%d]%s",
-           err_code, WebAppManagerUtils::TruncateURL(url).c_str());
+           err_code, WebAppManagerUtils::UrlForLog(url).c_str());
 
   ForEachObserver(observers_, &WebPageObserver::WebPageLoadFailed, err_code);
 
@@ -1328,7 +1329,7 @@ void WebPageBlink::AddUserScriptUrl(const wam::Url& url) {
     LOG_DEBUG(
         "WebPageBlink: Couldn't open '%s' as user script because only file:/// "
         "URLs are supported.",
-        url.ToString().c_str());
+        WebAppManagerUtils::UrlForLog(url.ToString()).c_str());
     return;
   }
 
@@ -1594,7 +1595,8 @@ bool WebPageBlink::DecidePolicyForErrorPage(bool is_main_frame,
            PMLOGKS("INSTANCE_ID", InstanceId().c_str()),
            PMLOGKFV("PID", "%d", GetWebProcessPID()),
            PMLOGKFV("STATUS_CODE", "%d", error_code),
-           PMLOGKS("URL", url.c_str()), PMLOGKS("TEXT", error_text.c_str()),
+           PMLOGKS("URL", WebAppManagerUtils::UrlForLog(url).c_str()),
+           PMLOGKS("TEXT", error_text.c_str()),
            PMLOGKS("MAIN_FRAME", is_main_frame ? "true" : "false"),
            PMLOGKS("RESPONSE_POLICY", is_main_frame ? "event" : "default"), "");
 

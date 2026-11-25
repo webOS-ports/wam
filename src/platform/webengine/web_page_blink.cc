@@ -1409,6 +1409,8 @@ std::string WebPageBlink::DefaultTrustLevel() const {
 void WebPageBlink::LoadExtension() {
   if (oauth_no_extensions_) {
     // A sign-in window's view recreated after a renderer crash (Init()).
+    // TODO: workaround; see oauth_no_extensions_ in web_page_blink.h for the
+    // proper, origin-based implementation.
     return;
   }
   LOG_DEBUG("WebPageBlink::loadExtension(); Extension : webossystem");

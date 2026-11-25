@@ -1078,6 +1078,18 @@ void WebPageBlink::StartWatching(WebPageBlink* opener,
   oauth_redirected_ = false;
   oauth_sign_in_ = sign_in;
   opener->oauth_windows_.push_back(this);
+
+  // The window shows the provider's pages, not the app's. Every page in an
+  // app's window got webOSSystem and the service bridges, and called the bus
+  // as that app: a sign-in page, or any script it loads, could read the
+  // Accounts app's database, its key manager and its accounts. Nothing in a
+  // sign-in needs them there - the redirect is caught here and reported to
+  // the opener (NotifyOAuthWindow), which keeps its own. A load-error page in
+  // the window (loaderror.html) goes without them as well: it still shows,
+  // but cannot report the network state or open Settings.
+  oauth_no_extensions_ = true;
+  ClearExtensions();
+
   opener->NotifyOAuthWindow("watching", "");
 }
 
@@ -1395,6 +1407,12 @@ std::string WebPageBlink::DefaultTrustLevel() const {
 }
 
 void WebPageBlink::LoadExtension() {
+  if (oauth_no_extensions_) {
+    // A sign-in window's view recreated after a renderer crash (Init()).
+    // TODO: workaround; see oauth_no_extensions_ in web_page_blink.h for the
+    // proper, origin-based implementation.
+    return;
+  }
   LOG_DEBUG("WebPageBlink::loadExtension(); Extension : webossystem");
   page_private_->page_view_->LoadExtension("webossystem");
   page_private_->page_view_->LoadExtension("webosservicebridge");
@@ -1707,6 +1725,21 @@ WebView* WebPageBlink::CreateWindow(
       WindowAttributesFromFeatures(additional_features);
   const std::string window = util::JsonAsString(window_attributes["window"]);
 
+  // A sign-in window: its redirect is watched for (WatchRedirectFor), and the
+  // prefix is no window property. The engine lowercases the whole features
+  // string before it gets here, so "redirectPrefix" arrives as
+  // "redirectprefix" (and the url in it lowercased).
+  std::string redirect_prefix =
+      util::JsonAsString(window_attributes["redirectPrefix"]);
+  if (redirect_prefix.empty()) {
+    redirect_prefix = util::JsonAsString(window_attributes["redirectprefix"]);
+  }
+  std::string redirect_pattern =
+      util::JsonAsString(window_attributes["redirectPattern"]);
+  if (redirect_pattern.empty()) {
+    redirect_pattern = util::JsonAsString(window_attributes["redirectpattern"]);
+  }
+
   if (window == "dashboard") {
     new_app_desc->SetDefaultWindowType("floating");
     // The shell draws the entry behind a dashboard - webOS 2.2.4's pill on a
@@ -1723,6 +1756,13 @@ WebView* WebPageBlink::CreateWindow(
   wam::Url const new_wam_url(new_url);
   auto new_page = std::make_unique<WebPageBlink>(
       new_wam_url, *new_app_desc, "{}", std::move(dedicated_factory));
+  // Decided before Init(), which would load the extensions: a window opened
+  // on the provider's url gets its first page set up by the engine before the
+  // watch below starts, and clearing them then left that page with them (seen
+  // on a Q25: Google's sign-in kept PalmServiceBridge, later pages had none).
+  new_page->oauth_no_extensions_ =
+      !redirect_prefix.empty() || !redirect_pattern.empty() ||
+      oauth_no_extensions_;
   new_page->Init();
   const WebPageBlink* page = new_page.get();
 
@@ -1763,20 +1803,6 @@ WebView* WebPageBlink::CreateWindow(
     new_web_app->Resize(CurrentUiWidth(), height);
   }
 
-  // A sign-in window: its redirect is watched for (WatchRedirectFor), and the
-  // prefix is no window property. The engine lowercases the whole features
-  // string before it gets here, so "redirectPrefix" arrives as
-  // "redirectprefix" (and the url in it lowercased).
-  std::string redirect_prefix =
-      util::JsonAsString(window_attributes["redirectPrefix"]);
-  if (redirect_prefix.empty()) {
-    redirect_prefix = util::JsonAsString(window_attributes["redirectprefix"]);
-  }
-  std::string redirect_pattern =
-      util::JsonAsString(window_attributes["redirectPattern"]);
-  if (redirect_pattern.empty()) {
-    redirect_pattern = util::JsonAsString(window_attributes["redirectpattern"]);
-  }
   if (!redirect_prefix.empty() || !redirect_pattern.empty()) {
     const_cast<WebPageBlink*>(page)->WatchRedirectFor(this, redirect_prefix,
                                                       redirect_pattern);

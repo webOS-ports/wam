@@ -257,6 +257,52 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   OneShotTimer<WebPageBlink> oauth_close_timer_;
   // The sign-in windows this page opened.
   std::vector<WebPageBlink*> oauth_windows_;
+  // This page is a sign-in window, or a window one opened: it shows the
+  // provider's pages, which get no webOSSystem and no service bridges (see
+  // StartWatching). Set by CreateWindow() before Init(), so the extensions are
+  // never requested for it. Never reset - not when the opener goes, which
+  // leaves the window open - so a view recreated after a renderer crash gets
+  // none either.
+  //
+  // TODO: this is a narrow workaround, not a fix of the underlying problem.
+  // The extensions (webOSSystem, PalmSystem and the service bridges) are
+  // requested per view, for the view's whole life, and every page the view
+  // shows calls the bus as the app. Nothing looks at which origin a page
+  // comes from. This flag only covers windows that announce themselves as
+  // sign-in windows through the window.open features, so:
+  //  - A sign-in window opened without redirectPrefix/redirectPattern (an
+  //    app that watches for the redirect itself, or a plain window.open() on
+  //    a third-party site) still gets them.
+  //  - An app page that navigates its own window to a remote site, or embeds
+  //    one in a frame, still hands that site the bus as the app. That is the
+  //    same hole, and this flag does nothing about it.
+  //  - It is all or nothing for the whole window. loaderror.html in a
+  //    sign-in window loses them as well, and with them the network state
+  //    and the Settings button.
+  //  - ClearExtensions() does not reach the page already set up (seen on the
+  //    Q25), so the flag has to be set before Init(). The ClearExtensions()
+  //    in StartWatching() only affects later pages.
+  //  - It depends on how the features string is parsed, which the engine
+  //    lowercases (both spellings are checked in CreateWindow()).
+  // A proper implementation:
+  //  1. webruntime decides on every navigation commit, per frame, whether to
+  //     inject the extensions, based on the committed origin. Only the
+  //     app's own content gets them: file:// under the app's folder, plus
+  //     any origins appinfo.json explicitly trusts. Everything else (sign-in
+  //     providers, remote main frames, third-party iframes) gets none. WAM's
+  //     WebView interface would pass that policy instead of
+  //     LoadExtension()/ClearExtensions().
+  //  2. On the bus side, a call from the service bridge carries the calling
+  //     origin. Or a window that shows foreign content runs under its own
+  //     unprivileged identity rather than the opener's app id, which
+  //     CreateWindow() copies today. Then ls-hubd's permissions apply to it,
+  //     not the opener's.
+  //  3. loaderror.html is served from an origin that the policy allows, so
+  //     it works in any window.
+  //  4. Then remove this flag, the guard in LoadExtension() and the clear in
+  //     StartWatching(), and turn the create_window_test.cc cases into
+  //     origin-based ones.
+  bool oauth_no_extensions_ = false;
 
   std::unique_ptr<WebViewFactory> factory_;
 };

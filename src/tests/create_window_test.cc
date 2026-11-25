@@ -108,6 +108,35 @@ class RecordingViewFactory : public WebViewFactory {
   WebViewMock** view_;
 };
 
+// Keeps every extension a page's views are asked to load into its frames, in
+// order. A view recreated after a renderer crash comes from the same factory
+// and adds to the same list. A clear is not kept: the engine sets up the first
+// page of a window opened on a url before WAM can clear anything, and a page
+// once given the extensions keeps them, so for a sign-in window the list has
+// to stay empty, not end up empty.
+class ExtensionLogFactory : public WebViewFactory {
+ public:
+  explicit ExtensionLogFactory(std::vector<std::string>* loaded)
+      : loaded_(loaded) {}
+  std::unique_ptr<WebView> CreateWebView() override {
+    auto view = std::make_unique<NiceWebViewMock>();
+    std::vector<std::string>* loaded = loaded_;
+    ON_CALL(*view, LoadExtension(_))
+        .WillByDefault([loaded](const std::string& name) {
+          loaded->push_back(name);
+        });
+    return view;
+  }
+
+ private:
+  std::vector<std::string>* loaded_;
+};
+
+// What an app's page gets: webOSSystem, and the service bridges that call the
+// bus as the app.
+const std::vector<std::string> kAppExtensions = {"webossystem",
+                                                 "webosservicebridge"};
+
 // What WAM leaves to the main loop (the window stopped and closed after a
 // redirect) happens here.
 void RunPending() {
@@ -1035,5 +1064,87 @@ TEST_F(CreateWindowTest, WindowOfAnUnwatchedWindowIsNotWatched) {
   ASSERT_NO_FATAL_FAILURE(OpenFrom(first, &second_view));
   Window()->DidStartNavigation("https://example.com/cb?code=x", true);
   RunPending();
+  CloseWindow();
+}
+
+// A sign-in window shows the provider's pages, which called the bus as the app
+// when they got the service bridges: Google's login, in the Accounts app's
+// window, could list the accounts (seen on a Q25). They get none; the opener,
+// the app's own page, keeps them - WAM tells it of the redirect there.
+TEST_F(CreateWindowTest, SignInWindowGetsNoWebOSObjects) {
+  std::vector<std::string> opener_has;
+  std::vector<std::string> window_has;
+  opener_ = std::make_unique<WebPageBlink>(
+      wam::Url("file:///index.html"), *desc_, "{}",
+      std::make_unique<ExtensionLogFactory>(&opener_has));
+  opener_->Init();
+  ASSERT_NE(opener_->CreateWindow(
+                "about:blank",
+                std::make_unique<ExtensionLogFactory>(&window_has), 0, {kWatch}),
+            nullptr);
+  ASSERT_NE(app_, nullptr);
+  EXPECT_THAT(window_has, IsEmpty());
+  EXPECT_EQ(opener_has, kAppExtensions);
+  CloseWindow();
+}
+
+// Watched for a pattern instead of a prefix (Music's sign-in): the same.
+TEST_F(CreateWindowTest, PatternSignInWindowGetsNoWebOSObjects) {
+  std::vector<std::string> window_has;
+  ASSERT_NE(opener_->CreateWindow(
+                "about:blank",
+                std::make_unique<ExtensionLogFactory>(&window_has), 0,
+                {R"(attributes={"redirectPattern":"https://example\\.com/cb"})"}),
+            nullptr);
+  ASSERT_NE(app_, nullptr);
+  EXPECT_THAT(window_has, IsEmpty());
+  CloseWindow();
+}
+
+// Any other window is the app's own (dashboards, popup alerts, a second card)
+// and keeps them.
+TEST_F(CreateWindowTest, OtherWindowsKeepTheWebOSObjects) {
+  std::vector<std::string> window_has;
+  ASSERT_NE(opener_->CreateWindow(
+                "about:blank",
+                std::make_unique<ExtensionLogFactory>(&window_has), 0,
+                {R"(attributes={"window":"dashboard"})"}),
+            nullptr);
+  ASSERT_NE(app_, nullptr);
+  EXPECT_EQ(window_has, kAppExtensions);
+  CloseWindow();
+}
+
+// A window the provider's login opens (Box, for each step) is part of the
+// sign-in and gets none either.
+TEST_F(CreateWindowTest, WindowTheLoginOpenedGetsNoWebOSObjects) {
+  ASSERT_NO_FATAL_FAILURE(OpenWatched({kWatch}));
+  WebPageBlink* login = KeepWindow();
+  std::vector<std::string> window_has;
+  ASSERT_NE(login->CreateWindow(
+                "about:blank",
+                std::make_unique<ExtensionLogFactory>(&window_has), 0, {}),
+            nullptr);
+  ASSERT_NE(app_, nullptr);
+  EXPECT_THAT(window_has, IsEmpty());
+  CloseWindow();
+}
+
+// The view is made anew after a renderer crash, which loads the extensions
+// again (Init()): not for a sign-in window - also once the page that opened it
+// has gone and the window is still open.
+TEST_F(CreateWindowTest, SignInWindowGetsNoneAfterARendererCrash) {
+  std::vector<std::string> window_has;
+  ASSERT_NE(opener_->CreateWindow(
+                "about:blank",
+                std::make_unique<ExtensionLogFactory>(&window_has), 0, {kWatch}),
+            nullptr);
+  ASSERT_NE(app_, nullptr);
+  Window()->RenderProcessCrashed();
+  EXPECT_THAT(window_has, IsEmpty());
+
+  opener_.reset();
+  Window()->RenderProcessCrashed();
+  EXPECT_THAT(window_has, IsEmpty());
   CloseWindow();
 }

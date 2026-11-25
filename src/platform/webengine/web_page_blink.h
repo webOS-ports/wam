@@ -257,6 +257,13 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   OneShotTimer<WebPageBlink> oauth_close_timer_;
   // The sign-in windows this page opened.
   std::vector<WebPageBlink*> oauth_windows_;
+  // This page is a sign-in window, or a window one opened: it shows the
+  // provider's pages, which get no webOSSystem and no service bridges (see
+  // StartWatching). Set by CreateWindow() before Init(), so the extensions are
+  // never requested for it. Never reset - not when the opener goes, which
+  // leaves the window open - so a view recreated after a renderer crash gets
+  // none either.
+  bool oauth_no_extensions_ = false;
 
   std::unique_ptr<WebViewFactory> factory_;
 };

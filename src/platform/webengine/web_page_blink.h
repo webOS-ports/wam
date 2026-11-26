@@ -209,6 +209,10 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   // Lets the error page's folder have the webOS APIs on an engine that
   // limits them to the app's own documents (Init()).
   void AllowErrorPageWebOSApis();
+  // Lets the pages an application on the legacy frameworks shows besides its
+  // own have the webOS APIs: Enyo 1's dashboard and network alerts, and the
+  // built-in applications' pages its CrossAppUI frames show.
+  void AllowLegacyFrameworkWebOSApis();
   void ReloadFailedUrl();
   // Tells this page, as a 'webOSOAuthWindow' DOM event, what became of a
   // sign-in window it opened: "watching", "redirect" (with the url) or
@@ -278,7 +282,8 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   // The engine with the origin policy (webOS-ports/chromium158#1) does it
   // properly: it decides per document, by origin, which documents get the
   // APIs - the app's folder, plus what the embedder adds (the error page's
-  // folder, AllowErrorPageWebOSApis) - binds the service bridge per document,
+  // folder, AllowErrorPageWebOSApis; Enyo 1's pages and built-in apps'
+  // for a legacy app, AllowLegacyFrameworkWebOSApis) - binds the service bridge per document,
   // and calls the bus as the app the embedder names instead of what the page
   // asks for. Built against that engine this flag stays false. Once every
   // engine WAM is built against has the policy, remove the flag, the guard in

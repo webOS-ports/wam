@@ -74,6 +74,37 @@ constexpr bool kEngineLimitsWebOSApis = true;
 constexpr bool kEngineLimitsWebOSApis = false;
 #endif
 
+// Folders whose documents an application on the legacy frameworks shows in
+// its own windows, besides its own folder:
+//
+//  - Enyo 1's pages for the windows it opens for the application: the
+//    dashboard (enyo.Dashboard opens $palm-system/dashboard-window/
+//    dashboard.html), which needs PalmSystem to draw the shell's look and
+//    tell the shell how many layers it has, and the network alerts popup
+//    ($enyo-lib/networkalerts/source/networkalerts.html), which launches
+//    Settings through the service bridge. The engine compares paths as
+//    written, and an application names the framework as enyo/0.10 or through
+//    the enyo/1.0 link to it, from its build or (launched for debugging) its
+//    source.
+//  - The built-in applications: Enyo 1's CrossAppUI shows another
+//    application's page in a frame of the application's window - the file
+//    picker (com.palm.systemui), the people picker (com.palm.app.contacts),
+//    the accounts library's account screens (whichever application a
+//    template names) - and that page makes its service calls through its own
+//    bridge. These are part of the image, not something installed later
+//    (/media/cryptofs/apps), and the engine calls the bus as this
+//    application whatever the page asks for, so such a page gets no more
+//    than the application that shows it.
+constexpr const char* kLegacyFrameworkWebOSApiFolders[] = {
+    "/usr/palm/frameworks/enyo/0.10/framework/build/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/0.10/framework/source/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/0.10/framework/lib/networkalerts/source",
+    "/usr/palm/frameworks/enyo/1.0/framework/build/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/1.0/framework/source/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/1.0/framework/lib/networkalerts/source",
+    "/usr/palm/applications",
+};
+
 // The zoom factor applied to applications built against the frameworks this
 // distribution carries for compatibility.
 //
@@ -299,6 +330,7 @@ void WebPageBlink::Init() {
       app_desc_.V8SnapshotPath(), app_desc_.V8ExtraFlags(),
       app_desc_.UseNativeScroll());
   AllowErrorPageWebOSApis();
+  AllowLegacyFrameworkWebOSApis();
   SetViewportSize();
   ApplyPageZoomFactor();
 
@@ -525,6 +557,18 @@ void WebPageBlink::AllowErrorPageWebOSApis() {
   const std::string folder =
       std::filesystem::path(path).parent_path().string();
   if (!folder.empty()) {
+    page_private_->page_view_->AddWebOSApiAllowedDirectory(folder);
+  }
+}
+
+void WebPageBlink::AllowLegacyFrameworkWebOSApis() {
+  // Only an application on the legacy frameworks opens these; the page of a
+  // window.open()ed window is set up with its opener's description, so a
+  // dashboard has the flag of the application that opened it.
+  if (!app_desc_.UsesLegacyFramework()) {
+    return;
+  }
+  for (const char* folder : kLegacyFrameworkWebOSApiFolders) {
     page_private_->page_view_->AddWebOSApiAllowedDirectory(folder);
   }
 }

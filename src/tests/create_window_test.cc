@@ -116,8 +116,10 @@ class RecordingViewFactory : public WebViewFactory {
 // to stay empty, not end up empty.
 class ExtensionLogFactory : public WebViewFactory {
  public:
-  explicit ExtensionLogFactory(std::vector<std::string>* loaded)
-      : loaded_(loaded) {}
+  // `clears`, if given, counts the ClearExtensions() calls on the views.
+  explicit ExtensionLogFactory(std::vector<std::string>* loaded,
+                               int* clears = nullptr)
+      : loaded_(loaded), clears_(clears) {}
   std::unique_ptr<WebView> CreateWebView() override {
     auto view = std::make_unique<NiceWebViewMock>();
     std::vector<std::string>* loaded = loaded_;
@@ -125,17 +127,42 @@ class ExtensionLogFactory : public WebViewFactory {
         .WillByDefault([loaded](const std::string& name) {
           loaded->push_back(name);
         });
+    if (int* clears = clears_) {
+      ON_CALL(*view, ClearExtensions()).WillByDefault([clears]() {
+        ++*clears;
+      });
+    }
     return view;
   }
 
  private:
   std::vector<std::string>* loaded_;
+  int* clears_;
 };
 
 // What an app's page gets: webOSSystem, and the service bridges that call the
 // bus as the app.
 const std::vector<std::string> kAppExtensions = {"webossystem",
                                                  "webosservicebridge"};
+
+// What WAM requests for a sign-in window whose views were set up `views`
+// times (the first Init(), then once per renderer crash). An engine that
+// limits the webOS APIs to the app's own documents decides per document, so
+// WAM requests the same as for any window: the provider's pages get none
+// from the engine (webOS-ports/chromium158#1). On an older engine every
+// document got them, so WAM requests none at all for the window.
+std::vector<std::string> SignInWindowRequests(int views) {
+  std::vector<std::string> requests;
+#if defined(HAS_WEBOS_API_POLICY)
+  for (int i = 0; i < views; ++i) {
+    requests.insert(requests.end(), kAppExtensions.begin(),
+                    kAppExtensions.end());
+  }
+#else
+  static_cast<void>(views);
+#endif
+  return requests;
+}
 
 // What WAM leaves to the main loop (the window stopped and closed after a
 // redirect) happens here.
@@ -1069,8 +1096,10 @@ TEST_F(CreateWindowTest, WindowOfAnUnwatchedWindowIsNotWatched) {
 
 // A sign-in window shows the provider's pages, which called the bus as the app
 // when they got the service bridges: Google's login, in the Accounts app's
-// window, could list the accounts (seen on a Q25). They get none; the opener,
-// the app's own page, keeps them - WAM tells it of the redirect there.
+// window, could list the accounts (seen on a Q25). They get none - from the
+// engine where it limits the APIs to the app's own documents, otherwise
+// because WAM requests none for the window (SignInWindowRequests). The
+// opener, the app's own page, keeps them - WAM tells it of the redirect there.
 TEST_F(CreateWindowTest, SignInWindowGetsNoWebOSObjects) {
   std::vector<std::string> opener_has;
   std::vector<std::string> window_has;
@@ -1083,8 +1112,29 @@ TEST_F(CreateWindowTest, SignInWindowGetsNoWebOSObjects) {
                 std::make_unique<ExtensionLogFactory>(&window_has), 0, {kWatch}),
             nullptr);
   ASSERT_NE(app_, nullptr);
-  EXPECT_THAT(window_has, IsEmpty());
+  EXPECT_EQ(window_has, SignInWindowRequests(1));
   EXPECT_EQ(opener_has, kAppExtensions);
+  CloseWindow();
+}
+
+// Once watched, the window's extensions are cleared only where the engine
+// gives every document them, as a second line behind not requesting them.
+// With the origin policy they stay: the engine keeps them from the provider's
+// pages, and a clear would take them from the window's own load-error page.
+TEST_F(CreateWindowTest, SignInWindowClearedOnlyWithoutThePolicy) {
+  std::vector<std::string> window_has;
+  int clears = 0;
+  ASSERT_NE(opener_->CreateWindow(
+                "about:blank",
+                std::make_unique<ExtensionLogFactory>(&window_has, &clears), 0,
+                {kWatch}),
+            nullptr);
+  ASSERT_NE(app_, nullptr);
+#if defined(HAS_WEBOS_API_POLICY)
+  EXPECT_EQ(clears, 0);
+#else
+  EXPECT_EQ(clears, 1);
+#endif
   CloseWindow();
 }
 
@@ -1097,7 +1147,7 @@ TEST_F(CreateWindowTest, PatternSignInWindowGetsNoWebOSObjects) {
                 {R"(attributes={"redirectPattern":"https://example\\.com/cb"})"}),
             nullptr);
   ASSERT_NE(app_, nullptr);
-  EXPECT_THAT(window_has, IsEmpty());
+  EXPECT_EQ(window_has, SignInWindowRequests(1));
   CloseWindow();
 }
 
@@ -1126,7 +1176,7 @@ TEST_F(CreateWindowTest, WindowTheLoginOpenedGetsNoWebOSObjects) {
                 std::make_unique<ExtensionLogFactory>(&window_has), 0, {}),
             nullptr);
   ASSERT_NE(app_, nullptr);
-  EXPECT_THAT(window_has, IsEmpty());
+  EXPECT_EQ(window_has, SignInWindowRequests(1));
   CloseWindow();
 }
 
@@ -1141,10 +1191,10 @@ TEST_F(CreateWindowTest, SignInWindowGetsNoneAfterARendererCrash) {
             nullptr);
   ASSERT_NE(app_, nullptr);
   Window()->RenderProcessCrashed();
-  EXPECT_THAT(window_has, IsEmpty());
+  EXPECT_EQ(window_has, SignInWindowRequests(2));
 
   opener_.reset();
   Window()->RenderProcessCrashed();
-  EXPECT_THAT(window_has, IsEmpty());
+  EXPECT_EQ(window_has, SignInWindowRequests(3));
   CloseWindow();
 }

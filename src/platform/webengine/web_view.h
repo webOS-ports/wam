@@ -54,6 +54,11 @@ class WebView {
   virtual void StopLoading() = 0;
   virtual void LoadExtension(const std::string& name) = 0;
   virtual void ClearExtensions() = 0;
+  // A folder whose file: documents count as the application's own for the
+  // webOS APIs, besides the app folder given to Initialize() (WAM's error
+  // page; Enyo 1's dashboard and the built-in apps' pages for a legacy app).
+  // Nothing on an engine that gives every document the APIs.
+  virtual void AddWebOSApiAllowedDirectory(const std::string& directory) = 0;
   virtual void EnableInspectablePage() = 0;
   virtual void DisableInspectablePage() = 0;
   virtual void SetInspectable(bool enable) = 0;

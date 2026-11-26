@@ -17,6 +17,7 @@
 #include <memory>
 #include <string>
 #include <utility>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -37,6 +38,7 @@ namespace {
 
 using ::testing::_;
 using ::testing::AnyNumber;
+using ::testing::ElementsAre;
 using ::testing::ByMove;
 using ::testing::HasSubstr;
 using ::testing::Return;
@@ -134,6 +136,31 @@ class DevModeModules : public PlatformModuleFactoryImpl {
 
  private:
   std::string tellurium_nub_path_;
+};
+
+// WAM's configuration with `error_page_url` as WAM_ERROR_PAGE.
+class ErrorPageConfig : public WebAppManagerConfig {
+ public:
+  explicit ErrorPageConfig(std::string error_page_url)
+      : error_page_url_(std::move(error_page_url)) {}
+  std::string GetErrorPageUrl() const override { return error_page_url_; }
+
+ private:
+  std::string error_page_url_;
+};
+
+class ErrorPageModules : public PlatformModuleFactoryImpl {
+ public:
+  explicit ErrorPageModules(std::string error_page_url)
+      : error_page_url_(std::move(error_page_url)) {}
+
+ protected:
+  std::unique_ptr<WebAppManagerConfig> CreateWebAppManagerConfig() override {
+    return std::make_unique<ErrorPageConfig>(error_page_url_);
+  }
+
+ private:
+  std::string error_page_url_;
 };
 
 class WebPageBlinkTestSuite : public ::testing::Test {
@@ -258,4 +285,91 @@ TEST_F(WebPageBlinkTestSuite, EveryPageGetsTheSoundShim) {
   WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
                         params.c_str(), std::move(factory));
   web_page.Init();
+}
+
+// loaderror.html reports the network state and opens Settings through the
+// webOS APIs, in any window: its folder counts as the app's own (an engine
+// that limits the APIs to the app's documents otherwise gives it none).
+TEST_F(WebPageBlinkTestSuite, ErrorPageFolderGetsTheWebOSApis) {
+  WebAppManager::Instance()->SetPlatformModules(std::make_unique<ErrorPageModules>(
+      "file:///usr/share/localization/wam/loaderror.html"));
+
+  EXPECT_CALL(*factory->web_view_,
+              AddWebOSApiAllowedDirectory("/usr/share/localization/wam"));
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
+}
+
+// Without an error page nothing besides the app's folder is allowed (the
+// test app uses no legacy framework, so no framework or built-in app folder
+// either).
+TEST_F(WebPageBlinkTestSuite, NoErrorPageNoExtraFolder) {
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ErrorPageModules>(""));
+
+  EXPECT_CALL(*factory->web_view_, AddWebOSApiAllowedDirectory(_)).Times(0);
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
+}
+
+// An Enyo 1 application shows pages besides its own: Enyo's dashboard (which
+// draws the shell's look and tells the shell its layers through PalmSystem)
+// and network alerts in the shared framework, however the app names it
+// (enyo/0.10, or the enyo/1.0 link to it), and the built-in applications'
+// pages its CrossAppUI frames show (the file and people pickers). Their
+// folders count as the app's own.
+TEST_F(WebPageBlinkTestSuite, Enyo1AppGetsTheWebOSApisInFrameworkAndCrossAppPages) {
+  ASSERT_TRUE(app_folder.WriteFile(
+      "index.html",
+      "<html><head><script src=\"/usr/palm/frameworks/enyo/0.10/framework/"
+      "enyo.js\" launch=\"nobridge\"></script></head></html>"));
+  std::string desc = kAppDescString;
+  util::ReplaceSubstr(desc, "@FOLDER@", app_folder.Path());
+  description = ApplicationDescription::FromJsonString(desc.c_str());
+  ASSERT_TRUE(description);
+  ASSERT_TRUE(description->UsesLegacyFramework());
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ErrorPageModules>(""));
+
+  std::vector<std::string> allowed;
+  EXPECT_CALL(*factory->web_view_, AddWebOSApiAllowedDirectory(_))
+      .WillRepeatedly([&allowed](const std::string& d) { allowed.push_back(d); });
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  constexpr char kBuild[] = "/framework/build/palm/system/dashboard-window";
+  constexpr char kSource[] = "/framework/source/palm/system/dashboard-window";
+  constexpr char kAlerts[] = "/framework/lib/networkalerts/source";
+  const std::string enyo = "/usr/palm/frameworks/enyo/";
+  EXPECT_THAT(allowed,
+              ElementsAre(enyo + "0.10" + kBuild, enyo + "0.10" + kSource,
+                          enyo + "0.10" + kAlerts, enyo + "1.0" + kBuild,
+                          enyo + "1.0" + kSource, enyo + "1.0" + kAlerts,
+                          "/usr/palm/applications"));
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
+}
+
+// An error page that is not a file: URL names no folder to allow.
+TEST_F(WebPageBlinkTestSuite, ErrorPageThatIsNoFileGivesNoFolder) {
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ErrorPageModules>("https://example.com/loaderror.html"));
+
+  EXPECT_CALL(*factory->web_view_, AddWebOSApiAllowedDirectory(_)).Times(0);
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
 }

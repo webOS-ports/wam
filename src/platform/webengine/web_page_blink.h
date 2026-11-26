@@ -206,6 +206,13 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   void SetDisallowScrolling(bool disallow);
   void ApplyPageZoomFactor();
   std::vector<std::string> GetErrorPagePath(const std::string& error_page);
+  // Lets the error page's folder have the webOS APIs on an engine that
+  // limits them to the app's own documents (Init()).
+  void AllowErrorPageWebOSApis();
+  // Lets the pages an application on the legacy frameworks shows besides its
+  // own have the webOS APIs: Enyo 1's dashboard and network alerts, and the
+  // built-in applications' pages its CrossAppUI frames show.
+  void AllowLegacyFrameworkWebOSApis();
   void ReloadFailedUrl();
   // Tells this page, as a 'webOSOAuthWindow' DOM event, what became of a
   // sign-in window it opened: "watching", "redirect" (with the url) or
@@ -257,51 +264,30 @@ class WebPageBlink : public WebPageBase, public WebPageBlinkDelegate {
   OneShotTimer<WebPageBlink> oauth_close_timer_;
   // The sign-in windows this page opened.
   std::vector<WebPageBlink*> oauth_windows_;
-  // This page is a sign-in window, or a window one opened: it shows the
-  // provider's pages, which get no webOSSystem and no service bridges (see
-  // StartWatching). Set by CreateWindow() before Init(), so the extensions are
-  // never requested for it. Never reset - not when the opener goes, which
-  // leaves the window open - so a view recreated after a renderer crash gets
-  // none either.
+  // Only on a web engine that gives every document of a view the webOS APIs
+  // (built without HAS_WEBOS_API_POLICY, see src/CMakeLists.txt). This page
+  // is a sign-in window, or a window one opened: it shows the provider's
+  // pages, which get no webOSSystem and no service bridges (see
+  // StartWatching). Set by CreateWindow() before Init(), so the extensions
+  // are never requested for it. Never reset - not when the opener goes,
+  // which leaves the window open - so a view recreated after a renderer crash
+  // gets none either.
   //
-  // TODO: this is a narrow workaround, not a fix of the underlying problem.
-  // The extensions (webOSSystem, PalmSystem and the service bridges) are
-  // requested per view, for the view's whole life, and every page the view
-  // shows calls the bus as the app. Nothing looks at which origin a page
-  // comes from. This flag only covers windows that announce themselves as
-  // sign-in windows through the window.open features, so:
-  //  - A sign-in window opened without redirectPrefix/redirectPattern (an
-  //    app that watches for the redirect itself, or a plain window.open() on
-  //    a third-party site) still gets them.
-  //  - An app page that navigates its own window to a remote site, or embeds
-  //    one in a frame, still hands that site the bus as the app. That is the
-  //    same hole, and this flag does nothing about it.
-  //  - It is all or nothing for the whole window. loaderror.html in a
-  //    sign-in window loses them as well, and with them the network state
-  //    and the Settings button.
-  //  - ClearExtensions() does not reach the page already set up (seen on the
-  //    Q25), so the flag has to be set before Init(). The ClearExtensions()
-  //    in StartWatching() only affects later pages.
-  //  - It depends on how the features string is parsed, which the engine
-  //    lowercases (both spellings are checked in CreateWindow()).
-  // A proper implementation:
-  //  1. webruntime decides on every navigation commit, per frame, whether to
-  //     inject the extensions, based on the committed origin. Only the
-  //     app's own content gets them: file:// under the app's folder, plus
-  //     any origins appinfo.json explicitly trusts. Everything else (sign-in
-  //     providers, remote main frames, third-party iframes) gets none. WAM's
-  //     WebView interface would pass that policy instead of
-  //     LoadExtension()/ClearExtensions().
-  //  2. On the bus side, a call from the service bridge carries the calling
-  //     origin. Or a window that shows foreign content runs under its own
-  //     unprivileged identity rather than the opener's app id, which
-  //     CreateWindow() copies today. Then ls-hubd's permissions apply to it,
-  //     not the opener's.
-  //  3. loaderror.html is served from an origin that the policy allows, so
-  //     it works in any window.
-  //  4. Then remove this flag, the guard in LoadExtension() and the clear in
-  //     StartWatching(), and turn the create_window_test.cc cases into
-  //     origin-based ones.
+  // It is a narrow guard: it covers only windows that announce themselves as
+  // sign-in windows through the window.open features, it is all or nothing
+  // for the window (its load-error page loses the APIs too), and it does
+  // nothing for an app page that navigates its own window to a remote site or
+  // embeds one in a frame.
+  //
+  // The engine with the origin policy (webOS-ports/chromium158#1) does it
+  // properly: it decides per document, by origin, which documents get the
+  // APIs - the app's folder, plus what the embedder adds (the error page's
+  // folder, AllowErrorPageWebOSApis; Enyo 1's pages and built-in apps'
+  // for a legacy app, AllowLegacyFrameworkWebOSApis) - binds the service bridge per document,
+  // and calls the bus as the app the embedder names instead of what the page
+  // asks for. Built against that engine this flag stays false. Once every
+  // engine WAM is built against has the policy, remove the flag, the guard in
+  // LoadExtension(), the clear in StartWatching() and kEngineLimitsWebOSApis.
   bool oauth_no_extensions_ = false;
 
   std::unique_ptr<WebViewFactory> factory_;

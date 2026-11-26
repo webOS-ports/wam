@@ -48,6 +48,10 @@ class WebViewMock : public WebView {
   MOCK_METHOD(void, StopLoading, (), (override));
   MOCK_METHOD(void, LoadExtension, (const std::string&), (override));
   MOCK_METHOD(void, ClearExtensions, (), (override));
+  MOCK_METHOD(void,
+              AddWebOSApiAllowedDirectory,
+              (const std::string&),
+              (override));
   MOCK_METHOD(void, EnableInspectablePage, (), (override));
   MOCK_METHOD(void, DisableInspectablePage, (), (override));
   MOCK_METHOD(void, SetInspectable, (bool), (override));

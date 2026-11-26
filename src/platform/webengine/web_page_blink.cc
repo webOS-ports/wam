@@ -21,6 +21,7 @@
 #include <cerrno>
 #include <cmath>
 #include <cstdlib>
+#include <filesystem>
 #include <iterator>
 #include <limits>
 #include <sstream>
@@ -59,6 +60,50 @@ static const int kExecuteCloseCallbackTimeOutMs = 10000;
 static const int kReloadTimeoutMs = 60000;
 
 namespace {
+
+// Whether the web engine gives the webOS APIs (webOSSystem, PalmSystem, the
+// service bridges) only to the application's own documents: file: URLs in
+// its folder and in the folders added with AddWebOSApiAllowedDirectory().
+// A sign-in provider's page, a remote page and a third-party iframe in the
+// app's window then get none, whatever WAM requests for the view. Older
+// engines give them to every document the view shows; WAM then keeps its
+// narrower guard for sign-in windows (oauth_no_extensions_).
+#if defined(HAS_WEBOS_API_POLICY)
+constexpr bool kEngineLimitsWebOSApis = true;
+#else
+constexpr bool kEngineLimitsWebOSApis = false;
+#endif
+
+// Folders whose documents an application on the legacy frameworks shows in
+// its own windows, besides its own folder:
+//
+//  - Enyo 1's pages for the windows it opens for the application: the
+//    dashboard (enyo.Dashboard opens $palm-system/dashboard-window/
+//    dashboard.html), which needs PalmSystem to draw the shell's look and
+//    tell the shell how many layers it has, and the network alerts popup
+//    ($enyo-lib/networkalerts/source/networkalerts.html), which launches
+//    Settings through the service bridge. The engine compares paths as
+//    written, and an application names the framework as enyo/0.10 or through
+//    the enyo/1.0 link to it, from its build or (launched for debugging) its
+//    source.
+//  - The built-in applications: Enyo 1's CrossAppUI shows another
+//    application's page in a frame of the application's window - the file
+//    picker (com.palm.systemui), the people picker (com.palm.app.contacts),
+//    the accounts library's account screens (whichever application a
+//    template names) - and that page makes its service calls through its own
+//    bridge. These are part of the image, not something installed later
+//    (/media/cryptofs/apps), and the engine calls the bus as this
+//    application whatever the page asks for, so such a page gets no more
+//    than the application that shows it.
+constexpr const char* kLegacyFrameworkWebOSApiFolders[] = {
+    "/usr/palm/frameworks/enyo/0.10/framework/build/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/0.10/framework/source/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/0.10/framework/lib/networkalerts/source",
+    "/usr/palm/frameworks/enyo/1.0/framework/build/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/1.0/framework/source/palm/system/dashboard-window",
+    "/usr/palm/frameworks/enyo/1.0/framework/lib/networkalerts/source",
+    "/usr/palm/applications",
+};
 
 // The zoom factor applied to applications built against the frameworks this
 // distribution carries for compatibility.
@@ -284,6 +329,8 @@ void WebPageBlink::Init() {
       app_desc_.FolderPath(), app_desc_.TrustLevel(),
       app_desc_.V8SnapshotPath(), app_desc_.V8ExtraFlags(),
       app_desc_.UseNativeScroll());
+  AllowErrorPageWebOSApis();
+  AllowLegacyFrameworkWebOSApis();
   SetViewportSize();
   ApplyPageZoomFactor();
 
@@ -492,6 +539,38 @@ void WebPageBlink::ReloadDefaultPage() {
   // preference)
 
   LoadDefaultUrl();
+}
+
+void WebPageBlink::AllowErrorPageWebOSApis() {
+  // loaderror.html reports the network state and opens Settings through
+  // webOSSystem and the service bridge, in any window, a sign-in window
+  // included. It is WAM's, not the app's: its folder (and the localized
+  // copies under it, see LoadErrorPage()) counts as the app's own.
+  const std::string& error_page = GetWebAppManagerConfig()->GetErrorPageUrl();
+  if (error_page.empty()) {
+    return;
+  }
+  const std::string path = util::UriToLocal(error_page);
+  if (path.empty()) {
+    return;
+  }
+  const std::string folder =
+      std::filesystem::path(path).parent_path().string();
+  if (!folder.empty()) {
+    page_private_->page_view_->AddWebOSApiAllowedDirectory(folder);
+  }
+}
+
+void WebPageBlink::AllowLegacyFrameworkWebOSApis() {
+  // Only an application on the legacy frameworks opens these; the page of a
+  // window.open()ed window is set up with its opener's description, so a
+  // dashboard has the flag of the application that opened it.
+  if (!app_desc_.UsesLegacyFramework()) {
+    return;
+  }
+  for (const char* folder : kLegacyFrameworkWebOSApiFolders) {
+    page_private_->page_view_->AddWebOSApiAllowedDirectory(folder);
+  }
 }
 
 std::vector<std::string> WebPageBlink::GetErrorPagePath(
@@ -1079,16 +1158,19 @@ void WebPageBlink::StartWatching(WebPageBlink* opener,
   oauth_sign_in_ = sign_in;
   opener->oauth_windows_.push_back(this);
 
-  // The window shows the provider's pages, not the app's. Every page in an
-  // app's window got webOSSystem and the service bridges, and called the bus
-  // as that app: a sign-in page, or any script it loads, could read the
-  // Accounts app's database, its key manager and its accounts. Nothing in a
-  // sign-in needs them there - the redirect is caught here and reported to
-  // the opener (NotifyOAuthWindow), which keeps its own. A load-error page in
-  // the window (loaderror.html) goes without them as well: it still shows,
-  // but cannot report the network state or open Settings.
-  oauth_no_extensions_ = true;
-  ClearExtensions();
+  // The window shows the provider's pages, not the app's. Nothing in a
+  // sign-in needs webOSSystem or the service bridges there - the redirect is
+  // caught here and reported to the opener (NotifyOAuthWindow), which keeps
+  // its own. An engine that limits the APIs to the app's own documents
+  // already gives the provider's pages none. On an older one every page in
+  // the window called the bus as the app: a sign-in page, or any script it
+  // loads, could read the Accounts app's database, its key manager and its
+  // accounts. There the window gets none at all (oauth_no_extensions_), its
+  // load-error page included.
+  if (!kEngineLimitsWebOSApis) {
+    oauth_no_extensions_ = true;
+    ClearExtensions();
+  }
 
   opener->NotifyOAuthWindow("watching", "");
 }
@@ -1408,9 +1490,9 @@ std::string WebPageBlink::DefaultTrustLevel() const {
 
 void WebPageBlink::LoadExtension() {
   if (oauth_no_extensions_) {
-    // A sign-in window's view recreated after a renderer crash (Init()).
-    // TODO: workaround; see oauth_no_extensions_ in web_page_blink.h for the
-    // proper, origin-based implementation.
+    // A sign-in window on an engine that gives every document the APIs,
+    // also for its view recreated after a renderer crash (Init()). See
+    // oauth_no_extensions_ in web_page_blink.h.
     return;
   }
   LOG_DEBUG("WebPageBlink::loadExtension(); Extension : webossystem");
@@ -1756,13 +1838,16 @@ WebView* WebPageBlink::CreateWindow(
   wam::Url const new_wam_url(new_url);
   auto new_page = std::make_unique<WebPageBlink>(
       new_wam_url, *new_app_desc, "{}", std::move(dedicated_factory));
-  // Decided before Init(), which would load the extensions: a window opened
-  // on the provider's url gets its first page set up by the engine before the
-  // watch below starts, and clearing them then left that page with them (seen
-  // on a Q25: Google's sign-in kept PalmServiceBridge, later pages had none).
+  // Only for an engine that gives every document the APIs (see
+  // StartWatching). Decided before Init(), which would load the extensions:
+  // a window opened on the provider's url gets its first page set up by the
+  // engine before the watch below starts, and clearing them then left that
+  // page with them (seen on a Q25: Google's sign-in kept PalmServiceBridge,
+  // later pages had none).
   new_page->oauth_no_extensions_ =
-      !redirect_prefix.empty() || !redirect_pattern.empty() ||
-      oauth_no_extensions_;
+      !kEngineLimitsWebOSApis &&
+      (!redirect_prefix.empty() || !redirect_pattern.empty() ||
+       oauth_no_extensions_);
   new_page->Init();
   const WebPageBlink* page = new_page.get();
 

@@ -52,6 +52,7 @@ class WebViewImpl : public WebView {
   void StopLoading() override;
   void LoadExtension(const std::string& name) override;
   void ClearExtensions() override;
+  void AddWebOSApiAllowedDirectory(const std::string& directory) override;
   void EnableInspectablePage() override;
   void DisableInspectablePage() override;
   void SetInspectable(bool enable) override;

@@ -123,6 +123,17 @@ void WebViewImpl::SetInspectable(bool enable) {
   }
 }
 
+void WebViewImpl::AddWebOSApiAllowedDirectory(const std::string& directory) {
+#if defined(HAS_WEBOS_API_POLICY)
+  if (web_view_) {
+    web_view_->AddWebOSApiAllowedDirectory(directory);
+  }
+#else
+  // The engine gives every document the APIs; there is nothing to allow.
+  static_cast<void>(directory);
+#endif
+}
+
 void WebViewImpl::AddAvailablePluginDir(const std::string& directory) {
   if (web_view_) {
     web_view_->AddAvailablePluginDir(directory);

@@ -136,6 +136,31 @@ class DevModeModules : public PlatformModuleFactoryImpl {
   std::string tellurium_nub_path_;
 };
 
+// WAM's configuration with `error_page_url` as WAM_ERROR_PAGE.
+class ErrorPageConfig : public WebAppManagerConfig {
+ public:
+  explicit ErrorPageConfig(std::string error_page_url)
+      : error_page_url_(std::move(error_page_url)) {}
+  std::string GetErrorPageUrl() const override { return error_page_url_; }
+
+ private:
+  std::string error_page_url_;
+};
+
+class ErrorPageModules : public PlatformModuleFactoryImpl {
+ public:
+  explicit ErrorPageModules(std::string error_page_url)
+      : error_page_url_(std::move(error_page_url)) {}
+
+ protected:
+  std::unique_ptr<WebAppManagerConfig> CreateWebAppManagerConfig() override {
+    return std::make_unique<ErrorPageConfig>(error_page_url_);
+  }
+
+ private:
+  std::string error_page_url_;
+};
+
 class WebPageBlinkTestSuite : public ::testing::Test {
  public:
   WebPageBlinkTestSuite();
@@ -258,4 +283,49 @@ TEST_F(WebPageBlinkTestSuite, EveryPageGetsTheSoundShim) {
   WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
                         params.c_str(), std::move(factory));
   web_page.Init();
+}
+
+// loaderror.html reports the network state and opens Settings through the
+// webOS APIs, in any window: its folder counts as the app's own (an engine
+// that limits the APIs to the app's documents otherwise gives it none).
+TEST_F(WebPageBlinkTestSuite, ErrorPageFolderGetsTheWebOSApis) {
+  WebAppManager::Instance()->SetPlatformModules(std::make_unique<ErrorPageModules>(
+      "file:///usr/share/localization/wam/loaderror.html"));
+
+  EXPECT_CALL(*factory->web_view_,
+              AddWebOSApiAllowedDirectory("/usr/share/localization/wam"));
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
+}
+
+// Without an error page nothing besides the app's folder is allowed.
+TEST_F(WebPageBlinkTestSuite, NoErrorPageNoExtraFolder) {
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ErrorPageModules>(""));
+
+  EXPECT_CALL(*factory->web_view_, AddWebOSApiAllowedDirectory(_)).Times(0);
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
+}
+
+// An error page that is not a file: URL names no folder to allow.
+TEST_F(WebPageBlinkTestSuite, ErrorPageThatIsNoFileGivesNoFolder) {
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ErrorPageModules>("https://example.com/loaderror.html"));
+
+  EXPECT_CALL(*factory->web_view_, AddWebOSApiAllowedDirectory(_)).Times(0);
+  WebPageBlink web_page(wam::Url(description->EntryPoint()), *description,
+                        params.c_str(), std::move(factory));
+  web_page.Init();
+
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
 }

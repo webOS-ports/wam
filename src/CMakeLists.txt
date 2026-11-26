@@ -42,6 +42,43 @@ endif()
 
 string(REPLACE ";" ", " PKGCONFIG_REQUIRES_PRIVATE "${PKGCONFIG_REQUIRES_PRIVATE}")
 
+# Whether the web engine gives the webOS APIs (webOSSystem, PalmSystem, the
+# service bridges) only to an application's own documents - file: URLs in its
+# folder, plus the folders and origins the embedder adds - and none to a
+# sign-in provider's page, a remote page or a third-party iframe in the same
+# view (webruntime with webos::WebViewBase::AddWebOSApiAllowedDirectory).
+# Without it WAM keeps its own, narrower guard for sign-in windows
+# (WebPageBlink::oauth_no_extensions_). A check that fails for any other
+# reason leaves that guard on, never the other way round. It is a question
+# about the engine's headers, so the check only compiles (a static library):
+# a link would need libcbe, and decide by the optimisation level whether the
+# member's address is still referenced.
+include(CheckCXXSourceCompiles)
+set(CMAKE_REQUIRED_INCLUDES ${CHROMIUM_INCLUDE_DIRS})
+string(REPLACE ";" " " _wam_chromium_cflags "${CHROMIUM_CFLAGS_OTHER}")
+set(CMAKE_REQUIRED_FLAGS
+    "${_wam_chromium_cflags} -std=c++23 -fno-rtti -fno-exceptions -Wno-psabi")
+set(_wam_try_compile_target_type "${CMAKE_TRY_COMPILE_TARGET_TYPE}")
+set(CMAKE_TRY_COMPILE_TARGET_TYPE STATIC_LIBRARY)
+check_cxx_source_compiles("
+#include <string>
+#include <type_traits>
+#include \"webos/webview_base.h\"
+static_assert(std::is_same_v<
+    decltype(&webos::WebViewBase::AddWebOSApiAllowedDirectory),
+    void (webos::WebViewBase::*)(const std::string&)>);
+int main() { return 0; }" WAM_ENGINE_LIMITS_WEBOS_APIS)
+set(CMAKE_TRY_COMPILE_TARGET_TYPE "${_wam_try_compile_target_type}")
+unset(CMAKE_REQUIRED_INCLUDES)
+unset(CMAKE_REQUIRED_FLAGS)
+if(WAM_ENGINE_LIMITS_WEBOS_APIS)
+    message(STATUS "Web engine limits the webOS APIs to the app's own documents")
+    add_compile_definitions(HAS_WEBOS_API_POLICY)
+else()
+    message(STATUS "Web engine gives every document the webOS APIs: "
+                   "keeping WAM's sign-in window guard")
+endif()
+
 webos_add_compiler_flags(ALL CXX -fno-rtti
                                  -fno-exceptions
                                  -funwind-tables

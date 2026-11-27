@@ -205,15 +205,20 @@ class WindowAppMock : public WebAppBaseMock {
     WebAppBase::SetKeepAlive(keep_alive);  // NOLINT(bugprone-parent-virtual-call)
   }
   void ShowWindow() override { ++show_window_calls_; }
+  void Resize(int width, int height) override {
+    resizes_.emplace_back(width, height);
+  }
 
   void SetAddedToWindowManager() { added_to_window_mgr_ = true; }
   int ShowWindowCalls() const { return show_window_calls_; }
 
   WebPageBase* AttachedPage() const { return Page(); }
   const Properties& WindowProperties() const { return properties_; }
+  const std::vector<std::pair<int, int>>& Resizes() const { return resizes_; }
 
  private:
   Properties properties_;
+  std::vector<std::pair<int, int>> resizes_;
   int show_window_calls_ = 0;
 };
 
@@ -514,6 +519,44 @@ TEST_F(CreateWindowTest, PopupAlert) {
               UnorderedElementsAre(Pair("LuneOS_window", "popupalert")));
 }
 
+// The height a page asks for is in its own pixels, and the window is on the
+// panel: zoomed by the page's UI scale as the page is. The Clock's alarm popup
+// asks for 110; on the Q25 (1.6) a 110 px window cut off its buttons.
+TEST_F(CreateWindowTest, PopupHeightIsScaledLikeThePage) {
+  desc_ = ApplicationDescription::FromJsonString(
+      R"({"id":"com.example.opener","defaultWindowType":"card",)"
+      R"("main":"index.html","folderPath":"/usr/palm/applications/)"
+      R"(com.example.opener","trustLevel":"default","uiScale":1.6})");
+  ASSERT_TRUE(desc_);
+  opener_ = std::make_unique<WebPageBlink>(
+      wam::Url("file:///index.html"), *desc_, "{}",
+      std::make_unique<NewViewFactory>());
+  opener_->Init();
+
+  const WebView* view = opener_->CreateWindow(
+      "about:blank", std::make_unique<NewViewFactory>(), 110,
+      {R"(attributes={"window":"popupalert"})"});
+  ASSERT_NE(view, nullptr);
+  ASSERT_NE(app_, nullptr);
+  ASSERT_EQ(app_->Resizes().size(), 1U);
+  EXPECT_EQ(app_->Resizes()[0].second, 176);
+}
+
+// Unzoomed, the height is what the page asked for; and no height, no resize.
+TEST_F(CreateWindowTest, PopupHeightUnzoomed) {
+  const WebView* view = opener_->CreateWindow(
+      "about:blank", std::make_unique<NewViewFactory>(), 110,
+      {R"(attributes={"window":"popupalert"})"});
+  ASSERT_NE(view, nullptr);
+  ASSERT_NE(app_, nullptr);
+  ASSERT_EQ(app_->Resizes().size(), 1U);
+  EXPECT_EQ(app_->Resizes()[0].second, 110);
+
+  CloseWindow();
+  ASSERT_NO_FATAL_FAILURE(Open({R"(attributes={"window":"popupalert"})"}));
+  EXPECT_THAT(app_->Resizes(), IsEmpty());
+}
+
 // Calendar's reminder and a battery alert: the engine lowercases the features,
 // so the file name has to come back from the disk.
 TEST_F(CreateWindowTest, PopupSoundGetsItsCaseBack) {
@@ -567,14 +610,23 @@ TEST_F(CreateWindowTest, DashboardIsTransparent) {
   CloseWindow();
 
   for (const char* feature :
-       {R"(attributes={"window":"popupalert"})", R"(attributes={"window":"card"})",
-        R"(attributes={"name":"x"})"}) {
+       {R"(attributes={"window":"card"})", R"(attributes={"name":"x"})"}) {
     SCOPED_TRACE(feature);
     ASSERT_NO_FATAL_FAILURE(Open({feature}));
     EXPECT_FALSE(app_->AttachedPage()->GetAppDescription().IsTransparent());
     CloseWindow();
   }
   // The opener's own description is left as it was.
+  EXPECT_FALSE(opener_->GetAppDescription().IsTransparent());
+}
+
+// A popup alert's page goes on the shell's panel too.
+TEST_F(CreateWindowTest, PopupAlertIsTransparent) {
+  ASSERT_NO_FATAL_FAILURE(Open({R"(attributes={"window":"popupalert"})"}));
+  ASSERT_NE(app_->AttachedPage(), nullptr);
+  EXPECT_TRUE(app_->AttachedPage()->GetAppDescription().IsTransparent());
+  EXPECT_TRUE(app_->GetAppDescription()->IsTransparent());
+  CloseWindow();
   EXPECT_FALSE(opener_->GetAppDescription().IsTransparent());
 }
 
@@ -1197,4 +1249,138 @@ TEST_F(CreateWindowTest, SignInWindowGetsNoneAfterARendererCrash) {
   Window()->RenderProcessCrashed();
   EXPECT_EQ(window_has, SignInWindowRequests(3));
   CloseWindow();
+}
+
+// sam killing an app takes the app's window.open() windows with it. A noWindow
+// app's card is such a window (the Clock's main.html, opened by its headless
+// page): left open, it outlived its app, and the next launch of the app put a
+// second card beside it.
+TEST_F(CreateWindowTest, KillingTheAppClosesItsWindows) {
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  WebPageBlink* parent_page = KeepWindow();
+  WindowAppMock* parent = kept_.back();
+  // Made the app itself: a launched app has sam's instance id.
+  const std::string parent_id = "2fefbe44-8fa2-4af1-9f10-6637ad0767fc0";
+  parent->SetInstanceId(parent_id);
+  parent_page->SetInstanceId(parent_id);
+  ASSERT_FALSE(WebAppManager::IsWindowOpenInstanceId(parent_id));
+
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  const std::string window_id = app_->InstanceId();
+  ASSERT_TRUE(WebAppManager::IsWindowOpenInstanceId(window_id));
+  ASSERT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), app_);
+
+  EXPECT_TRUE(WebAppManager::Instance()->OnKillApp(parent->AppId(), parent_id,
+                                                   false));
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(parent_id), nullptr);
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), nullptr);
+  EXPECT_TRUE(app_->AttachedPage()->IsClosing());
+}
+
+// With another instance of the app running, whose a window is cannot be told
+// (WAM keeps no opener): the windows stay.
+TEST_F(CreateWindowTest, KillingOneOfTwoInstancesLeavesTheWindows) {
+  const std::string ids[] = {"2fefbe44-8fa2-4af1-9f10-6637ad0767fc0",
+                             "10d48cea-f904-4b8a-870d-d2d2b63fb56b0"};
+  for (const std::string& id : ids) {
+    ASSERT_NO_FATAL_FAILURE(Open({}));
+    WebPageBlink* page = KeepWindow();
+    kept_.back()->SetInstanceId(id);
+    page->SetInstanceId(id);
+  }
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  const std::string window_id = app_->InstanceId();
+
+  EXPECT_TRUE(WebAppManager::Instance()->OnKillApp(app_->AppId(), ids[0],
+                                                   false));
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), app_);
+  EXPECT_FALSE(app_->AttachedPage()->IsClosing());
+}
+
+// The running lists posted to sam.
+class ListRecordingServiceSender : public ServiceSender {
+ public:
+  explicit ListRecordingServiceSender(
+      std::vector<std::vector<std::string>>* posts)
+      : posts_(posts) {}
+  void PostlistRunningApps(std::vector<ApplicationInfo>& apps) override {
+    std::vector<std::string> ids;
+    for (const ApplicationInfo& app : apps) {
+      ids.push_back(app.instance_id_);
+    }
+    posts_->push_back(ids);
+  }
+  void PostWebProcessCreated(const std::string& /*app_id*/,
+                             const std::string& /*instance_id*/,
+                             uint32_t /*pid*/) override {}
+  void ServiceCall(const std::string& /*url*/,
+                   const std::string& /*payload*/,
+                   const std::string& /*app_id*/) override {}
+  void CloseApp(const std::string& /*id*/) override {}
+
+ private:
+  std::vector<std::vector<std::string>>* posts_;
+};
+
+class ListRecordingModules : public PlatformModuleFactoryImpl {
+ public:
+  explicit ListRecordingModules(std::vector<std::vector<std::string>>* posts)
+      : posts_(posts) {}
+
+ protected:
+  std::unique_ptr<ServiceSender> CreateServiceSender() override {
+    return std::make_unique<ListRecordingServiceSender>(posts_);
+  }
+
+ private:
+  std::vector<std::vector<std::string>>* posts_;
+};
+
+// Makes launched apps' pages, posting the running list as it does so, as the
+// engine does when a page's view starts (PostWebProcessCreated()).
+class PostingPageFactory : public WindowAppFactoryManager {
+ public:
+  using WindowAppFactoryManager::WindowAppFactoryManager;
+  WebPageBase* CreateWebPage(const std::string& /*win_type*/,
+                             const wam::Url& url,
+                             const ApplicationDescription& desc,
+                             const std::string& /*app_type*/,
+                             const std::string& launch_params) override {
+    WebAppManager::Instance()->PostRunningAppList();
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): the app owns it
+    auto* page = new WebPageBlink(url, desc, launch_params,
+                                  std::make_unique<NewViewFactory>());
+    page->Init();
+    WebAppManager::Instance()->PostRunningAppList();
+    return page;
+  }
+};
+
+// Every running list posted while an app launches has the app in it. Missing
+// from them, it was taken by sam for closed once the shell had reported the
+// app in front: sam dropped the instance, and the next launch made another.
+TEST_F(CreateWindowTest, LaunchedAppIsInEveryListPosted) {
+  std::vector<std::vector<std::string>> posts;
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ListRecordingModules>(&posts));
+  WebAppManager::Instance()->SetWebAppFactory(
+      std::make_unique<PostingPageFactory>(&win_type_, &app_));
+
+  const std::string id = "d4d5716a-dee1-4441-afae-6174a5db1f960";
+  int err_code = 0;
+  std::string err_msg;
+  EXPECT_EQ(WebAppManager::Instance()->Launch(
+                kAppDesc, R"({"instanceId":")" + id + R"("})",
+                "com.webos.app.home", err_code, err_msg),
+            id);
+  ASSERT_NE(app_, nullptr);
+
+  ASSERT_FALSE(posts.empty());
+  for (const std::vector<std::string>& post : posts) {
+    EXPECT_THAT(post, testing::Contains(id));
+  }
+
+  CloseWindow();
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
 }

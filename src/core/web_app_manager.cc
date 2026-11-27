@@ -258,12 +258,53 @@ bool WebAppManager::OnKillApp(const std::string& app_id,
     return false;
   }
 
+  // The app's windows go with it. Left open, a noWindow app's card (the
+  // Clock's main.html: a window.open() of its headless page) outlived its
+  // app: sam had no instance for it, so the next launch started another, and
+  // the card in front made sam think the new instance was up before it was.
+  // Ids, not pointers: closing the app may already take a window down.
+  const std::vector<std::string> windows = WindowsOnlyOpenedBy(app);
+
   if (force) {
     ForceCloseAppInternal(app);
   } else {
     CloseAppInternal(app);
   }
+
+  for (const std::string& window_id : windows) {
+    if (WebAppBase* window = FindAppByInstanceId(window_id)) {
+      LOG_INFO(MSGID_KILL_APP, 3, PMLOGKS("APP_ID", app_id.c_str()),
+               PMLOGKS("INSTANCE_ID", window_id.c_str()),
+               PMLOGKS("PARENT_INSTANCE_ID", instance_id.c_str()),
+               "closing a window of the killed app");
+      if (force) {
+        ForceCloseAppInternal(window);
+      } else {
+        CloseAppInternal(window);
+      }
+    }
+  }
   return true;
+}
+
+std::vector<std::string> WebAppManager::WindowsOnlyOpenedBy(
+    const WebAppBase* app) const {
+  std::vector<std::string> windows;
+  if (IsWindowOpenInstanceId(app->InstanceId())) {
+    return windows;
+  }
+  for (const WebAppBase* other : app_list_) {
+    if (other == app || other->AppId() != app->AppId()) {
+      continue;
+    }
+    if (!IsWindowOpenInstanceId(other->InstanceId())) {
+      // Another instance of the app: whose the windows are is not known
+      // (WAM keeps no opener), so they stay.
+      return {};
+    }
+    windows.push_back(other->InstanceId());
+  }
+  return windows;
 }
 
 bool WebAppManager::OnPauseApp(const std::string& instance_id) {
@@ -304,11 +345,20 @@ WebAppBase* WebAppManager::OnLaunchUrl(
     std::string& err_msg) {
   PMTRACE_FUNCTION;
 
+  // Making the page posts the running list to sam (PostWebProcessCreated(),
+  // several times as its view starts), before the app is in it. sam takes an
+  // instance missing from the list for closed unless it is still launching -
+  // and the shell reporting the app in front (by another of its windows) ends
+  // that early: sam dropped the new instance, and the next launch started a
+  // second one, two Clock cards. Held until the app is listed, then posted.
+  hold_running_app_posts_ = true;
+
   WebAppFactoryManager* factory = GetWebAppFactory();
   WebAppBase* app =
       factory->CreateWebApp(win_type, *app_desc, app_desc->SubType());
 
   if (!app) {
+    hold_running_app_posts_ = false;
     err_code = kErrCodeLaunchappUnsupportedType;
     err_msg = kErrUnsupportedType;
     return nullptr;
@@ -343,6 +393,8 @@ WebAppBase* WebAppManager::OnLaunchUrl(
   WebPageAdded(page);
 
   app_list_.push_back(app);
+  hold_running_app_posts_ = false;
+  PostRunningAppList();
 
   if (app_version_.contains(app->GetAppDescription()->Id())) {
     if (app_version_[app->GetAppDescription()->Id()] !=
@@ -805,7 +857,7 @@ void WebAppManager::CloseApp(const std::string& app_id) {
 }
 
 void WebAppManager::PostRunningAppList() {
-  if (!service_sender_) {
+  if (!service_sender_ || hold_running_app_posts_) {
     return;
   }
 

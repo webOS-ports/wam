@@ -85,6 +85,10 @@ class WebAppManager {
 
   WebAppBase* FindAppById(const std::string& app_id);
   WebAppBase* FindAppByInstanceId(const std::string& instance_id);
+  // The window.open() windows that would be left without an app if |app|
+  // went: its app's windows, when |app| is the only instance of that app.
+  // Empty for a window.open() window itself.
+  std::vector<std::string> WindowsOnlyOpenedBy(const WebAppBase* app) const;
 
   std::string Launch(const std::string& app_desc_string,
                      const std::string& params,
@@ -241,6 +245,8 @@ class WebAppManager {
   std::unique_ptr<WebAppFactoryManager> web_app_factory_;
 
   std::unordered_map<std::string, int> last_crashed_app_ids_;
+  // While an app is being launched, until it is in app_list_ (OnLaunchUrl()).
+  bool hold_running_app_posts_ = false;
 
   int suspend_delay_ = 0;
   int max_custom_suspend_delay_ = 0;

@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <iterator>
 #include <numeric>
+#include <optional>
 #include <sstream>
 #include <unordered_map>
 
@@ -34,6 +35,7 @@
 #include "web_app_window_impl.h"
 #include "web_page_base.h"
 #include "web_page_blink.h"
+#include "window_property.h"
 #include "window_types.h"
 
 namespace {
@@ -543,6 +545,22 @@ void WebAppWayland::SetInputRegion(const Json::Value& value) {
 
 void WebAppWayland::SetWindowProperty(const std::string& name,
                                       const std::string& value) {
+  // Cut to fit one Wayland message (window_property.h): one too long kills
+  // the connection, and WebAppMgr with it.
+  const std::optional<std::string> sent = window_property::Fit(name, value);
+  if (!sent) {
+    LOG_WARNING(MSGID_WAM_DEBUG, 2, PMLOGKS("APP_ID", AppId().c_str()),
+                PMLOGKFV("NAME_BYTES", "%zu", name.size()),
+                "Window property name too long, not set");
+    return;
+  }
+  if (sent->size() != value.size()) {
+    LOG_WARNING(MSGID_WAM_DEBUG, 3, PMLOGKS("APP_ID", AppId().c_str()),
+                PMLOGKS("NAME", name.c_str()),
+                PMLOGKFV("VALUE_BYTES", "%zu", value.size()),
+                "Window property value too long, truncated");
+  }
+
   webos::WebOSKeyMask mask = webos::WebOSKeyMask{};
   if (name == "_WEBOS_ACCESS_POLICY_KEYS_BACK") {
     mask = webos::WebOSKeyMask::KEY_MASK_BACK;
@@ -551,9 +569,9 @@ void WebAppWayland::SetWindowProperty(const std::string& name,
   }
   // if mask is not set, not need to call setKeyMask
   if (mask != webos::WebOSKeyMask{}) {
-    WebAppWayland::SetKeyMask(mask, value == "true");
+    WebAppWayland::SetKeyMask(mask, *sent == "true");
   }
-  app_window_->SetWindowProperty(name, value);
+  app_window_->SetWindowProperty(name, *sent);
 }
 
 void WebAppWayland::PlatformBack() {

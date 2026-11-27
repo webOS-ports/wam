@@ -345,11 +345,20 @@ WebAppBase* WebAppManager::OnLaunchUrl(
     std::string& err_msg) {
   PMTRACE_FUNCTION;
 
+  // Making the page posts the running list to sam (PostWebProcessCreated(),
+  // several times as its view starts), before the app is in it. sam takes an
+  // instance missing from the list for closed unless it is still launching -
+  // and the shell reporting the app in front (by another of its windows) ends
+  // that early: sam dropped the new instance, and the next launch started a
+  // second one, two Clock cards. Held until the app is listed, then posted.
+  hold_running_app_posts_ = true;
+
   WebAppFactoryManager* factory = GetWebAppFactory();
   WebAppBase* app =
       factory->CreateWebApp(win_type, *app_desc, app_desc->SubType());
 
   if (!app) {
+    hold_running_app_posts_ = false;
     err_code = kErrCodeLaunchappUnsupportedType;
     err_msg = kErrUnsupportedType;
     return nullptr;
@@ -384,6 +393,8 @@ WebAppBase* WebAppManager::OnLaunchUrl(
   WebPageAdded(page);
 
   app_list_.push_back(app);
+  hold_running_app_posts_ = false;
+  PostRunningAppList();
 
   if (app_version_.contains(app->GetAppDescription()->Id())) {
     if (app_version_[app->GetAppDescription()->Id()] !=
@@ -846,7 +857,7 @@ void WebAppManager::CloseApp(const std::string& app_id) {
 }
 
 void WebAppManager::PostRunningAppList() {
-  if (!service_sender_) {
+  if (!service_sender_ || hold_running_app_posts_) {
     return;
   }
 

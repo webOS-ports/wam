@@ -245,6 +245,8 @@ class WebAppManager {
   std::unique_ptr<WebAppFactoryManager> web_app_factory_;
 
   std::unordered_map<std::string, int> last_crashed_app_ids_;
+  // While an app is being launched, until it is in app_list_ (OnLaunchUrl()).
+  bool hold_running_app_posts_ = false;
 
   int suspend_delay_ = 0;
   int max_custom_suspend_delay_ = 0;

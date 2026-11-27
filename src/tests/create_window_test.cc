@@ -1296,3 +1296,91 @@ TEST_F(CreateWindowTest, KillingOneOfTwoInstancesLeavesTheWindows) {
   EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), app_);
   EXPECT_FALSE(app_->AttachedPage()->IsClosing());
 }
+
+// The running lists posted to sam.
+class ListRecordingServiceSender : public ServiceSender {
+ public:
+  explicit ListRecordingServiceSender(
+      std::vector<std::vector<std::string>>* posts)
+      : posts_(posts) {}
+  void PostlistRunningApps(std::vector<ApplicationInfo>& apps) override {
+    std::vector<std::string> ids;
+    for (const ApplicationInfo& app : apps) {
+      ids.push_back(app.instance_id_);
+    }
+    posts_->push_back(ids);
+  }
+  void PostWebProcessCreated(const std::string& /*app_id*/,
+                             const std::string& /*instance_id*/,
+                             uint32_t /*pid*/) override {}
+  void ServiceCall(const std::string& /*url*/,
+                   const std::string& /*payload*/,
+                   const std::string& /*app_id*/) override {}
+  void CloseApp(const std::string& /*id*/) override {}
+
+ private:
+  std::vector<std::vector<std::string>>* posts_;
+};
+
+class ListRecordingModules : public PlatformModuleFactoryImpl {
+ public:
+  explicit ListRecordingModules(std::vector<std::vector<std::string>>* posts)
+      : posts_(posts) {}
+
+ protected:
+  std::unique_ptr<ServiceSender> CreateServiceSender() override {
+    return std::make_unique<ListRecordingServiceSender>(posts_);
+  }
+
+ private:
+  std::vector<std::vector<std::string>>* posts_;
+};
+
+// Makes launched apps' pages, posting the running list as it does so, as the
+// engine does when a page's view starts (PostWebProcessCreated()).
+class PostingPageFactory : public WindowAppFactoryManager {
+ public:
+  using WindowAppFactoryManager::WindowAppFactoryManager;
+  WebPageBase* CreateWebPage(const std::string& /*win_type*/,
+                             const wam::Url& url,
+                             const ApplicationDescription& desc,
+                             const std::string& /*app_type*/,
+                             const std::string& launch_params) override {
+    WebAppManager::Instance()->PostRunningAppList();
+    // NOLINTNEXTLINE(cppcoreguidelines-owning-memory): the app owns it
+    auto* page = new WebPageBlink(url, desc, launch_params,
+                                  std::make_unique<NewViewFactory>());
+    page->Init();
+    WebAppManager::Instance()->PostRunningAppList();
+    return page;
+  }
+};
+
+// Every running list posted while an app launches has the app in it. Missing
+// from them, it was taken by sam for closed once the shell had reported the
+// app in front: sam dropped the instance, and the next launch made another.
+TEST_F(CreateWindowTest, LaunchedAppIsInEveryListPosted) {
+  std::vector<std::vector<std::string>> posts;
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<ListRecordingModules>(&posts));
+  WebAppManager::Instance()->SetWebAppFactory(
+      std::make_unique<PostingPageFactory>(&win_type_, &app_));
+
+  const std::string id = "d4d5716a-dee1-4441-afae-6174a5db1f960";
+  int err_code = 0;
+  std::string err_msg;
+  EXPECT_EQ(WebAppManager::Instance()->Launch(
+                kAppDesc, R"({"instanceId":")" + id + R"("})",
+                "com.webos.app.home", err_code, err_msg),
+            id);
+  ASSERT_NE(app_, nullptr);
+
+  ASSERT_FALSE(posts.empty());
+  for (const std::vector<std::string>& post : posts) {
+    EXPECT_THAT(post, testing::Contains(id));
+  }
+
+  CloseWindow();
+  WebAppManager::Instance()->SetPlatformModules(
+      std::make_unique<PlatformModuleFactoryImpl>());
+}

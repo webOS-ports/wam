@@ -205,15 +205,20 @@ class WindowAppMock : public WebAppBaseMock {
     WebAppBase::SetKeepAlive(keep_alive);  // NOLINT(bugprone-parent-virtual-call)
   }
   void ShowWindow() override { ++show_window_calls_; }
+  void Resize(int width, int height) override {
+    resizes_.emplace_back(width, height);
+  }
 
   void SetAddedToWindowManager() { added_to_window_mgr_ = true; }
   int ShowWindowCalls() const { return show_window_calls_; }
 
   WebPageBase* AttachedPage() const { return Page(); }
   const Properties& WindowProperties() const { return properties_; }
+  const std::vector<std::pair<int, int>>& Resizes() const { return resizes_; }
 
  private:
   Properties properties_;
+  std::vector<std::pair<int, int>> resizes_;
   int show_window_calls_ = 0;
 };
 
@@ -514,6 +519,44 @@ TEST_F(CreateWindowTest, PopupAlert) {
               UnorderedElementsAre(Pair("LuneOS_window", "popupalert")));
 }
 
+// The height a page asks for is in its own pixels, and the window is on the
+// panel: zoomed by the page's UI scale as the page is. The Clock's alarm popup
+// asks for 110; on the Q25 (1.6) a 110 px window cut off its buttons.
+TEST_F(CreateWindowTest, PopupHeightIsScaledLikeThePage) {
+  desc_ = ApplicationDescription::FromJsonString(
+      R"({"id":"com.example.opener","defaultWindowType":"card",)"
+      R"("main":"index.html","folderPath":"/usr/palm/applications/)"
+      R"(com.example.opener","trustLevel":"default","uiScale":1.6})");
+  ASSERT_TRUE(desc_);
+  opener_ = std::make_unique<WebPageBlink>(
+      wam::Url("file:///index.html"), *desc_, "{}",
+      std::make_unique<NewViewFactory>());
+  opener_->Init();
+
+  const WebView* view = opener_->CreateWindow(
+      "about:blank", std::make_unique<NewViewFactory>(), 110,
+      {R"(attributes={"window":"popupalert"})"});
+  ASSERT_NE(view, nullptr);
+  ASSERT_NE(app_, nullptr);
+  ASSERT_EQ(app_->Resizes().size(), 1U);
+  EXPECT_EQ(app_->Resizes()[0].second, 176);
+}
+
+// Unzoomed, the height is what the page asked for; and no height, no resize.
+TEST_F(CreateWindowTest, PopupHeightUnzoomed) {
+  const WebView* view = opener_->CreateWindow(
+      "about:blank", std::make_unique<NewViewFactory>(), 110,
+      {R"(attributes={"window":"popupalert"})"});
+  ASSERT_NE(view, nullptr);
+  ASSERT_NE(app_, nullptr);
+  ASSERT_EQ(app_->Resizes().size(), 1U);
+  EXPECT_EQ(app_->Resizes()[0].second, 110);
+
+  CloseWindow();
+  ASSERT_NO_FATAL_FAILURE(Open({R"(attributes={"window":"popupalert"})"}));
+  EXPECT_THAT(app_->Resizes(), IsEmpty());
+}
+
 // Calendar's reminder and a battery alert: the engine lowercases the features,
 // so the file name has to come back from the disk.
 TEST_F(CreateWindowTest, PopupSoundGetsItsCaseBack) {
@@ -567,14 +610,23 @@ TEST_F(CreateWindowTest, DashboardIsTransparent) {
   CloseWindow();
 
   for (const char* feature :
-       {R"(attributes={"window":"popupalert"})", R"(attributes={"window":"card"})",
-        R"(attributes={"name":"x"})"}) {
+       {R"(attributes={"window":"card"})", R"(attributes={"name":"x"})"}) {
     SCOPED_TRACE(feature);
     ASSERT_NO_FATAL_FAILURE(Open({feature}));
     EXPECT_FALSE(app_->AttachedPage()->GetAppDescription().IsTransparent());
     CloseWindow();
   }
   // The opener's own description is left as it was.
+  EXPECT_FALSE(opener_->GetAppDescription().IsTransparent());
+}
+
+// A popup alert's page goes on the shell's panel too.
+TEST_F(CreateWindowTest, PopupAlertIsTransparent) {
+  ASSERT_NO_FATAL_FAILURE(Open({R"(attributes={"window":"popupalert"})"}));
+  ASSERT_NE(app_->AttachedPage(), nullptr);
+  EXPECT_TRUE(app_->AttachedPage()->GetAppDescription().IsTransparent());
+  EXPECT_TRUE(app_->GetAppDescription()->IsTransparent());
+  CloseWindow();
   EXPECT_FALSE(opener_->GetAppDescription().IsTransparent());
 }
 

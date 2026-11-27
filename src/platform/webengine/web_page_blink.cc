@@ -1832,6 +1832,11 @@ WebView* WebPageBlink::CreateWindow(
     new_app_desc->SetTransparent(true);
   } else if (window == "popupalert") {
     new_app_desc->SetDefaultWindowType("system_ui");
+    // The same for a popup alert: the shell draws its panel (rounded, inset
+    // from the screen's edges) and the page goes on it. The Clock's alarm
+    // page has a transparent body for that; on #1D1D1D it was a square slab
+    // over the panel's corners.
+    new_app_desc->SetTransparent(true);
   }
 
   // Create a new page, with a factory associated with the new content.
@@ -1884,8 +1889,15 @@ WebView* WebPageBlink::CreateWindow(
     return nullptr;
   }
 
+  // The height window.open() asked for (enyo.windows.openPopup's, a popup
+  // alert's) is in the page's own pixels, and the page is drawn zoomed by its
+  // UI scale: the window is that much taller on the panel. Unscaled, the Q25
+  // (1.6) cut the Clock's 110 px alarm popup to the title, its Snooze and
+  // Dismiss buttons below the window's edge.
   if (height > 0) {
-    new_web_app->Resize(CurrentUiWidth(), height);
+    const long scaled = std::lround(height * page->UiScaleFactor());
+    new_web_app->Resize(CurrentUiWidth(),
+                        static_cast<int>(std::max(1L, scaled)));
   }
 
   if (!redirect_prefix.empty() || !redirect_pattern.empty()) {

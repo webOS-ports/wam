@@ -85,6 +85,10 @@ class WebAppManager {
 
   WebAppBase* FindAppById(const std::string& app_id);
   WebAppBase* FindAppByInstanceId(const std::string& instance_id);
+  // The window.open() windows that would be left without an app if |app|
+  // went: its app's windows, when |app| is the only instance of that app.
+  // Empty for a window.open() window itself.
+  std::vector<std::string> WindowsOnlyOpenedBy(const WebAppBase* app) const;
 
   std::string Launch(const std::string& app_desc_string,
                      const std::string& params,

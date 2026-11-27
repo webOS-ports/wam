@@ -1250,3 +1250,49 @@ TEST_F(CreateWindowTest, SignInWindowGetsNoneAfterARendererCrash) {
   EXPECT_EQ(window_has, SignInWindowRequests(3));
   CloseWindow();
 }
+
+// sam killing an app takes the app's window.open() windows with it. A noWindow
+// app's card is such a window (the Clock's main.html, opened by its headless
+// page): left open, it outlived its app, and the next launch of the app put a
+// second card beside it.
+TEST_F(CreateWindowTest, KillingTheAppClosesItsWindows) {
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  WebPageBlink* parent_page = KeepWindow();
+  WindowAppMock* parent = kept_.back();
+  // Made the app itself: a launched app has sam's instance id.
+  const std::string parent_id = "2fefbe44-8fa2-4af1-9f10-6637ad0767fc0";
+  parent->SetInstanceId(parent_id);
+  parent_page->SetInstanceId(parent_id);
+  ASSERT_FALSE(WebAppManager::IsWindowOpenInstanceId(parent_id));
+
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  const std::string window_id = app_->InstanceId();
+  ASSERT_TRUE(WebAppManager::IsWindowOpenInstanceId(window_id));
+  ASSERT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), app_);
+
+  EXPECT_TRUE(WebAppManager::Instance()->OnKillApp(parent->AppId(), parent_id,
+                                                   false));
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(parent_id), nullptr);
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), nullptr);
+  EXPECT_TRUE(app_->AttachedPage()->IsClosing());
+}
+
+// With another instance of the app running, whose a window is cannot be told
+// (WAM keeps no opener): the windows stay.
+TEST_F(CreateWindowTest, KillingOneOfTwoInstancesLeavesTheWindows) {
+  const std::string ids[] = {"2fefbe44-8fa2-4af1-9f10-6637ad0767fc0",
+                             "10d48cea-f904-4b8a-870d-d2d2b63fb56b0"};
+  for (const std::string& id : ids) {
+    ASSERT_NO_FATAL_FAILURE(Open({}));
+    WebPageBlink* page = KeepWindow();
+    kept_.back()->SetInstanceId(id);
+    page->SetInstanceId(id);
+  }
+  ASSERT_NO_FATAL_FAILURE(Open({}));
+  const std::string window_id = app_->InstanceId();
+
+  EXPECT_TRUE(WebAppManager::Instance()->OnKillApp(app_->AppId(), ids[0],
+                                                   false));
+  EXPECT_EQ(WebAppManager::Instance()->FindAppByInstanceId(window_id), app_);
+  EXPECT_FALSE(app_->AttachedPage()->IsClosing());
+}

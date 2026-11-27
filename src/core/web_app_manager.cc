@@ -258,12 +258,53 @@ bool WebAppManager::OnKillApp(const std::string& app_id,
     return false;
   }
 
+  // The app's windows go with it. Left open, a noWindow app's card (the
+  // Clock's main.html: a window.open() of its headless page) outlived its
+  // app: sam had no instance for it, so the next launch started another, and
+  // the card in front made sam think the new instance was up before it was.
+  // Ids, not pointers: closing the app may already take a window down.
+  const std::vector<std::string> windows = WindowsOnlyOpenedBy(app);
+
   if (force) {
     ForceCloseAppInternal(app);
   } else {
     CloseAppInternal(app);
   }
+
+  for (const std::string& window_id : windows) {
+    if (WebAppBase* window = FindAppByInstanceId(window_id)) {
+      LOG_INFO(MSGID_KILL_APP, 3, PMLOGKS("APP_ID", app_id.c_str()),
+               PMLOGKS("INSTANCE_ID", window_id.c_str()),
+               PMLOGKS("PARENT_INSTANCE_ID", instance_id.c_str()),
+               "closing a window of the killed app");
+      if (force) {
+        ForceCloseAppInternal(window);
+      } else {
+        CloseAppInternal(window);
+      }
+    }
+  }
   return true;
+}
+
+std::vector<std::string> WebAppManager::WindowsOnlyOpenedBy(
+    const WebAppBase* app) const {
+  std::vector<std::string> windows;
+  if (IsWindowOpenInstanceId(app->InstanceId())) {
+    return windows;
+  }
+  for (const WebAppBase* other : app_list_) {
+    if (other == app || other->AppId() != app->AppId()) {
+      continue;
+    }
+    if (!IsWindowOpenInstanceId(other->InstanceId())) {
+      // Another instance of the app: whose the windows are is not known
+      // (WAM keeps no opener), so they stay.
+      return {};
+    }
+    windows.push_back(other->InstanceId());
+  }
+  return windows;
 }
 
 bool WebAppManager::OnPauseApp(const std::string& instance_id) {

@@ -268,6 +268,20 @@ std::string Utf16ToUtf8(const std::u16string& utf16) {
   return out;
 }
 
+std::string TruncateUtf8(const std::string& utf8, size_t max_bytes) {
+  if (utf8.size() <= max_bytes) {
+    return utf8;
+  }
+  size_t end = max_bytes;
+  // Back up over continuation bytes to the start of the sequence that does
+  // not fit; it is left out whole.
+  while (end > 0 &&
+         (static_cast<unsigned char>(utf8[end]) & 0xC0) == 0x80) {
+    --end;
+  }
+  return utf8.substr(0, end);
+}
+
 std::u16string Utf8ToUtf16(const std::string& utf8) {
   std::u16string out;
   out.reserve(utf8.size());

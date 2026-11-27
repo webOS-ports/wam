@@ -25,6 +25,7 @@ set(SOURCES
     web_app_wayland.cc
     web_app_wayland_window.cc
     web_app_window_impl.cc
+    window_property.cc
     webengine/blink_web_process_manager.cc
     webengine/blink_web_view.cc
     webengine/blink_web_view_profile_helper.cc
@@ -53,6 +54,7 @@ set(HEADERS
     web_app_window.h
     web_app_window_factory.h
     web_app_window_impl.h
+    window_property.h
     webengine/blink_web_process_manager.h
     webengine/blink_web_view.h
     webengine/blink_web_view_profile_helper.h

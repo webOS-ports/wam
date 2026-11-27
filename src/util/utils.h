@@ -52,6 +52,10 @@ void ReplaceSubstr(std::string& in,
 std::string Utf16ToUtf8(const std::u16string& utf16);
 std::u16string Utf8ToUtf16(const std::string& utf8);
 
+// The longest prefix of |utf8| of at most |max_bytes| bytes that does not
+// end inside a multi-byte sequence.
+std::string TruncateUtf8(const std::string& utf8, size_t max_bytes);
+
 // JSON
 //
 // jsoncpp throws when it is handed something it cannot do: a value of the

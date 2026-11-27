@@ -256,3 +256,26 @@ TEST(UtilsTestSuite, utf16ToUtf8_UnpairedSurrogateIsReplaced) {
   EXPECT_EQ(util::Utf16ToUtf8(lone_high), "\xEF\xBF\xBD");
   EXPECT_EQ(util::Utf16ToUtf8(lone_low), "\xEF\xBF\xBD");
 }
+
+TEST(UtilsTestSuite, truncateUtf8_ShortIsKept) {
+  EXPECT_EQ(util::TruncateUtf8("", 4), "");
+  EXPECT_EQ(util::TruncateUtf8("abcd", 4), "abcd");
+  EXPECT_EQ(util::TruncateUtf8("abcdef", 4), "abcd");
+  EXPECT_EQ(util::TruncateUtf8("abc", 0), "");
+}
+
+TEST(UtilsTestSuite, truncateUtf8_DoesNotSplitASequence) {
+  // "a" then U+20AC (3 bytes) then U+1F600 (4 bytes).
+  const std::string s = "a\xE2\x82\xAC\xF0\x9F\x98\x80";
+  EXPECT_EQ(util::TruncateUtf8(s, 1), "a");
+  EXPECT_EQ(util::TruncateUtf8(s, 2), "a");
+  EXPECT_EQ(util::TruncateUtf8(s, 3), "a");
+  EXPECT_EQ(util::TruncateUtf8(s, 4), "a\xE2\x82\xAC");
+  EXPECT_EQ(util::TruncateUtf8(s, 7), "a\xE2\x82\xAC");
+  EXPECT_EQ(util::TruncateUtf8(s, 8), s);
+}
+
+TEST(UtilsTestSuite, truncateUtf8_StrayContinuationBytes) {
+  // Nothing but continuation bytes: nothing to keep whole.
+  EXPECT_EQ(util::TruncateUtf8("\x80\x80\x80\x80", 2), "");
+}

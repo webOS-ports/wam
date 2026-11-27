@@ -53,6 +53,7 @@ set(SOURCES
     web_app_manager_config_test.cc
     web_page_blink_test.cc
     web_process_created_test.cc
+    window_property_test.cc
     mocks/blink_web_process_manager_mock.cc
     mocks/platform_module_factory_impl_mock.cc
     mocks/web_app_factory_manager_mock.cc
